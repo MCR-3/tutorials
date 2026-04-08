@@ -1,0 +1,31 @@
+---
+title: "Introduction"
+description: "What these tutorials are about, what you'll learn, and what you need to get started."
+category: "getting-started"
+order: 1
+date: "2026-04-08"
+---
+
+Deep learning has a reputation for being either impenetrably mathematical or frustratingly hand-wavy. These tutorials aim for neither.
+
+The goal is simple: **understand what's actually happening**. Not just how to call `.fit()`, but what the framework is doing when you do. What a gradient is, how it flows, why the code is shaped the way it is.
+
+For that, we use [simplegrad](https://github.com/simplegrad/simplegrad) — a DL framework written to be read. Every layer, every gradient, every optimizer is written from scratch on NumPy, with clarity as the primary design goal.
+
+## What You'll Learn
+
+These tutorials build up from first principles:
+
+- **Basics** — math essentials: derivatives, vectors, matrix multiplication
+- **Autograd** — how automatic differentiation works, how a computation graph is built and traversed
+- **Building blocks** — what a linear layer actually does, what convolution computes, what an embedding table is
+- **Training** — loss functions, optimizers, the training loop
+- **Architectures** — convolutional networks, attention, transformers
+
+No tutorial requires you to memorize a formula. But by the end, you should be able to read the simplegrad source and understand every line.
+
+## What You Need
+
+Basic Python. Some familiarity with linear algebra (matrix multiplication, dot products). Curiosity about how things work. That's it.
+
+You don't need to have studied calculus formally — we'll cover the one piece of it that actually matters in the next article.

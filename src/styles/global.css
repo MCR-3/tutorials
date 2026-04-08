@@ -1,0 +1,248 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+
+@theme {
+  /* Core palette */
+  --color-bg:           #F5F5F5;
+  --color-fg:           #151718;
+  --color-white:        #ffffff;
+
+  /* Brand accents */
+  --color-green:        #34B87E;
+  --color-green-dark:   #2da870;
+  --color-blue:         #4474B8;
+
+  /* Tutorial accents */
+  --color-pink:         #F5A4C6;
+  --color-yellow:       #FEBA14;
+  --color-orange:       #F35C2D;
+
+  /* Fonts — wired to Next.js font CSS variables set in layout.tsx */
+  --font-sans:          var(--font-jakarta), system-ui, sans-serif;
+  --font-mono:          var(--font-jetbrains), "Courier New", monospace;
+}
+
+/* ─── Semantic Aliases (for direct CSS use with var()) ───────── */
+
+:root {
+  --border:             rgba(21, 23, 24, 0.11);
+  --border-strong:      rgba(21, 23, 24, 0.35);
+  --muted:              rgba(21, 23, 24, 0.48);
+  --surface-hover:      rgba(21, 23, 24, 0.04);
+  --bg-glass:           rgba(245, 245, 245, 0.88);
+  --dot-pattern:        rgba(21, 23, 24, 0.15);
+  --btn-border:         rgba(21, 23, 24, 0.2);
+  --btn-border-hover:   rgba(21, 23, 24, 0.45);
+  --btn-bg-hover:       rgba(21, 23, 24, 0.03);
+
+  /* Font roles — single source of truth */
+  --font-heading:       var(--font-mono);   /* JetBrains Mono 700/800 */
+  --font-body:          var(--font-sans);   /* Plus Jakarta Sans */
+  --font-code:          var(--font-mono);   /* JetBrains Mono 400/500 */
+  /* Math equations use KaTeX's own font (set automatically) */
+}
+
+/* ─── Base Styles ────────────────────────────────────────────── */
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── MDX Article Typography ─────────────────────────────────── */
+
+.prose {
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 680px;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+
+.prose h1 { font-size: 2rem; margin-top: 0; }
+.prose h2 { font-size: 1.4rem; }
+.prose h3 { font-size: 1.15rem; font-weight: 700; }
+
+.prose p { margin-bottom: 1.25em; }
+
+.prose a {
+  color: var(--color-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose a:hover { color: var(--color-green); }
+
+.prose strong { font-weight: 700; }
+.prose em { font-style: italic; }
+
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.25em;
+}
+.prose ul { list-style-type: disc; }
+.prose ol { list-style-type: decimal; }
+.prose li { margin-bottom: 0.35em; }
+
+/* Inline code */
+.prose code {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  font-weight: 500;
+  background: rgba(21, 23, 24, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+/* Code blocks */
+.prose pre {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  font-weight: 400;
+  background: var(--color-fg);
+  color: var(--color-bg);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  line-height: 1.6;
+}
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Block math */
+.prose .math-display {
+  overflow-x: auto;
+  margin: 1.5em 0;
+  padding: 0.5em 0;
+}
+
+/* Blockquote */
+.prose blockquote {
+  border-left: 3px solid var(--color-green);
+  padding-left: 1em;
+  color: var(--muted);
+  margin: 1.5em 0;
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+/* ─── Syntax Highlighted Code Blocks ────────────────────────── */
+
+/* rehype-pretty-code: static code fences (```python etc.) */
+[data-rehype-pretty-code-figure] {
+  margin: 1.5em 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+[data-rehype-pretty-code-figure] pre {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.6;
+  border-radius: 0;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  margin: 0;
+  background-color: var(--color-fg) !important;
+}
+
+[data-rehype-pretty-code-figure] code {
+  background: none !important;
+  border: none !important;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Code component (framework-switched blocks): pre inside .code-inner */
+.code-inner pre {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.6;
+  border-radius: 0;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  margin: 0;
+  background-color: transparent !important; /* outer wrapper provides bg */
+}
+
+.code-inner code {
+  background: none !important;
+  border: none !important;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Token highlight line */
+[data-highlighted-line] {
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 -1.5rem;
+  padding: 0 1.5rem;
+}
+
+/* Fade-in when framework variant changes (key prop triggers re-mount) */
+@keyframes codeSwitch {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+.code-inner {
+  animation: codeSwitch 0.12s ease both;
+}
+
+/* ─── Scroll Reveal Animation ────────────────────────────────── */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.45s ease both;
+}

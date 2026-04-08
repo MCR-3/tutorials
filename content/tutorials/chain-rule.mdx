@@ -1,0 +1,124 @@
+---
+title: "The Chain Rule"
+description: "The one formula that makes all of deep learning possible — and why every DL framework is built around it."
+category: "autograd"
+order: 1
+date: "2026-04-09"
+---
+
+Every training step in every DL framework — PyTorch, JAX, simplegrad — ultimately reduces to one rule from calculus: **the chain rule**.
+
+Here it is. If $z$ depends on $y$, and $y$ depends on $x$, then:
+
+$$
+\frac{\partial z}{\partial x} = \frac{\partial z}{\partial y} \cdot \frac{\partial y}{\partial x}
+$$
+
+That's it. That's the engine. Everything else is application.
+
+## What It Means
+
+The chain rule tells you how to compute the gradient of a composed function. If you have a sequence of operations, you can find how a change in the input affects the output by multiplying the local derivatives at each step.
+
+Think of a two-operation pipeline:
+
+$$
+x \xrightarrow{f} y \xrightarrow{g} z
+$$
+
+The derivative of the final output $z$ with respect to the initial input $x$ is:
+
+$$
+\frac{\partial z}{\partial x} = \frac{\partial z}{\partial y} \cdot \frac{\partial y}{\partial x}
+= g'(y) \cdot f'(x)
+$$
+
+You multiply the derivatives together, right to left.
+
+## A Concrete Example
+
+Let's say:
+
+$$
+f(x) = x^2, \quad g(y) = 3y + 1
+$$
+
+So:
+
+$$
+z = g(f(x)) = 3x^2 + 1
+$$
+
+The derivatives are:
+
+$$
+\frac{\partial y}{\partial x} = f'(x) = 2x, \qquad \frac{\partial z}{\partial y} = g'(y) = 3
+$$
+
+Applying the chain rule:
+
+$$
+\frac{\partial z}{\partial x} = 3 \cdot 2x = 6x
+$$
+
+Which matches what you'd get differentiating $3x^2 + 1$ directly.
+
+## Why This Matters for Neural Networks
+
+A neural network is a composition of functions. A simple two-layer network looks like:
+
+$$
+\hat{y} = \sigma\bigl(W_2 \cdot \sigma(W_1 \cdot x + b_1) + b_2\bigr)
+$$
+
+where $\sigma$ is some activation function (like ReLU). Training means finding weights $W_1, W_2, b_1, b_2$ that minimize some loss $\mathcal{L}(\hat{y}, y)$.
+
+To do that with gradient descent, we need:
+
+$$
+\frac{\partial \mathcal{L}}{\partial W_1}, \quad \frac{\partial \mathcal{L}}{\partial W_2}, \quad \frac{\partial \mathcal{L}}{\partial b_1}, \quad \frac{\partial \mathcal{L}}{\partial b_2}
+$$
+
+The chain rule gives us all of them. We start from the loss, move backwards through the network, and at each layer we multiply by the local derivative. This is **backpropagation** — it's the chain rule, applied recursively.
+
+## The General Form
+
+For a chain of $n$ functions $f_1, f_2, \ldots, f_n$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial h_n} \cdot \frac{\partial h_n}{\partial h_{n-1}} \cdots \frac{\partial h_2}{\partial h_1} \cdot \frac{\partial h_1}{\partial x}
+$$
+
+Each $\frac{\partial h_{k+1}}{\partial h_k}$ is a **local gradient** — the derivative of that specific operation. The autograd engine computes these automatically and accumulates them.
+
+In simplegrad, every operation on a `Tensor` stores its own backward function. When you call `.backward()`, the engine walks the computation graph in reverse and applies exactly this formula.
+
+---
+
+## Seeing It Run
+
+Here's the minimal example. A 2-element input, a weight matrix, a mean reduction, then `.backward()`. After that, `x.grad` holds $\frac{\partial y}{\partial x}$ — computed entirely via the chain rule:
+
+```simplegrad
+import simplegrad as sg
+
+x = sg.Tensor([[1.0, 2.0]])
+w = sg.Tensor([[0.5], [-0.5]])
+y = sg.mean(x @ w)
+y.backward()
+
+print(x.grad)  # [[0.25, -0.25]]
+```
+
+```pytorch
+import torch
+
+x = torch.tensor([[1.0, 2.0]], requires_grad=True)
+w = torch.tensor([[0.5], [-0.5]], requires_grad=True)
+y = (x @ w).mean()
+y.backward()
+
+print(x.grad)  # tensor([[0.2500, -0.2500]])
+```
+
+Same numbers, same math. In the next article we'll open up simplegrad's autograd engine and see exactly how it gets there.
