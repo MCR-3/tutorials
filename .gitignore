@@ -5,9 +5,6 @@ node_modules
 .next
 out
 
-# Bun
-bun.lock
-
 # environment variables
 .env
 .env.local
