@@ -12,7 +12,10 @@ export function FrameworkToggle() {
   const { framework, setFramework } = useFramework();
 
   return (
-    <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+    <div
+      className="px-4 py-3"
+      style={{ borderBottom: "1px solid var(--border)" }}
+    >
       <p
         className="mb-2 uppercase tracking-wider"
         style={{

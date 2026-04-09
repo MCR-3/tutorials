@@ -33,9 +33,15 @@ export function TutorialLineChart({
   return (
     <div className="my-6">
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+        <LineChart
+          data={data}
+          margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey={xKey} tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }} />
+          <XAxis
+            dataKey={xKey}
+            tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+          />
           <YAxis tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }} />
           <Tooltip
             contentStyle={{
@@ -75,9 +81,15 @@ export function TutorialBarChart({
   return (
     <div className="my-6">
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+        <BarChart
+          data={data}
+          margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey={xKey} tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }} />
+          <XAxis
+            dataKey={xKey}
+            tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+          />
           <YAxis tick={{ fontFamily: "var(--font-mono)", fontSize: 12 }} />
           <Tooltip
             contentStyle={{
@@ -88,7 +100,11 @@ export function TutorialBarChart({
               background: "var(--color-white)",
             }}
           />
-          <Bar dataKey={dataKey} fill={color ?? "var(--color-green)"} radius={[3, 3, 0, 0]} />
+          <Bar
+            dataKey={dataKey}
+            fill={color ?? "var(--color-green)"}
+            radius={[3, 3, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

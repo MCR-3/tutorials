@@ -90,7 +90,13 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
             priority
           />
         </Link>
-        <span style={{ color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
+        <span
+          style={{
+            color: "var(--muted)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.85rem",
+          }}
+        >
           /
         </span>
         <Link

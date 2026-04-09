@@ -5,42 +5,42 @@
 
 @theme {
   /* Core palette */
-  --color-bg:           #F5F5F5;
-  --color-fg:           #151718;
-  --color-white:        #ffffff;
+  --color-bg: #f5f5f5;
+  --color-fg: #151718;
+  --color-white: #ffffff;
 
   /* Brand accents */
-  --color-green:        #34B87E;
-  --color-green-dark:   #2da870;
-  --color-blue:         #4474B8;
+  --color-green: #34b87e;
+  --color-green-dark: #2da870;
+  --color-blue: #4474b8;
 
   /* Tutorial accents */
-  --color-pink:         #F5A4C6;
-  --color-yellow:       #FEBA14;
-  --color-orange:       #F35C2D;
+  --color-pink: #f5a4c6;
+  --color-yellow: #feba14;
+  --color-orange: #f35c2d;
 
   /* Fonts — wired to Next.js font CSS variables set in layout.tsx */
-  --font-sans:          var(--font-jakarta), system-ui, sans-serif;
-  --font-mono:          var(--font-jetbrains), "Courier New", monospace;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "Courier New", monospace;
 }
 
 /* ─── Semantic Aliases (for direct CSS use with var()) ───────── */
 
 :root {
-  --border:             rgba(21, 23, 24, 0.11);
-  --border-strong:      rgba(21, 23, 24, 0.35);
-  --muted:              rgba(21, 23, 24, 0.48);
-  --surface-hover:      rgba(21, 23, 24, 0.04);
-  --bg-glass:           rgba(245, 245, 245, 0.88);
-  --dot-pattern:        rgba(21, 23, 24, 0.15);
-  --btn-border:         rgba(21, 23, 24, 0.2);
-  --btn-border-hover:   rgba(21, 23, 24, 0.45);
-  --btn-bg-hover:       rgba(21, 23, 24, 0.03);
+  --border: rgba(21, 23, 24, 0.11);
+  --border-strong: rgba(21, 23, 24, 0.35);
+  --muted: rgba(21, 23, 24, 0.48);
+  --surface-hover: rgba(21, 23, 24, 0.04);
+  --bg-glass: rgba(245, 245, 245, 0.88);
+  --dot-pattern: rgba(21, 23, 24, 0.15);
+  --btn-border: rgba(21, 23, 24, 0.2);
+  --btn-border-hover: rgba(21, 23, 24, 0.45);
+  --btn-bg-hover: rgba(21, 23, 24, 0.03);
 
   /* Font roles — single source of truth */
-  --font-heading:       var(--font-mono);   /* JetBrains Mono 700/800 */
-  --font-body:          var(--font-sans);   /* Plus Jakarta Sans */
-  --font-code:          var(--font-mono);   /* JetBrains Mono 400/500 */
+  --font-heading: var(--font-mono); /* JetBrains Mono 700/800 */
+  --font-body: var(--font-sans); /* Plus Jakarta Sans */
+  --font-code: var(--font-mono); /* JetBrains Mono 400/500 */
   /* Math equations use KaTeX's own font (set automatically) */
 }
 
@@ -81,30 +81,52 @@ html {
   margin-bottom: 0.6em;
 }
 
-.prose h1 { font-size: 2rem; margin-top: 0; }
-.prose h2 { font-size: 1.4rem; }
-.prose h3 { font-size: 1.15rem; font-weight: 700; }
+.prose h1 {
+  font-size: 2rem;
+  margin-top: 0;
+}
+.prose h2 {
+  font-size: 1.4rem;
+}
+.prose h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
 
-.prose p { margin-bottom: 1.25em; }
+.prose p {
+  margin-bottom: 1.25em;
+}
 
 .prose a {
   color: var(--color-blue);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.prose a:hover { color: var(--color-green); }
+.prose a:hover {
+  color: var(--color-green);
+}
 
-.prose strong { font-weight: 700; }
-.prose em { font-style: italic; }
+.prose strong {
+  font-weight: 700;
+}
+.prose em {
+  font-style: italic;
+}
 
 .prose ul,
 .prose ol {
   padding-left: 1.5em;
   margin-bottom: 1.25em;
 }
-.prose ul { list-style-type: disc; }
-.prose ol { list-style-type: decimal; }
-.prose li { margin-bottom: 0.35em; }
+.prose ul {
+  list-style-type: disc;
+}
+.prose ol {
+  list-style-type: decimal;
+}
+.prose li {
+  margin-bottom: 0.35em;
+}
 
 /* Inline code */
 .prose code {
@@ -223,8 +245,12 @@ html {
 
 /* Fade-in when framework variant changes (key prop triggers re-mount) */
 @keyframes codeSwitch {
-  from { opacity: 0.55; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .code-inner {
   animation: codeSwitch 0.12s ease both;

@@ -8,13 +8,13 @@ Tutorials cover deep learning concepts at a practical level — enough to unders
 
 ## Ecosystem
 
-| Site | URL |
-|---|---|
-| Landing page | https://simplegrad.org |
-| Documentation | https://docs.simplegrad.org |
-| Tutorials (this project) | https://tutorials.simplegrad.org |
-| GitHub | https://github.com/simplegrad/simplegrad |
-| Contact | contact@simplegrad.org |
+| Site                     | URL                                      |
+| ------------------------ | ---------------------------------------- |
+| Landing page             | https://simplegrad.org                   |
+| Documentation            | https://docs.simplegrad.org              |
+| Tutorials (this project) | https://tutorials.simplegrad.org         |
+| GitHub                   | https://github.com/simplegrad/simplegrad |
+| Contact                  | contact@simplegrad.org                   |
 
 ## Stack
 
@@ -47,40 +47,40 @@ All design tokens live **only** in `src/styles/global.css` as CSS custom propert
 /* src/styles/global.css */
 :root {
   /* Background / foreground */
-  --bg:              #F5F5F5;
-  --fg:              #151718;
-  --white:           #ffffff;
+  --bg: #f5f5f5;
+  --fg: #151718;
+  --white: #ffffff;
 
   /* Borders */
-  --border:          rgba(21,23,24,0.11);
-  --border-strong:   rgba(21,23,24,0.35);
+  --border: rgba(21, 23, 24, 0.11);
+  --border-strong: rgba(21, 23, 24, 0.35);
 
   /* Secondary text */
-  --muted:           rgba(21,23,24,0.48);
+  --muted: rgba(21, 23, 24, 0.48);
 
   /* Interactive surfaces */
-  --surface-hover:   rgba(21,23,24,0.04);
-  --bg-glass:        rgba(245,245,245,0.88);
+  --surface-hover: rgba(21, 23, 24, 0.04);
+  --bg-glass: rgba(245, 245, 245, 0.88);
 
   /* Button tokens */
-  --btn-border:      rgba(21,23,24,0.2);
-  --btn-border-hover: rgba(21,23,24,0.45);
-  --btn-bg-hover:    rgba(21,23,24,0.03);
+  --btn-border: rgba(21, 23, 24, 0.2);
+  --btn-border-hover: rgba(21, 23, 24, 0.45);
+  --btn-bg-hover: rgba(21, 23, 24, 0.03);
 
   /* Primary accent — simplegrad green */
-  --green:           #34B87E;
-  --green-dark:      #2da870;
+  --green: #34b87e;
+  --green-dark: #2da870;
 
   /* Secondary accent */
-  --blue:            #4474B8;
+  --blue: #4474b8;
 
   /* Tutorial accent palette */
-  --pink:            #F5A4C6;
-  --yellow:          #FEBA14;
-  --orange:          #F35C2D;
+  --pink: #f5a4c6;
+  --yellow: #feba14;
+  --orange: #f35c2d;
 
   /* Dot pattern */
-  --dot-pattern:     rgba(21,23,24,0.15);
+  --dot-pattern: rgba(21, 23, 24, 0.15);
 }
 ```
 
@@ -88,12 +88,12 @@ All design tokens live **only** in `src/styles/global.css` as CSS custom propert
 
 **Strict font management — 4 roles, no mixing.**
 
-| Role | Font | Weights / Notes |
-|---|---|---|
-| Headings | JetBrains Mono | 700, 800 |
-| Body / UI | Plus Jakarta Sans | variable `wght@200..800` |
-| Code blocks | JetBrains Mono | 400, 500 — smaller size, normal weight |
-| Math equations | KaTeX default font | set automatically by KaTeX |
+| Role           | Font               | Weights / Notes                        |
+| -------------- | ------------------ | -------------------------------------- |
+| Headings       | JetBrains Mono     | 700, 800                               |
+| Body / UI      | Plus Jakarta Sans  | variable `wght@200..800`               |
+| Code blocks    | JetBrains Mono     | 400, 500 — smaller size, normal weight |
+| Math equations | KaTeX default font | set automatically by KaTeX             |
 
 - Reference fonts via CSS variables (`--font-heading`, `--font-body`, `--font-code`) — never hardcode font names.
 - Use inline `style={{ fontFamily: "var(--font-heading)", fontWeight: 800 }}` for headings in JSX — more reliable than Tailwind `font-*` class names for explicit weights.
@@ -117,10 +117,10 @@ Not sticky. Logo left (link to simplegrad.org), site name right + GitHub icon. S
 
 ### Buttons
 
-| Class | Background | Border | Text |
-|---|---|---|---|
-| `.btn-primary` | `--green` | `--green` | `--white` |
-| `.btn-outline` | `--white` | `--btn-border` | `--fg` |
+| Class          | Background | Border         | Text      |
+| -------------- | ---------- | -------------- | --------- |
+| `.btn-primary` | `--green`  | `--green`      | `--white` |
+| `.btn-outline` | `--white`  | `--btn-border` | `--fg`    |
 
 ### Animations
 
@@ -184,14 +184,14 @@ x = torch.tensor([[1.0, 2.0]])
 ```
 ````
 
-The two fences must be consecutive. Order doesn't matter (sg-first or pt-first both work). To specify a different highlight language add it after the framework name: `` ```simplegrad javascript ``.
+The two fences must be consecutive. Order doesn't matter (sg-first or pt-first both work). To specify a different highlight language add it after the framework name: ` ```simplegrad javascript `.
 
 ### Charts (Recharts)
 
 Import and use directly inside `.mdx`:
 
 ```mdx
-import { LineChart, Line, XAxis, YAxis } from 'recharts'
+import { LineChart, Line, XAxis, YAxis } from "recharts";
 
 <LineChart data={data} width={600} height={300}>
   <Line type="monotone" dataKey="loss" stroke="var(--green)" />

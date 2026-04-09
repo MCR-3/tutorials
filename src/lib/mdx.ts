@@ -12,9 +12,10 @@ export type Frontmatter = {
   date?: string;
 };
 
-export function getTutorial(
-  slug: string
-): { frontmatter: Frontmatter; content: string } {
+export function getTutorial(slug: string): {
+  frontmatter: Frontmatter;
+  content: string;
+} {
   const filePath = path.join(CONTENT_DIR, `${slug}.mdx`);
   const raw = readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);

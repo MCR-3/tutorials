@@ -19,7 +19,9 @@ export function CodeSwitcher({ sgHtml, ptHtml, hasBoth }: Props) {
   const { framework, setFramework } = useFramework();
 
   const html = hasBoth
-    ? framework === "pytorch" ? ptHtml : sgHtml
+    ? framework === "pytorch"
+      ? ptHtml
+      : sgHtml
     : sgHtml || ptHtml;
 
   return (

@@ -27,13 +27,16 @@ function attr(name: string, value: string): MdxJsxAttribute {
 }
 
 function codeElement(attrs: MdxJsxAttribute[]): MdxJsxFlowElement {
-  return { type: "mdxJsxFlowElement", name: "Code", attributes: attrs, children: [] };
+  return {
+    type: "mdxJsxFlowElement",
+    name: "Code",
+    attributes: attrs,
+    children: [],
+  };
 }
 
 function frameworkLang(lang: string): string {
-  return lang
-    .replace(/^(?:simplegrad|pytorch)\s*/, "")
-    .trim() || "python";
+  return lang.replace(/^(?:simplegrad|pytorch)\s*/, "").trim() || "python";
 }
 
 export function remarkCodeGroups() {
@@ -47,13 +50,19 @@ export function remarkCodeGroups() {
 
       while (i < children.length) {
         const cur = children[i];
-        if (cur.type !== "code") { i++; continue; }
+        if (cur.type !== "code") {
+          i++;
+          continue;
+        }
 
         const curLang = cur.lang ?? "";
         const isSg = curLang.startsWith("simplegrad");
         const isPt = curLang.startsWith("pytorch");
 
-        if (!isSg && !isPt) { i++; continue; }
+        if (!isSg && !isPt) {
+          i++;
+          continue;
+        }
 
         const nxt = children[i + 1];
         const nxtLang = nxt?.lang ?? "";
@@ -68,19 +77,27 @@ export function remarkCodeGroups() {
           const lang = frameworkLang(sgNode.lang ?? "");
 
           // @ts-expect-error — splice in MdxJsxFlowElement into a Code[] array
-          children.splice(i, 2, codeElement([
-            attr("sg", sgNode.value),
-            attr("pt", ptNode.value),
-            attr("lang", lang),
-          ]));
+          children.splice(
+            i,
+            2,
+            codeElement([
+              attr("sg", sgNode.value),
+              attr("pt", ptNode.value),
+              attr("lang", lang),
+            ])
+          );
           // Don't advance i — re-check from the same position
         } else {
           const lang = frameworkLang(curLang);
           // @ts-expect-error — splice in MdxJsxFlowElement
-          children.splice(i, 1, codeElement([
-            attr(isSg ? "sg" : "pt", cur.value),
-            attr("lang", lang),
-          ]));
+          children.splice(
+            i,
+            1,
+            codeElement([
+              attr(isSg ? "sg" : "pt", cur.value),
+              attr("lang", lang),
+            ])
+          );
           i++;
         }
       }

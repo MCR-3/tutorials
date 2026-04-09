@@ -83,7 +83,5 @@ export function getArticlePath(slug: string): string {
 }
 
 export function findArticle(slug: string): Article | undefined {
-  return navigation
-    .flatMap((t) => t.articles)
-    .find((a) => a.slug === slug);
+  return navigation.flatMap((t) => t.articles).find((a) => a.slug === slug);
 }

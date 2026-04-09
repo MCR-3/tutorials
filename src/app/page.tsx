@@ -21,9 +21,14 @@ export default function HomePage() {
         >
           Deep learning,
           <br />
-          <span style={{ color: "var(--color-green)" }}>built to understand.</span>
+          <span style={{ color: "var(--color-green)" }}>
+            built to understand.
+          </span>
         </h1>
-        <p className="text-base leading-relaxed mb-6" style={{ color: "var(--muted)" }}>
+        <p
+          className="text-base leading-relaxed mb-6"
+          style={{ color: "var(--muted)" }}
+        >
           Practical tutorials covering how deep learning frameworks actually
           work — no hand-waving, no black boxes. From autograd to transformers,
           with real code in{" "}
@@ -109,7 +114,10 @@ export default function HomePage() {
       </div>
 
       {/* Footer note */}
-      <div className="mt-16 pt-8" style={{ borderTop: "1px solid var(--border)" }}>
+      <div
+        className="mt-16 pt-8"
+        style={{ borderTop: "1px solid var(--border)" }}
+      >
         <p className="text-xs" style={{ color: "var(--muted)" }}>
           {totalArticles} article{totalArticles !== 1 ? "s" : ""} published ·{" "}
           <Link
