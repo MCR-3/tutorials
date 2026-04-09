@@ -76,8 +76,8 @@ export function remarkCodeGroups() {
           const ptNode = isSg ? nxt : cur;
           const lang = frameworkLang(sgNode.lang ?? "");
 
-          // @ts-expect-error — splice in MdxJsxFlowElement into a Code[] array
-          children.splice(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (children as any[]).splice(
             i,
             2,
             codeElement([
@@ -89,8 +89,8 @@ export function remarkCodeGroups() {
           // Don't advance i — re-check from the same position
         } else {
           const lang = frameworkLang(curLang);
-          // @ts-expect-error — splice in MdxJsxFlowElement
-          children.splice(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (children as any[]).splice(
             i,
             1,
             codeElement([

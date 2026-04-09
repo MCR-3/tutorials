@@ -17,7 +17,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 const DESCRIPTION =
-  "Practical deep learning tutorials — understand how DL frameworks work and how to build convnets, transformers, and more.";
+  "Practical deep learning tutorials: understand how DL frameworks work and how to build convnets, transformers, and more.";
 
 export const metadata: Metadata = {
   title: {
