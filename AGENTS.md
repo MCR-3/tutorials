@@ -1,4 +1,4 @@
-# tutorials.simplegrad.org — CLAUDE.md
+# tutorials.simplegrad.org — AGENTS.md
 
 ## Project
 
