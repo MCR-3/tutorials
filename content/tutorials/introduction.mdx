@@ -10,22 +10,58 @@ Deep learning has a reputation for being either impenetrably mathematical or fru
 
 The goal is simple: **understand what's actually happening**. Not just how to call `.fit()`, but what the framework is doing when you do. What a gradient is, how it flows, why the code is shaped the way it is.
 
-For that, we use [simplegrad](https://github.com/simplegrad/simplegrad) — a DL framework written to be read. Every layer, every gradient, every optimizer is written from scratch on NumPy, with clarity as the primary design goal.
+For that, we use [simplegrad](https://github.com/simplegrad/simplegrad) — a deep learning framework written to be read. Every layer, every gradient, every optimizer is implemented from scratch on NumPy, with clarity as the primary design goal.
+
+## The Plan
+
+These tutorials have one concrete endpoint: **re-implement GPT-2 from scratch**, understanding every single line. Not as a magic trick — as a logical consequence of everything that came before.
+
+To get there, we build up from the very bottom:
+
+$$
+\begin{array}{c}
+\text{vectors} \\[2pt]
+\downarrow \\[2pt]
+\text{gradients} \\[2pt]
+\downarrow \\[2pt]
+\text{backprop} \\[2pt]
+\downarrow \\[2pt]
+\text{training} \\[2pt]
+\downarrow \\[2pt]
+\text{CNNs} \\[2pt]
+\downarrow \\[2pt]
+\text{RNNs} \\[2pt]
+\downarrow \\[2pt]
+\text{Transformers} \\[2pt]
+\downarrow \\[2pt]
+\textbf{GPT-2}
+\end{array}
+$$
+
+Each chapter is a self-contained step. No hand-waving, no "trust the framework" — if something happens, we explain why.
 
 ## What You'll Learn
 
-These tutorials build up from first principles:
+**Math Foundations** — Vectors, matrices, derivatives, gradients. The handful of concepts that show up everywhere in deep learning, explained geometrically before algebraically.
 
-- **Basics** — math essentials: derivatives, vectors, matrix multiplication
-- **Autograd** — how automatic differentiation works, how a computation graph is built and traversed
-- **Building blocks** — what a linear layer actually does, what convolution computes, what an embedding table is
-- **Training** — loss functions, optimizers, the training loop
-- **Architectures** — convolutional networks, attention, transformers
+**Autograd** — How automatic differentiation works under the hood. The chain rule, computation graphs, and backpropagation — the engine that powers every modern DL framework.
 
-No tutorial requires you to memorize a formula. But by the end, you should be able to read the simplegrad source and understand every line.
+**Training** — Loss functions, gradient descent, optimizers (SGD, Momentum, Adam), and the training loop. How a network actually learns from data.
+
+**Building Blocks** — Activation functions, linear layers, regularization. The primitives every architecture is made of.
+
+**Convolutional Networks** — How CNNs detect features in images, how convolution is implemented efficiently, and how to train a digit classifier on MNIST.
+
+**Recurrent Networks** — RNNs, LSTMs, GRUs. What it means for a network to have memory, and why sequential architectures struggle at scale.
+
+**Transformers** — Embeddings, positional encoding, attention, multi-head attention, transformer blocks. The architecture that replaced RNNs for nearly every sequence task.
+
+**GPT-2 from Scratch** — Assembling every piece into a working autoregressive language model, in simplegrad, line by line.
+
+No tutorial requires you to memorize a formula. But by the end, you should be able to read the simplegrad source, and GPT-2's original implementation, and understand every line.
 
 ## What You Need
 
-Basic Python. Some familiarity with linear algebra (matrix multiplication, dot products). Curiosity about how things work. That's it.
+Basic Python. Some intuition for vectors and matrices (nothing formal). Curiosity about how things work. That's it.
 
-You don't need to have studied calculus formally — we'll cover the one piece of it that actually matters in the next article.
+Calculus is not a prerequisite ! We introduce derivatives from scratch in the Math Foundations chapter, starting from the geometric intuition.
