@@ -1,0 +1,195 @@
+---
+title: "Vectors & Dot Product"
+description: "The geometry of deep learning — what vectors are, how to operate on them, and why the dot product is everywhere."
+category: "math-foundations"
+order: 1
+date: "2026-04-27"
+---
+
+Almost everything in deep learning is a vector operation. Inputs are vectors. Weights are vectors. Gradients are vectors. The first thing to understand, then, is what a vector actually is, and what you can do with one.
+
+## What Is a Vector?
+
+A vector is a list of numbers. That's the algebraic view. But the geometric view is more useful: a vector is an **arrow in space**, defined by a direction and a magnitude.
+
+In 2D, the vector $\mathbf{v} = [3, 2]$ points 3 units right and 2 units up:
+
+$$
+\mathbf{v} = \begin{bmatrix} 3 \\ 2 \end{bmatrix}
+$$
+
+<VectorDiagram />
+
+The two views are equivalent, the numbers tell you where the arrow points. But the arrow is what builds intuition.
+
+In deep learning, vectors live in much higher dimensions (hundreds, thousands), so we can't draw them. The geometric intuition still applies though, we just stop trying to visualize and start reasoning about properties like direction and distance.
+
+## Basic Operations
+
+### Addition
+
+Adding two vectors adds their components:
+
+$$
+\begin{bmatrix} 1 \\ 2 \end{bmatrix} + \begin{bmatrix} 3 \\ -1 \end{bmatrix} = \begin{bmatrix} 4 \\ 1 \end{bmatrix}
+$$
+
+Geometrically, this is placing the two arrows head-to-tail. The result is the arrow from the start of the first to the end of the second.
+
+<VectorAdditionDiagram />
+
+### Scalar Multiplication
+
+Multiplying a vector by a scalar stretches or shrinks it:
+
+$$
+2 \cdot \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} 2 \\ 6 \end{bmatrix}
+$$
+
+The direction stays the same. Only the length changes. (A negative scalar flips the direction.)
+
+### Magnitude
+
+The **magnitude** (or norm) of a vector is its length, the straight-line distance from the origin to its tip:
+
+$$
+\|\mathbf{v}\| = \sqrt{v_1^2 + v_2^2 + \cdots + v_n^2}
+$$
+
+For $\mathbf{v} = [3, 4]$: $\|\mathbf{v}\| = \sqrt{9 + 16} = 5$.
+
+A vector with magnitude 1 is called a **unit vector**. You can normalize any vector by dividing by its magnitude: $\hat{\mathbf{v}} = \mathbf{v} / \|\mathbf{v}\|$.
+
+Why does that work? Take $\mathbf{v} = [3, 4]$, so $\|\mathbf{v}\| = 5$. Dividing gives:
+
+$$
+\hat{\mathbf{v}} = \frac{1}{5}\begin{bmatrix}3\\4\end{bmatrix} = \begin{bmatrix}0.6\\0.8\end{bmatrix}
+$$
+
+Check the norm:
+
+$$
+\|\hat{\mathbf{v}}\| = \sqrt{0.6^2 + 0.8^2} = \sqrt{0.36 + 0.64} = \sqrt{1} = 1
+$$
+
+In general, dividing each component by $\|\mathbf{v}\|$ factors out $1/\|\mathbf{v}\|$ from the norm formula, which cancels exactly:
+
+$$
+\left\|\frac{\mathbf{v}}{\|\mathbf{v}\|}\right\| = \frac{1}{\|\mathbf{v}\|}\,\|\mathbf{v}\| = 1
+$$
+
+<NormalizationDiagram />
+
+## The Dot Product
+
+The dot product is the most important operation in deep learning. It takes two vectors of the same size and returns a single number:
+
+$$
+\mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^{n} a_i \, b_i = a_1 b_1 + a_2 b_2 + \cdots + a_n b_n
+$$
+
+Example:
+
+$$
+\begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix} \cdot \begin{bmatrix} 4 \\ 0 \\ -1 \end{bmatrix} = 1 \cdot 4 + 2 \cdot 0 + 3 \cdot (-1) = 1
+$$
+
+### The Geometric View
+
+There's a second formula for the dot product that reveals its geometric meaning:
+
+$$
+\mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\| \cdot \|\mathbf{b}\| \cdot \cos(\theta)
+$$
+
+where $\theta$ is the angle between the two vectors.
+
+<DotProductDiagram />
+
+This means:
+
+- If $\mathbf{a}$ and $\mathbf{b}$ point in the **same direction** ($\theta = 0°$): $\cos(0) = 1$, so $\mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\| \cdot \|\mathbf{b}\|$, which is the maximum positive value.
+- If they are **perpendicular** ($\theta = 90°$): $\cos(90°) = 0$, so $\mathbf{a} \cdot \mathbf{b} = 0$.
+- If they point in **opposite directions** ($\theta = 180°$): $\cos(180°) = -1$, so $\mathbf{a} \cdot \mathbf{b} < 0$.
+
+The dot product measures **how much two vectors agree in direction**. 
+
+- Large and positive: same direction.
+- Zero: orthogonal (perpendicular, but for vectors).
+- Negative: opposing.
+
+## Why This Is Everywhere in Deep Learning
+
+### A Neuron Is a Dot Product
+
+The fundamental computation of a single neuron is:
+
+$$
+\text{output} = \mathbf{w} \cdot \mathbf{x} + b = \sum_i w_i x_i + b
+$$
+
+The weights $\mathbf{w}$ and the input $\mathbf{x}$ are vectors. The neuron computes their dot product, adds a bias, and passes the result to an activation function. Let's look at each piece.
+
+**Inputs $\mathbf{x}$** — the data coming in. In the first layer they're the raw measurements: pixel values, token indices, sensor readings. In deeper layers they're the outputs of previous neurons. Either way, they're fixed for a given example. The neuron doesn't control them.
+
+**Weights $\mathbf{w}$** — one weight per input. This is what the network actually learns. Each $w_i$ decides how much attention the neuron pays to input $x_i$:
+
+- $w_i$ large and positive → input $x_i$ strongly drives the output up
+- $w_i$ close to zero → input $x_i$ is mostly ignored
+- $w_i$ negative → input $x_i$ pushes the output down
+
+Training adjusts the weights so that the right inputs become influential and the irrelevant ones are silenced. Since you can't touch the inputs, the weights are the only lever.
+
+**Bias $b$** — a single number added after the dot product. It shifts the neuron's output regardless of the input. Think of it as a threshold: a neuron with a large negative bias needs a strong input signal before its output becomes positive, while one with a large positive bias will fire even with weak inputs. Biases let each neuron calibrate its own sensitivity independently of the weights.
+
+### Similarity Between Embeddings
+
+When models represent words, images, or users as vectors (called *embeddings*), similarity between two items is measured with the dot product, or equivalently, the cosine of the angle between their vectors:
+
+$$
+\text{similarity}(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \cdot \|\mathbf{b}\|} = \cos(\theta)
+$$
+
+Two similar items have embeddings that point in roughly the same direction, meaning their cosine is close to 1. Unrelated items are nearly orthogonal, meaning their cosine is close to 0.
+
+This exact formula shows up in the attention mechanism of transformers, which we'll reach much later.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+a = sg.Tensor([1.0, 2.0, 3.0])
+b = sg.Tensor([4.0, 0.0, -1.0])
+
+dot = (a * b).sum()
+print(dot)  # 1.0
+
+norm_a = (a * a).sum() ** 0.5
+norm_b = (b * b).sum() ** 0.5
+print(norm_a)  # 3.7416...
+
+cosine_sim = dot / (norm_a * norm_b)
+print(cosine_sim)  # 0.0712...
+```
+
+```pytorch
+import torch
+
+a = torch.tensor([1.0, 2.0, 3.0])
+b = torch.tensor([4.0, 0.0, -1.0])
+
+dot = torch.dot(a, b)
+print(dot)  # tensor(1.)
+
+norm_a = torch.norm(a)
+norm_b = torch.norm(b)
+print(norm_a)  # tensor(3.7417)
+
+cosine_sim = dot / (norm_a * norm_b)
+print(cosine_sim)  # tensor(0.0712)
+```
+
+---
+
+Vectors are the atoms of deep learning. Every layer, every loss, every gradient is built from these operations. In the next article, we move to **matrices**, which are just organized collections of vectors, but unlock an entirely different level of computation.

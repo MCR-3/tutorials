@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import "@/styles/global.css";
+import "mafs/core.css";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
