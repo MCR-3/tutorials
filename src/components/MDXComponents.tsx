@@ -8,6 +8,9 @@ import {
   MatrixMultiplicationDiagram,
   MatrixVectorDiagram,
   BatchMatrixDiagram,
+  TangentLineDiagram,
+  GradientDiagram,
+  GradientDescentDiagram,
 } from "./diagrams";
 
 export const mdxComponents = {
@@ -21,4 +24,7 @@ export const mdxComponents = {
   MatrixMultiplicationDiagram,
   MatrixVectorDiagram,
   BatchMatrixDiagram,
+  TangentLineDiagram,
+  GradientDiagram,
+  GradientDescentDiagram,
 };

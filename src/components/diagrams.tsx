@@ -7,6 +7,8 @@ import {
   Line as MafsLine,
   Plot,
   Text as MafsText,
+  Point,
+  Circle,
 } from "mafs";
 
 export function VectorDiagram() {
@@ -374,6 +376,134 @@ export function MatrixVectorDiagram() {
           {caption}
         </text>
       </svg>
+    </div>
+  );
+}
+
+export function TangentLineDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-0.3, 2.8], y: [-0.6, 5], padding: 0 }}
+        height={260}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        <Plot.OfX y={(x) => x * x} color="var(--color-blue)" weight={2} />
+        {/* Tangent at x=1: y = 2x − 1 */}
+        <MafsLine.Segment
+          point1={[0.1, -0.8]}
+          point2={[2.7, 4.4]}
+          color="var(--color-orange)"
+          weight={1.5}
+          style="dashed"
+        />
+        <Point x={1} y={1} color="var(--color-green)" />
+        <MafsText x={1.15} y={0.72} size={13} color="var(--color-green)">
+          (1, 1)
+        </MafsText>
+        <MafsText x={2.1} y={3.85} size={14} color="var(--color-blue)">
+          f(x) = x²
+        </MafsText>
+        <MafsText x={0.6} y={-0.42} size={13} color="var(--color-orange)">
+          f ′(1) = 2
+        </MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
+export function GradientDiagram() {
+  const scale = 0.72;
+  const u = 1 / Math.SQRT2; // unit direction of [1, 1]
+  const gradTip: [number, number] = [1 + u * scale, 1 + u * scale];
+  const negTip: [number, number] = [1 - u * scale, 1 - u * scale];
+
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-2.5, 2.5], y: [-2.5, 2.5], padding: 0 }}
+        height={270}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        {/* Level curves of f(x,y) = x² + y² */}
+        <Circle center={[0, 0]} radius={1} color="lightgray" fillOpacity={0} weight={1} />
+        <Circle center={[0, 0]} radius={Math.SQRT2} color="lightgray" fillOpacity={0} weight={1} />
+        <Circle center={[0, 0]} radius={2} color="lightgray" fillOpacity={0} weight={1} />
+        <Point x={1} y={1} color="var(--color-fg)" />
+        {/* ∇f: steepest increase */}
+        <Vector tail={[1, 1]} tip={gradTip} color="var(--color-orange)" weight={2.5} />
+        {/* −∇f: steepest decrease */}
+        <Vector tail={[1, 1]} tip={negTip} color="var(--color-green)" weight={2.5} />
+        <MafsText x={gradTip[0] + 0.12} y={gradTip[1]} size={14} color="var(--color-orange)">
+          ∇f
+        </MafsText>
+        <MafsText x={negTip[0] - 0.58} y={negTip[1]} size={14} color="var(--color-green)">
+          −∇f
+        </MafsText>
+        <MafsText x={2.0} y={-1.9} size={12} color="lightgray">
+          level curves
+        </MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
+export function GradientDescentDiagram() {
+  const loss = (w: number) => (w - 2) ** 2;
+  const eta = 0.3;
+  const w0 = 4.0;
+  const w1 = w0 - eta * 2 * (w0 - 2); // 2.8
+  const w2 = w1 - eta * 2 * (w1 - 2); // 2.32
+
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-0.3, 5.2], y: [-0.6, 5.2], padding: 0 }}
+        height={240}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        <Plot.OfX y={loss} color="var(--color-blue)" weight={2} />
+        {/* Dashed verticals */}
+        <MafsLine.Segment
+          point1={[w0, 0]} point2={[w0, loss(w0)]}
+          style="dashed" color="var(--muted)" weight={1}
+        />
+        <MafsLine.Segment
+          point1={[w1, 0]} point2={[w1, loss(w1)]}
+          style="dashed" color="var(--muted)" weight={1}
+        />
+        <MafsLine.Segment
+          point1={[w2, 0]} point2={[w2, loss(w2)]}
+          style="dashed" color="var(--muted)" weight={1}
+        />
+        {/* Points on curve */}
+        <Point x={w0} y={loss(w0)} color="var(--color-orange)" />
+        <Point x={w1} y={loss(w1)} color="var(--color-orange)" />
+        <Point x={w2} y={loss(w2)} color="var(--color-orange)" />
+        <Point x={2} y={0} color="var(--color-green)" />
+        {/* Descent arrows on w-axis */}
+        <Vector tail={[w0, 0]} tip={[w1, 0]} color="var(--color-orange)" weight={2} />
+        <Vector tail={[w1, 0]} tip={[w2, 0]} color="var(--color-orange)" weight={2} />
+        {/* Labels */}
+        <MafsText x={0.4} y={4.3} size={14} color="var(--color-blue)">
+          L(w)
+        </MafsText>
+        <MafsText x={w0 + 0.12} y={loss(w0) + 0.3} size={13} color="var(--color-orange)">
+          w₀
+        </MafsText>
+        <MafsText x={w1 + 0.12} y={loss(w1) + 0.28} size={13} color="var(--color-orange)">
+          w₁
+        </MafsText>
+        <MafsText x={2.08} y={-0.38} size={12} color="var(--color-green)">
+          min
+        </MafsText>
+      </Mafs>
     </div>
   );
 }

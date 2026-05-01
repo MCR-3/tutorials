@@ -1,0 +1,111 @@
+---
+title: "Derivatives"
+description: "How a function's output responds to a change in its input: instantaneous rate of change, differentiation rules, and partial derivatives."
+category: "math-foundations"
+order: 3
+date: "2026-05-01"
+---
+
+Vectors and matrices describe objects and transformations. But many problems come down to a more basic question: if an input changes by a tiny amount, how does the output respond? The tool for measuring that response is the derivative.
+
+## The Derivative
+
+The **derivative** of a function $f$ at a point $x$ is the instantaneous rate of change. Increase $x$ by a small amount $\varepsilon$; the derivative captures how much $f(x)$ changes in response, as $\varepsilon$ shrinks to zero:
+
+$$
+f'(x) = \lim_{\varepsilon \to 0} \frac{f(x + \varepsilon) - f(x)}{\varepsilon}
+$$
+
+Geometrically, $f'(x)$ is the slope of the tangent line to the curve at $x$. A large positive value means the function is rising steeply. Zero means a flat region, typically a minimum or maximum. Negative means the function is falling.
+
+Take $f(x) = x^2$, whose derivative is $f'(x) = 2x$:
+
+- At $x = 1$: slope $= 2$, the function is rising.
+- At $x = 0$: slope $= 0$, the bottom of the parabola.
+- At $x = -1$: slope $= -2$, the function is falling as $x$ increases.
+
+<TangentLineDiagram />
+
+Two notations appear interchangeably. **Lagrange notation** writes $f'(x)$. **Leibniz notation** writes $\dfrac{df}{dx}$, which reads as "the rate of change of $f$ with respect to $x$." Both mean the same thing; you will encounter both in papers and code.
+
+## Differentiation Rules
+
+Computing derivatives from the limit definition every time would be impractical. A handful of rules covers the vast majority of cases:
+
+- **Power**: $\dfrac{d}{dx}[x^n] = nx^{n-1}$
+- **Constant**: $\dfrac{d}{dx}[c] = 0$
+- **Constant multiple**: $\dfrac{d}{dx}[c \cdot f] = c \cdot f'$
+- **Sum**: $\dfrac{d}{dx}[f + g] = f' + g'$
+- **Product**: $\dfrac{d}{dx}[f \cdot g] = f'g + fg'$
+- **Chain**: $\dfrac{d}{dx}[f(g(x))] = f'(g(x)) \cdot g'(x)$
+
+The chain rule handles composed functions: apply $g$, then apply $f$ to the result. Its derivative is the product of the two individual derivatives, evaluated at the right point. It is fundamental enough to have its own article.
+
+A few examples using these rules:
+
+$$
+\frac{d}{dx}[3x^4] = 12x^3 \qquad \frac{d}{dx}[x^2 + 5x] = 2x + 5 \qquad \frac{d}{dx}[\sin(x^2)] = \cos(x^2) \cdot 2x
+$$
+
+The last one uses the chain rule: $f = \sin$, $g = x^2$.
+
+## Functions of Multiple Variables
+
+Some functions take more than one input. Consider $f(x, y) = x^2 + 3xy$. How does $f$ respond when $x$ changes? When $y$ changes?
+
+Each question has its own answer: a **partial derivative**. To compute $\dfrac{\partial f}{\partial x}$, treat $y$ as a fixed constant and differentiate with respect to $x$ alone:
+
+$$
+\frac{\partial f}{\partial x} = 2x + 3y
+$$
+
+To compute $\dfrac{\partial f}{\partial y}$, treat $x$ as a fixed constant:
+
+$$
+\frac{\partial f}{\partial y} = 3x
+$$
+
+The symbol $\partial$ signals that other variables are held fixed. Each partial derivative is a standard one-variable derivative in disguise — the slope along one axis of a multi-dimensional surface, with every other axis frozen.
+
+At the point $(x, y) = (2, 1)$:
+
+$$
+\frac{\partial f}{\partial x}\bigg|_{(2,1)} = 2(2) + 3(1) = 7 \qquad \frac{\partial f}{\partial y}\bigg|_{(2,1)} = 3(2) = 6
+$$
+
+Nudging $x$ by a small amount has a larger effect than nudging $y$ by the same amount, at that specific point.
+
+## In Code
+
+The limit definition translates directly into a numerical approximation. Using two nearby points (centered difference) instead of a one-sided limit gives better accuracy for the same $\varepsilon$:
+
+```simplegrad
+def deriv(f, x, eps=1e-5):
+    return (f(x + eps) - f(x - eps)) / (2 * eps)
+
+f = lambda x: x ** 2
+print(deriv(f, 1.0))   # 2.0  — f'(x) = 2x, f'(1) = 2
+print(deriv(f, 3.0))   # 6.0
+
+# Partial derivatives of g(x, y) = x² + 3xy, evaluated at (2, 1)
+g = lambda x, y: x**2 + 3*x*y
+print(deriv(lambda x: g(x, 1.0), 2.0))   # 7.0  — ∂g/∂x = 2x + 3y
+print(deriv(lambda y: g(2.0, y), 1.0))   # 6.0  — ∂g/∂y = 3x
+```
+
+```pytorch
+def deriv(f, x, eps=1e-5):
+    return (f(x + eps) - f(x - eps)) / (2 * eps)
+
+f = lambda x: x ** 2
+print(deriv(f, 1.0))   # 2.0
+print(deriv(f, 3.0))   # 6.0
+
+g = lambda x, y: x**2 + 3*x*y
+print(deriv(lambda x: g(x, 1.0), 2.0))   # 7.0
+print(deriv(lambda y: g(2.0, y), 1.0))   # 6.0
+```
+
+---
+
+For a function of $n$ inputs, there are $n$ partial derivatives: one for each axis of the space. Listing them all in order turns them into a vector, and that vector has a precise geometric meaning of its own. That is the subject of the next article.
