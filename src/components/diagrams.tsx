@@ -109,6 +109,51 @@ export function NormalizationDiagram() {
   );
 }
 
+function bracketPath(x: number, y: number, h: number, side: "left" | "right"): string {
+  const bw = 5;
+  return side === "left"
+    ? `M ${x + bw},${y} L ${x},${y} L ${x},${y + h} L ${x + bw},${y + h}`
+    : `M ${x - bw},${y} L ${x},${y} L ${x},${y + h} L ${x - bw},${y + h}`;
+}
+
+function svgMatrix(
+  data: number[][],
+  startX: number,
+  startY: number,
+  cW: number,
+  cH: number,
+  hlFn: (i: number, j: number) => [boolean, string],
+  fontSize = 15,
+) {
+  const rows = data.length, cols = data[0].length;
+  return (
+    <>
+      {data.map((row, i) =>
+        row.map((val, j) => {
+          const cx = startX + j * cW, cy = startY + i * cH;
+          const [isHl, color] = hlFn(i, j);
+          return (
+            <g key={`${startX}-${i}-${j}`}>
+              <rect x={cx} y={cy} width={cW} height={cH}
+                fill={color} fillOpacity={isHl ? 0.14 : 0}
+                stroke="var(--border)" strokeWidth={1} />
+              <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
+                fill={isHl ? color : "var(--color-fg)"}
+                fontSize={fontSize} fontWeight={isHl ? 600 : 400} fontFamily="var(--font-code)">
+                {val}
+              </text>
+            </g>
+          );
+        })
+      )}
+      <path d={bracketPath(startX, startY, rows * cH, "left")}
+        fill="none" stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+      <path d={bracketPath(startX + cols * cW, startY, rows * cH, "right")}
+        fill="none" stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+    </>
+  );
+}
+
 const DOT_ANGLE = Math.PI / 4;
 
 export function DotProductDiagram() {
@@ -152,6 +197,236 @@ export function DotProductDiagram() {
           θ
         </MafsText>
       </Mafs>
+    </div>
+  );
+}
+
+export function MatrixDiagram() {
+  const cW = 52, cH = 46, bw = 5, padL = 24, padT = 44;
+  const data = [[1, 2, 3], [4, 5, 6]];
+  const rows = data.length, cols = data[0].length;
+  const mW = cols * cW, mH = rows * cH;
+  const caption = "2 × 3 matrix — aᵢⱼ is in row i, column j";
+  const naturalW = padL + bw + mW + bw + padL;
+  const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
+  const svgH = padT + mH + 28;
+  const mX = padL + bw + (svgW - naturalW) / 2, mY = padT;
+  const hlRow = 0, hlCol = 1;
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={svgW} height={svgH}>
+        <text x={mX + hlCol * cW + cW / 2} y={mY - 24} textAnchor="middle"
+          fill="var(--color-green)" fontSize={13} fontFamily="var(--font-code)">
+          a₁₂
+        </text>
+        <line
+          x1={mX + hlCol * cW + cW / 2} y1={mY - 20}
+          x2={mX + hlCol * cW + cW / 2} y2={mY}
+          stroke="var(--color-green)" strokeWidth={1} strokeDasharray="3 2"
+        />
+        {data.map((row, i) => row.map((val, j) => {
+          const cx = mX + j * cW, cy = mY + i * cH;
+          const hl = i === hlRow && j === hlCol;
+          return (
+            <g key={`${i}-${j}`}>
+              <rect x={cx} y={cy} width={cW} height={cH}
+                fill="var(--color-green)" fillOpacity={hl ? 0.12 : 0}
+                stroke="var(--border)" strokeWidth={1} />
+              <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
+                fill={hl ? "var(--color-green)" : "var(--color-fg)"}
+                fontSize={16} fontWeight={hl ? 600 : 400} fontFamily="var(--font-code)">
+                {val}
+              </text>
+            </g>
+          );
+        }))}
+        <path d={bracketPath(mX, mY, mH, "left")} fill="none"
+          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+        <path d={bracketPath(mX + mW, mY, mH, "right")} fill="none"
+          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+          {caption}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+export function MatrixMultiplicationDiagram() {
+  const cW = 44, cH = 44, bw = 5, gap = 36, padL = 16, padT = 24;
+  const A = [[1, 2], [3, 4]];
+  const B = [[5, 6], [7, 8]];
+  const C = [[19, 22], [43, 50]];
+  const mW = 2 * cW, mH = 2 * cH;
+  const caption = "C₁₁ = 1·5 + 2·7 = 19 — each entry is a dot product (row · column)";
+  const naturalAX = padL + bw;
+  const naturalBX = naturalAX + mW + bw + gap + bw;
+  const naturalCX = naturalBX + mW + bw + gap + bw;
+  const naturalW = naturalCX + mW + bw + padL;
+  const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
+  const aX = naturalAX + (svgW - naturalW) / 2;
+  const bX = aX + mW + bw + gap + bw;
+  const cX = bX + mW + bw + gap + bw;
+  const svgH = padT + mH + 32;
+  const mY = padT;
+  const opY = mY + mH / 2 + 6;
+
+  function renderCells(
+    data: number[][],
+    startX: number,
+    hlType: "row" | "col" | "entry",
+  ) {
+    const hlColor =
+      hlType === "row" ? "var(--color-blue)"
+        : hlType === "col" ? "var(--color-orange)"
+          : "var(--color-green)";
+    return data.map((row, i) => row.map((val, j) => {
+      const cx = startX + j * cW, cy = mY + i * cH;
+      const isHl =
+        (hlType === "row" && i === 0) ||
+        (hlType === "col" && j === 0) ||
+        (hlType === "entry" && i === 0 && j === 0);
+      return (
+        <g key={`${startX}-${i}-${j}`}>
+          <rect x={cx} y={cy} width={cW} height={cH}
+            fill={hlColor} fillOpacity={isHl ? 0.14 : 0}
+            stroke="var(--border)" strokeWidth={1} />
+          <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
+            fill={isHl ? hlColor : "var(--color-fg)"}
+            fontSize={15} fontWeight={isHl ? 600 : 400} fontFamily="var(--font-code)">
+            {val}
+          </text>
+        </g>
+      );
+    }));
+  }
+
+  function renderBrackets(startX: number) {
+    return (
+      <>
+        <path d={bracketPath(startX, mY, mH, "left")} fill="none"
+          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+        <path d={bracketPath(startX + mW, mY, mH, "right")} fill="none"
+          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+      </>
+    );
+  }
+
+  return (
+    <div className="my-8 flex justify-center">
+      <svg width={svgW} height={svgH}>
+        {renderCells(A, aX, "row")}
+        {renderBrackets(aX)}
+        <text x={aX + mW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+
+        {renderCells(B, bX, "col")}
+        {renderBrackets(bX)}
+        <text x={bX + mW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+
+        {renderCells(C, cX, "entry")}
+        {renderBrackets(cX)}
+
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)" overflow={"auto"}>
+          {caption}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+export function MatrixVectorDiagram() {
+  const cW = 46, cH = 46, bw = 5, gap = 32, padL = 16, padT = 28;
+  const W = [[2, 1], [0, 3]];
+  const xV = [[1], [2]];
+  const yV = [[4], [6]];
+  const mW = 2 * cW, vW = cW, mH = 2 * cH;
+  const mY = padT;
+  const caption = "y₁ = 2·1 + 1·2 = 4 — each output is one row dotted with x";
+  const naturalWX = padL + bw;
+  const naturalW = naturalWX + mW + bw + gap + bw + vW + bw + gap + bw + vW + bw + padL;
+  const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
+  const wX = naturalWX + (svgW - naturalW) / 2;
+  const xX = wX + mW + bw + gap + bw;
+  const yX = xX + vW + bw + gap + bw;
+  const svgH = padT + mH + 32;
+  const opY = mY + cH + 6;
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={svgW} height={svgH}>
+        {svgMatrix(W, wX, mY, cW, cH, (i) => [i === 0, "var(--color-blue)"])}
+        <text x={wX + mW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+
+        {svgMatrix(xV, xX, mY, cW, cH, () => [true, "var(--color-orange)"])}
+        <text x={xX + vW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+
+        {svgMatrix(yV, yX, mY, cW, cH, (i) => [i === 0, "var(--color-green)"])}
+
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+          {caption}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+export function BatchMatrixDiagram() {
+  const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
+  const X = [[1, 0], [0, 1], [1, 1]];
+  const WT = [[2, 1], [0, 3]];
+  const Y = [[2, 1], [0, 3], [2, 4]];
+
+  const xH = 3 * cH, wtH = 2 * cH;
+  const mY = padT;
+  const wtY = mY + (xH - wtH) / 2;
+
+  const caption = "B = 3 examples in parallel — row i of X maps to row i of Y";
+  const naturalXX = padL + bw;
+  const naturalW = naturalXX + 2 * cW + bw + gap + bw + 2 * cW + bw + gap + bw + 2 * cW + bw + padL;
+  const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
+  const xX = naturalXX + (svgW - naturalW) / 2;
+  const wtX = xX + 2 * cW + bw + gap + bw;
+  const yX = wtX + 2 * cW + bw + gap + bw;
+  const svgH = mY + xH + 32;
+  const opY = mY + xH / 2 + 6;
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={svgW} height={svgH}>
+        {svgMatrix(X, xX, mY, cW, cH, (i) => [i === 0, "var(--color-blue)"], 14)}
+        {X.map((_, i) => (
+          <text key={i} x={xX - 8} y={mY + i * cH + cH / 2 + 4}
+            textAnchor="end" fontSize={11} fontFamily="var(--font-code)"
+            fill={i === 0 ? "var(--color-blue)" : "var(--muted)"}>
+            {i + 1}
+          </text>
+        ))}
+
+        <text x={xX + 2 * cW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+
+        <text x={wtX + cW} y={wtY - 8} textAnchor="middle"
+          fill="var(--muted)" fontSize={11} fontFamily="var(--font-code)">Wᵀ</text>
+        {svgMatrix(WT, wtX, wtY, cW, cH, () => [false, "var(--color-fg)"], 14)}
+
+        <text x={wtX + 2 * cW + bw + gap / 2} y={opY} textAnchor="middle"
+          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+
+        {svgMatrix(Y, yX, mY, cW, cH, (i) => [i === 0, "var(--color-green)"], 14)}
+
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+          {caption}
+        </text>
+      </svg>
     </div>
   );
 }

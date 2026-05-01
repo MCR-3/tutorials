@@ -1,0 +1,173 @@
+---
+title: "Matrices"
+description: "From vectors to matrices, organized collections of vectors that unlock linear layers, batch computation, and the backbone of every deep learning model."
+category: "math-foundations"
+order: 2
+date: "2026-04-30"
+---
+
+A single vector is one input. But neural networks don't process one input at a time, but hundreds simultaneously. And a single linear layer doesn't apply one weight but many, transforming an entire space at once. Both of those ideas require matrices.
+
+## What Is a Matrix?
+
+A matrix is a 2D array of numbers, organized in rows and columns. We write $\mathbf{A} \in \mathbb{R}^{m \times n}$ to say $\mathbf{A}$ has $m$ rows and $n$ columns:
+
+$$
+\mathbf{A} = \begin{bmatrix} a_{11} & a_{12} & a_{13} \\ a_{21} & a_{22} & a_{23} \end{bmatrix}
+$$
+
+This is a $2 \times 3$ matrix. The entry $a_{ij}$ sits in row $i$, column $j$.
+
+<MatrixDiagram />
+
+There are two ways to read a matrix. **Algebraically**, it's a rectangle of numbers with a shape. **Geometrically**, it's a **linear transformation**, a function that takes a vector in one space and maps it to another. A $2 \times 3$ matrix takes vectors in $\mathbb{R}^3$ and produces vectors in $\mathbb{R}^2$.
+
+The geometric view is what builds intuition for why matrix multiplication works the way it does.
+
+## Basic Operations
+
+### Addition
+
+Two matrices of the same shape add element-wise:
+
+$$
+\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} + \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 6 & 8 \\ 10 & 12 \end{bmatrix}
+$$
+
+Same rule as vector addition, since a matrix is just several vectors stacked together.
+
+### Scalar Multiplication
+
+Multiplying by a scalar scales every entry:
+
+$$
+2 \cdot \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} = \begin{bmatrix} 2 & 4 \\ 6 & 8 \end{bmatrix}
+$$
+
+### Transpose
+
+The **transpose** $\mathbf{A}^T$ flips the matrix along its diagonal, turning rows into columns and columns into rows:
+
+$$
+\mathbf{A} = \begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{bmatrix} \implies \mathbf{A}^T = \begin{bmatrix} 1 & 4 \\ 2 & 5 \\ 3 & 6 \end{bmatrix}
+$$
+
+If $\mathbf{A}$ is $m \times n$, then $\mathbf{A}^T$ is $n \times m$. Transposing is cheap, just a reinterpretation of memory with no computation, and it appears constantly when aligning shapes for multiplication.
+
+## Matrix Multiplication
+
+Multiplying $\mathbf{A}$ ($m \times k$) by $\mathbf{B}$ ($k \times n$) gives $\mathbf{C}$ ($m \times n$):
+
+$$
+C_{ij} = \sum_{l=1}^{k} A_{il} \, B_{lj}
+$$
+
+Each entry $C_{ij}$ is the **dot product of row $i$ of $\mathbf{A}$ with column $j$ of $\mathbf{B}$**.
+
+Example:
+
+$$
+\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 1{\cdot}5 + 2{\cdot}7 & 1{\cdot}6 + 2{\cdot}8 \\ 3{\cdot}5 + 4{\cdot}7 & 3{\cdot}6 + 4{\cdot}8 \end{bmatrix} = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}
+$$
+
+<MatrixMultiplicationDiagram />
+
+For the multiplication to be valid, the **inner dimensions must match**: $\mathbf{A}$ is $m \times k$ and $\mathbf{B}$ is $k \times n$, so the $k$ must agree. The output has the **outer dimensions**: $m \times n$.
+
+One critical property: matrix multiplication is **not commutative**. $\mathbf{AB} \neq \mathbf{BA}$ in general. Order matters.
+
+Geometrically, $\mathbf{AB}$ means "first apply transformation $\mathbf{B}$, then apply transformation $\mathbf{A}$." It's function composition, written right to left.
+
+## Matrix–Vector Multiplication
+
+A case worth isolating: multiplying a matrix $\mathbf{W}$ ($m \times n$) by a vector $\mathbf{x}$ ($n \times 1$) gives a vector $\mathbf{y}$ ($m \times 1$):
+
+$$
+\mathbf{y} = \mathbf{W}\mathbf{x}
+$$
+
+Each entry $y_i$ is the dot product of row $i$ of $\mathbf{W}$ with $\mathbf{x}$:
+
+$$
+y_i = \sum_{j=1}^{n} W_{ij} \, x_j
+$$
+
+This is $m$ neurons computing their dot product simultaneously, replacing a loop over neurons with one matrix operation. That's the whole point.
+
+<MatrixVectorDiagram />
+
+## Why This Is Everywhere in Deep Learning
+
+### A Linear Layer Is a Matrix Multiplication
+
+A **linear layer** transforms an input $\mathbf{x} \in \mathbb{R}^n$ into an output $\mathbf{y} \in \mathbb{R}^m$ via:
+
+$$
+\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}
+$$
+
+$\mathbf{W}$ is the weight matrix ($m \times n$), $\mathbf{b}$ is the bias vector ($m \times 1$). Every learnable parameter in the layer lives in $\mathbf{W}$. Row $i$ of $\mathbf{W}$ is the weight vector for output neuron $i$, the direction in input space that neuron is sensitive to.
+
+Training adjusts $\mathbf{W}$ so that the transformation maps inputs to useful representations. What changes during training is the matrix.
+
+### Batching: Processing Multiple Inputs at Once
+
+Training on one example at a time is slow. In practice, a **batch** of $B$ examples passes through the network together. Instead of a single vector $\mathbf{x} \in \mathbb{R}^n$, we have a matrix $\mathbf{X} \in \mathbb{R}^{B \times n}$, with one row per example.
+
+The linear layer becomes:
+
+$$
+\mathbf{Y} = \mathbf{X}\mathbf{W}^T + \mathbf{b}
+$$
+
+$\mathbf{Y}$ is $B \times m$: one output row per input example, all computed in a single matrix multiplication. This is why GPUs dominate deep learning, as massively parallel matrix operations are exactly what they were designed for.
+
+<BatchMatrixDiagram />
+
+### Weight Matrices Learn Representations
+
+After training, the rows of $\mathbf{W}$ are directions in input space the layer has learned to respond to. A high dot product between input $\mathbf{x}$ and row $i$ means $\mathbf{x}$ strongly activates neuron $i$: it contains the feature that row $i$ has specialized in. The matrix is a learned filter bank.
+
+This idea extends far. The query, key, and value matrices in a transformer's attention mechanism are learned weight matrices. The token embedding matrix maps integer indices to dense vectors. Every parameter in a neural network lives in some matrix, and every forward pass is a chain of matrix multiplications.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+W = sg.Tensor([[1.0, 2.0, 3.0],
+               [4.0, 5.0, 6.0]])
+
+x = sg.Tensor([1.0, 0.0, -1.0])
+
+y = W @ x
+print(y)  # [-2.0, -2.0]
+
+X = sg.Tensor([[1.0, 0.0, -1.0],
+               [2.0, 1.0,  0.0]])
+
+Y = X @ W.T
+print(Y)  # 2x2 matrix, one row per example
+```
+
+```pytorch
+import torch
+
+W = torch.tensor([[1.0, 2.0, 3.0],
+                  [4.0, 5.0, 6.0]])
+
+x = torch.tensor([1.0, 0.0, -1.0])
+
+y = W @ x
+print(y)  # tensor([-2., -2.])
+
+X = torch.tensor([[1.0, 0.0, -1.0],
+                  [2.0, 1.0,  0.0]])
+
+Y = X @ W.T
+print(Y)  # tensor of shape [2, 2]
+```
+
+---
+
+Vectors and matrices are the two primitives everything else is built from. Training a network means adjusting those matrices so the outputs improve, and that requires knowing how to measure change. In the next article, we cover **derivatives**, the mathematical tool that makes this precise.

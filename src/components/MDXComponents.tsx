@@ -4,6 +4,10 @@ import {
   VectorAdditionDiagram,
   DotProductDiagram,
   NormalizationDiagram,
+  MatrixDiagram,
+  MatrixMultiplicationDiagram,
+  MatrixVectorDiagram,
+  BatchMatrixDiagram,
 } from "./diagrams";
 
 export const mdxComponents = {
@@ -13,4 +17,8 @@ export const mdxComponents = {
   VectorAdditionDiagram,
   DotProductDiagram,
   NormalizationDiagram,
+  MatrixDiagram,
+  MatrixMultiplicationDiagram,
+  MatrixVectorDiagram,
+  BatchMatrixDiagram,
 };
