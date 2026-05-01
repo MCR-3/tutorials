@@ -1,0 +1,159 @@
+---
+title: "Gradients"
+description: "The gradient: collecting all partial derivatives into one vector that points in the direction of steepest increase."
+category: "math-foundations"
+order: 4
+date: "2026-05-01"
+---
+
+The previous article computed partial derivatives one at a time: the rate of change along one axis, with everything else frozen. But a function of $n$ variables has $n$ such derivatives. Treating them as separate numbers misses the bigger picture. Collected into a vector, they form the **gradient**, which encodes how the function changes in any direction at once.
+
+## Definition
+
+The gradient of a scalar function $f(x_1, x_2, \ldots, x_n)$ is the column vector of all its partial derivatives, evaluated at a point $\mathbf{x}$:
+
+$$
+\nabla f(\mathbf{x}) = \begin{bmatrix} \dfrac{\partial f}{\partial x_1} \\[6pt] \dfrac{\partial f}{\partial x_2} \\[6pt] \vdots \\[4pt] \dfrac{\partial f}{\partial x_n} \end{bmatrix}
+$$
+
+The symbol $\nabla$ is called **nabla**, and $\nabla f$ is read "grad f." The gradient lives in the same space as the input: a function on $\mathbb{R}^n$ has a gradient in $\mathbb{R}^n$.
+
+Two examples computed from the previous article's rules:
+
+**$f(x, y) = x^2 + y^2$**
+
+$$
+\nabla f = \begin{bmatrix} 2x \\ 2y \end{bmatrix}
+$$
+
+At $(1, 2)$: $\nabla f = [2, 4]$. At the origin: $\nabla f = [0, 0]$.
+
+**$f(x, y) = x^2 + 3xy$**
+
+$$
+\nabla f = \begin{bmatrix} 2x + 3y \\ 3x \end{bmatrix}
+$$
+
+At $(2, 1)$: $\nabla f = [7, 6]$, matching the partial derivatives from the previous article.
+
+## Direction of Steepest Ascent
+
+The gradient is more than a convenient grouping of numbers. It carries a precise geometric meaning: $\nabla f(\mathbf{x})$ points in the direction of **steepest increase** of $f$ at $\mathbf{x}$.
+
+To see why, consider the rate of change of $f$ along any unit vector $\mathbf{u}$, called the **directional derivative**:
+
+$$
+D_\mathbf{u} f(\mathbf{x}) = \nabla f(\mathbf{x}) \cdot \mathbf{u}
+$$
+
+Using the dot product formula $\mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\| \|\mathbf{b}\| \cos \theta$, and since $\|\mathbf{u}\| = 1$:
+
+$$
+D_\mathbf{u} f(\mathbf{x}) = \|\nabla f(\mathbf{x})\| \cos \theta
+$$
+
+where $\theta$ is the angle between $\nabla f$ and $\mathbf{u}$. This is largest when $\theta = 0$, i.e., when $\mathbf{u}$ points in the same direction as $\nabla f$. The gradient is therefore exactly the direction of fastest increase.
+
+Three consequences:
+
+- $\nabla f$ gives the direction of **steepest ascent**: $f$ increases as fast as possible along it.
+- $-\nabla f$ gives the direction of **steepest descent**: $f$ decreases as fast as possible along it.
+- $\nabla f = \mathbf{0}$ marks a **critical point**: no direction is locally uphill or downhill.
+
+<GradientDiagram />
+
+## Level Curves and Perpendicularity
+
+A **level curve** (or level set) is the set of all points where $f$ takes a fixed value $c$:
+
+$$
+\{(x_1, \ldots, x_n) : f(x_1, \ldots, x_n) = c\}
+$$
+
+For $f(x, y) = x^2 + y^2$, the level curves are circles centered at the origin. For a general surface, they are the "contour lines" of a topographic map.
+
+The gradient at any point is **perpendicular to the level curve** through that point. Moving along a level curve keeps $f$ constant, so the directional derivative in that direction is zero:
+
+$$
+D_\mathbf{u} f = \nabla f \cdot \mathbf{u} = 0 \quad \text{when } \mathbf{u} \text{ is tangent to a level curve}
+$$
+
+Since the dot product with a tangent direction is zero, the gradient must be orthogonal to it. The result is clean: to increase $f$, you need to cross the level curves, not follow them, and the gradient shows you exactly how.
+
+## Magnitude
+
+The **magnitude** $\|\nabla f(\mathbf{x})\|$ tells you how steep the function is at $\mathbf{x}$:
+
+- Large $\|\nabla f\|$: the function changes rapidly in all directions near $\mathbf{x}$.
+- Small $\|\nabla f\|$: the surface is nearly flat near $\mathbf{x}$.
+- $\|\nabla f\| = 0$: a critical point, possibly a minimum, a maximum, or a saddle.
+
+The maximum rate of change in any direction is exactly $\|\nabla f\|$, achieved only along $\nabla f$ itself.
+
+## Local Linear Approximation
+
+The gradient provides the best linear approximation to $f$ near a point. For a small displacement $\mathbf{h}$:
+
+$$
+f(\mathbf{x} + \mathbf{h}) \approx f(\mathbf{x}) + \nabla f(\mathbf{x}) \cdot \mathbf{h}
+$$
+
+This is the multi-variable first-order Taylor expansion. It says: a small step $\mathbf{h}$ changes $f$ by approximately the dot product of the gradient with that step. The error shrinks as $\|\mathbf{h}\| \to 0$.
+
+This formula will reappear many times: it is the foundation of how small weight changes propagate through a network.
+
+## Connection to Deep Learning
+
+In deep learning, the quantities we care about are functions that map many numbers to a single scalar. A model's prediction quality, for instance, depends on all of its parameters at once.
+
+For such a function $f(w_1, w_2, \ldots, w_n)$, the gradient $\nabla f$ is a vector with one entry per parameter. Each entry $\dfrac{\partial f}{\partial w_i}$ describes how sensitive the scalar output is to a small change in $w_i$:
+
+- Large positive: increasing $w_i$ strongly increases the output.
+- Near zero: $w_i$ barely affects the output at the current point.
+- Large negative: increasing $w_i$ strongly decreases the output.
+
+In a modern model, $n$ can be in the billions. The gradient is an $n$-dimensional vector that carries all of this sensitivity information in one object. What to do with it — how to act on it to improve the model — is the subject of later articles.
+
+## In Code
+
+Computing the gradient numerically extends the finite-difference approach from the previous article. Perturb each coordinate in turn, holding all others fixed:
+
+```simplegrad
+def numerical_grad(f, x, eps=1e-5):
+    g = []
+    for i in range(len(x)):
+        xp = x[:i] + [x[i] + eps] + x[i+1:]
+        xm = x[:i] + [x[i] - eps] + x[i+1:]
+        g.append((f(xp) - f(xm)) / (2 * eps))
+    return g
+
+# f(x, y) = x² + y², ∇f = [2x, 2y]
+f = lambda x: x[0]**2 + x[1]**2
+print(numerical_grad(f, [1.0, 2.0]))   # [2.0, 4.0]
+print(numerical_grad(f, [3.0, 0.0]))   # [6.0, 0.0]
+
+# f(x, y) = x² + 3xy, ∇f = [2x+3y, 3x]
+g = lambda x: x[0]**2 + 3*x[0]*x[1]
+print(numerical_grad(g, [2.0, 1.0]))   # [7.0, 6.0]
+```
+
+```pytorch
+def numerical_grad(f, x, eps=1e-5):
+    g = []
+    for i in range(len(x)):
+        xp = x[:i] + [x[i] + eps] + x[i+1:]
+        xm = x[:i] + [x[i] - eps] + x[i+1:]
+        g.append((f(xp) - f(xm)) / (2 * eps))
+    return g
+
+f = lambda x: x[0]**2 + x[1]**2
+print(numerical_grad(f, [1.0, 2.0]))   # [2.0, 4.0]
+print(numerical_grad(f, [3.0, 0.0]))   # [6.0, 0.0]
+
+g = lambda x: x[0]**2 + 3*x[0]*x[1]
+print(numerical_grad(g, [2.0, 1.0]))   # [7.0, 6.0]
+```
+
+---
+
+The gradient tells us everything about local change. For a function of a handful of variables, computing it by finite differences is perfectly adequate. For a deep network with millions of parameters, this approach would require millions of forward passes, one per weight. The **chain rule** makes it possible to compute the exact gradient in a single backward pass, and that is where we go next.
