@@ -1,58 +1,47 @@
 ---
 title: "The Chain Rule"
-description: "The one formula that makes all of deep learning possible — and why every DL framework is built around it."
+description: "How to differentiate composed functions: the formula that connects every layer of a deep network."
 category: "autograd"
 order: 1
 date: "2026-04-09"
 ---
 
-Every training step in every DL framework — PyTorch, JAX, simplegrad — ultimately reduces to one rule from calculus: **the chain rule**.
+The previous articles built up the gradient: a vector that captures how a scalar function changes with respect to each of its inputs. But the functions we care about in machine learning are rarely simple. They are **compositions**, sequences of operations applied one after another. Differentiating through a composition is the purpose of the chain rule.
 
-Here it is. If $z$ depends on $y$, and $y$ depends on $x$, then:
+## The Formula
+
+If $z$ depends on $y$, and $y$ depends on $x$, the chain rule gives the derivative of $z$ with respect to $x$:
 
 $$
 \frac{\partial z}{\partial x} = \frac{\partial z}{\partial y} \cdot \frac{\partial y}{\partial x}
 $$
 
-That's it. That's the engine. Everything else is application.
+In the language of composed functions: if $y = f(x)$ and $z = g(y) = g(f(x))$, then:
 
-## What It Means
+$$
+\frac{d}{dx}\bigl[g(f(x))\bigr] = g'(f(x)) \cdot f'(x)
+$$
 
-The chain rule tells you how to compute the gradient of a composed function. If you have a sequence of operations, you can find how a change in the input affects the output by multiplying the local derivatives at each step.
+The derivative of the whole composition is the product of the local derivatives at each step.
 
-Think of a two-operation pipeline:
+Think of it as a pipeline. A change in $x$ causes a change in $y$, which in turn causes a change in $z$. The chain rule says: multiply the rates together.
 
 $$
 x \xrightarrow{f} y \xrightarrow{g} z
 $$
 
-The derivative of the final output $z$ with respect to the initial input $x$ is:
-
 $$
-\frac{\partial z}{\partial x} = \frac{\partial z}{\partial y} \cdot \frac{\partial y}{\partial x}
-= g'(y) \cdot f'(x)
+\frac{\partial z}{\partial x} = \underbrace{\frac{\partial z}{\partial y}}_{\text{how } z \text{ responds to } y} \cdot \underbrace{\frac{\partial y}{\partial x}}_{\text{how } y \text{ responds to } x}
 $$
-
-You multiply the derivatives together, right to left.
 
 ## A Concrete Example
 
-Let's say:
+Let $f(x) = x^2$ and $g(y) = 3y + 1$, so that $z = g(f(x)) = 3x^2 + 1$.
+
+The local derivatives are:
 
 $$
-f(x) = x^2, \quad g(y) = 3y + 1
-$$
-
-So:
-
-$$
-z = g(f(x)) = 3x^2 + 1
-$$
-
-The derivatives are:
-
-$$
-\frac{\partial y}{\partial x} = f'(x) = 2x, \qquad \frac{\partial z}{\partial y} = g'(y) = 3
+\frac{\partial y}{\partial x} = f'(x) = 2x \qquad \frac{\partial z}{\partial y} = g'(y) = 3
 $$
 
 Applying the chain rule:
@@ -61,64 +50,80 @@ $$
 \frac{\partial z}{\partial x} = 3 \cdot 2x = 6x
 $$
 
-Which matches what you'd get differentiating $3x^2 + 1$ directly.
+We can verify this directly: $\dfrac{d}{dx}[3x^2 + 1] = 6x$. The chain rule gives the same answer.
 
-## Why This Matters for Neural Networks
+At $x = 2$: $\dfrac{\partial z}{\partial x} = 12$. A unit increase in $x$ from $2$ increases $z$ by approximately $12$.
 
-A neural network is a composition of functions. A simple two-layer network looks like:
+<ChainRuleDiagram />
 
-$$
-\hat{y} = \sigma\bigl(W_2 \cdot \sigma(W_1 \cdot x + b_1) + b_2\bigr)
-$$
+The diagram shows the two passes. Reading left to right (blue), we compute the forward values. Reading right to left (green), we multiply the local derivatives to get the total derivative.
 
-where $\sigma$ is some activation function (like ReLU). Training means finding weights $W_1, W_2, b_1, b_2$ that minimize some loss $\mathcal{L}(\hat{y}, y)$.
+## Longer Chains
 
-To do that with gradient descent, we need:
+The rule extends to any number of composed functions. For a chain $x \to h_1 \to h_2 \to \cdots \to h_n \to z$:
 
 $$
-\frac{\partial \mathcal{L}}{\partial W_1}, \quad \frac{\partial \mathcal{L}}{\partial W_2}, \quad \frac{\partial \mathcal{L}}{\partial b_1}, \quad \frac{\partial \mathcal{L}}{\partial b_2}
+\frac{\partial z}{\partial x} = \frac{\partial z}{\partial h_n} \cdot \frac{\partial h_n}{\partial h_{n-1}} \cdots \frac{\partial h_2}{\partial h_1} \cdot \frac{\partial h_1}{\partial x}
 $$
 
-The chain rule gives us all of them. We start from the loss, move backwards through the network, and at each layer we multiply by the local derivative. This is **backpropagation** — it's the chain rule, applied recursively.
+Each factor $\dfrac{\partial h_{k+1}}{\partial h_k}$ is a **local gradient**: the derivative of one operation with respect to its own input, treating everything else as fixed.
 
-## The General Form
+The total derivative is just the product of all local gradients, accumulated from output to input. The chain rule turns a hard global problem (differentiating the full composition) into a sequence of easy local problems (differentiating each operation individually).
 
-For a chain of $n$ functions $f_1, f_2, \ldots, f_n$:
+## Why Neural Networks Need This
+
+A neural network is a composition of operations. A simple two-layer network computes:
 
 $$
-\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial h_n} \cdot \frac{\partial h_n}{\partial h_{n-1}} \cdots \frac{\partial h_2}{\partial h_1} \cdot \frac{\partial h_1}{\partial x}
+\hat{y} = g_2\!\bigl(g_1(x)\bigr)
 $$
 
-Each $\frac{\partial h_{k+1}}{\partial h_k}$ is a **local gradient** — the derivative of that specific operation. The autograd engine computes these automatically and accumulates them.
+where $g_1$ applies the first layer's weights and activation, and $g_2$ applies the second layer. In practice there are many more layers, each adding a step to the chain.
 
-In simplegrad, every operation on a `Tensor` stores its own backward function. When you call `.backward()`, the engine walks the computation graph in reverse and applies exactly this formula.
+To understand how a parameter deep in the network affects the final output, we trace the chain from the output back to that parameter, multiplying local gradients at each step. The chain rule makes this possible for any number of layers.
 
----
+For a parameter $w$ inside $g_1$:
 
-## Seeing It Run
+$$
+\frac{\partial \hat{y}}{\partial w} = \frac{\partial \hat{y}}{\partial g_1} \cdot \frac{\partial g_1}{\partial w}
+$$
 
-Here's the minimal example. A 2-element input, a weight matrix, a mean reduction, then `.backward()`. After that, `x.grad` holds $\frac{\partial y}{\partial x}$ — computed entirely via the chain rule:
+This is the chain rule applied once. In a deeper network it applies at every layer, each time multiplying in a new local gradient.
+
+## In Code
+
+Applying the chain rule by hand makes the mechanics explicit:
 
 ```simplegrad
-import simplegrad as sg
+# z = g(f(x)) where f(x) = x², g(y) = 3y + 1
 
-x = sg.Tensor([[1.0, 2.0]])
-w = sg.Tensor([[0.5], [-0.5]])
-y = sg.mean(x @ w)
-y.backward()
+x = 2.0
+y = x ** 2           # forward: f(x)
+z = 3 * y + 1        # forward: g(y)
 
-print(x.grad)  # [[0.25, -0.25]]
+dy_dx = 2 * x        # local gradient of f: f'(x) = 4
+dz_dy = 3            # local gradient of g: g'(y) = 3
+
+dz_dx = dz_dy * dy_dx   # chain rule: 3 × 4 = 12
+print(dz_dx)             # 12.0
 ```
 
 ```pytorch
-import torch
+# z = g(f(x)) where f(x) = x², g(y) = 3y + 1
 
-x = torch.tensor([[1.0, 2.0]], requires_grad=True)
-w = torch.tensor([[0.5], [-0.5]], requires_grad=True)
-y = (x @ w).mean()
-y.backward()
+x = 2.0
+y = x ** 2
+z = 3 * y + 1
 
-print(x.grad)  # tensor([[0.2500, -0.2500]])
+dy_dx = 2 * x
+dz_dy = 3
+
+dz_dx = dz_dy * dy_dx
+print(dz_dx)             # 12.0
 ```
 
-Same numbers, same math. In the next article we'll open up simplegrad's autograd engine and see exactly how it gets there.
+Deep learning frameworks apply this automatically. Every operation records its local gradient; when you request the derivative of the output, the framework multiplies them backward through the chain. That mechanism is what the next article covers.
+
+---
+
+The chain rule is the formula. The next articles are about the machinery that applies it: how frameworks record every operation, build a graph of computations, and walk that graph in reverse to compute all gradients at once.

@@ -560,3 +560,79 @@ export function BatchMatrixDiagram() {
     </div>
   );
 }
+
+export function ChainRuleDiagram() {
+  const bw = 85, bh = 34, rx = 3;
+  const nx1 = 15, nx2 = 210, nx3 = 400;
+  const ny = 35;
+  const arY = ny + bh / 2;
+  const backY = 126;
+  const as = 7;
+  const svgW = nx3 + bw + 20;
+  const svgH = 158;
+
+  const fwdArrow = (x1: number, x2: number, label: string) => (
+    <>
+      <line x1={x1} y1={arY} x2={x2 - as} y2={arY}
+        stroke="var(--color-blue)" strokeWidth={1.5} />
+      <polygon
+        points={`${x2 - as},${arY - 3.5} ${x2},${arY} ${x2 - as},${arY + 3.5}`}
+        fill="var(--color-blue)"
+      />
+      <text x={(x1 + x2) / 2} y={arY - 12} textAnchor="middle"
+        fontFamily="var(--font-code)" fontSize={13} fill="var(--color-blue)">
+        {label}
+      </text>
+    </>
+  );
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={svgW} height={svgH}>
+        {/* Node x */}
+        <rect x={nx1} y={ny} width={bw} height={bh} rx={rx}
+          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
+        <text x={nx1 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">x</text>
+
+        {/* Node y = f(x) */}
+        <rect x={nx2} y={ny} width={bw} height={bh} rx={rx}
+          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
+        <text x={nx2 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">y = f(x)</text>
+
+        {/* Node z = g(y) */}
+        <rect x={nx3} y={ny} width={bw} height={bh} rx={rx}
+          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
+        <text x={nx3 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">z = g(y)</text>
+
+        {/* Forward arrows */}
+        {fwdArrow(nx1 + bw, nx2, "f")}
+        {fwdArrow(nx2 + bw, nx3, "g")}
+
+        {/* Local gradient labels */}
+        <text x={nx2 + bw / 2} y={ny + bh + 22} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+          ∂y/∂x
+        </text>
+        <text x={nx3 + bw / 2} y={ny + bh + 22} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+          ∂z/∂y
+        </text>
+
+        {/* Backward arrow: right to left, green */}
+        <line x1={nx3 + bw} y1={backY} x2={nx1 + as} y2={backY}
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <polygon
+          points={`${nx1 + as},${backY - 3.5} ${nx1},${backY} ${nx1 + as},${backY + 3.5}`}
+          fill="var(--color-green)"
+        />
+        <text x={svgW / 2} y={backY + 22} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">
+          ∂z/∂x = ∂z/∂y · ∂y/∂x
+        </text>
+      </svg>
+    </div>
+  );
+}
