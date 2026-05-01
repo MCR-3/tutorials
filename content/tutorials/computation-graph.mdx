@@ -1,0 +1,121 @@
+---
+title: "The Computation Graph"
+description: "How deep learning frameworks track every operation to enable automatic differentiation."
+category: "autograd"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article established the chain rule: to differentiate a composition of functions, multiply the local gradients at each step. But a real network might chain together hundreds of operations. To apply the chain rule systematically, a framework needs to remember what was computed and in what order. The **computation graph** is that record.
+
+## What Is a Computation Graph?
+
+A computation graph is a directed acyclic graph (DAG) where:
+
+- **Nodes** represent values, either scalar numbers or tensors.
+- **Edges** represent dependencies: an edge from node $A$ to node $B$ means $B$ was computed using $A$.
+
+Nodes come in two kinds. **Leaf nodes** are inputs and parameters: values that were not themselves computed from other tracked values. **Interior nodes** are the results of operations applied to other nodes.
+
+Every time a tracked value participates in an operation, the operation creates a new interior node and records which nodes it depended on. The graph grows as the forward computation proceeds.
+
+## Building the Graph Step by Step
+
+Consider $z = x^2 + x \cdot y$ with $x = 2$ and $y = 3$.
+
+**Step 1.** Mark $x$ and $y$ as tracked inputs. They become leaf nodes.
+
+**Step 2.** Compute $a = x^2 = 4$. This creates an interior node for $a$, with an edge from $x$.
+
+**Step 3.** Compute $b = x \cdot y = 6$. This creates an interior node for $b$, with edges from both $x$ and $y$.
+
+**Step 4.** Compute $z = a + b = 10$. This creates the output node, with edges from $a$ and $b$.
+
+<ComputationGraphDiagram />
+
+Notice that $x$ has two outgoing edges: one to $a = x^2$, and one to $b = x \cdot y$. This branching is essential. When computing how $z$ responds to a change in $x$, both paths contribute.
+
+## What Each Node Records
+
+A node is more than just a value. An interior node stores:
+
+- **Its output value**, computed during the forward pass.
+- **A backward function**: a small piece of code that, given the gradient flowing *into* this node from above, computes the gradient flowing *out* to each of its inputs.
+
+The backward function is derived directly from the operation that created the node. For squaring: $\frac{\partial(x^2)}{\partial x} = 2x$, so the backward function multiplies the incoming gradient by $2x$. For addition: $\frac{\partial(a+b)}{\partial a} = 1$ and $\frac{\partial(a+b)}{\partial b} = 1$, so the backward function passes the incoming gradient unchanged to both inputs.
+
+This is the local gradient from the chain rule, packaged up at build time and ready to be used during the backward pass.
+
+## Leaf Nodes and Gradient Tracking
+
+Not every value needs a gradient. The intermediate result $a = x^2$ is a means to an end; we care about $\frac{\partial z}{\partial x}$, not $\frac{\partial z}{\partial a}$. Only leaf nodes that are explicitly marked for tracking accumulate gradients.
+
+In practice, weight matrices are marked as trackable (they are what we want to differentiate with respect to), while input data is not (the data is fixed; we only adjust weights). Intermediate nodes inherit tracking from their inputs: if any input is tracked, the output is too, so the graph is built through the entire computation.
+
+The gradient accumulated at a leaf is the total derivative of the output with respect to that leaf, summing contributions from every path through the graph.
+
+## Multiple Paths and Gradient Accumulation
+
+In the graph above, $x$ contributes to $z$ through two paths: via $a = x^2$ and via $b = x \cdot y$. The total gradient $\frac{\partial z}{\partial x}$ is the sum of contributions from both:
+
+$$
+\frac{\partial z}{\partial x} = \underbrace{\frac{\partial z}{\partial a} \cdot \frac{\partial a}{\partial x}}_{\text{path through } a} + \underbrace{\frac{\partial z}{\partial b} \cdot \frac{\partial b}{\partial x}}_{\text{path through } b} = 1 \cdot 2x + 1 \cdot y = 4 + 3 = 7
+$$
+
+The graph makes this explicit: two edges leave $x$, so two partial contributions must be summed. This is the multi-variable chain rule, handled automatically by the graph structure.
+
+For $y$, there is only one path (through $b$):
+
+$$
+\frac{\partial z}{\partial y} = \frac{\partial z}{\partial b} \cdot \frac{\partial b}{\partial y} = 1 \cdot x = 2
+$$
+
+## Connection to Deep Learning
+
+In a neural network, every weight matrix is a leaf node. Every operation — matrix multiplication, activation function, layer normalization — adds interior nodes to the graph. After a forward pass, the graph contains a complete record of every computation that produced the output.
+
+This record is exactly what makes efficient differentiation possible. Rather than differentiating the entire network symbolically (which would produce a huge expression), we differentiate each operation locally, store the result, and then combine them during the backward pass. The chain rule ties them all together.
+
+The graph is built implicitly, without any extra work from the programmer. Writing $y = W @ x$ inside a tracked context is enough: the framework intercepts the operation, records the dependency, and stores the backward function.
+
+## In Code
+
+Marking inputs as trackable causes the framework to build the graph during every forward computation:
+
+```simplegrad
+import simplegrad as sg
+
+x = sg.Tensor([2.0], requires_grad=True)
+y = sg.Tensor([3.0], requires_grad=True)
+
+a = x ** 2      # node: x², records backward fn for squaring
+b = x * y       # node: x·y, records backward fn for multiply
+z = a + b       # node: z = 10, records backward fn for addition
+
+z.backward()    # traverses the graph in reverse
+
+print(x.grad)   # [7.0]  —  ∂z/∂x = 2x + y = 4 + 3
+print(y.grad)   # [2.0]  —  ∂z/∂y = x = 2
+```
+
+```pytorch
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+y = torch.tensor([3.0], requires_grad=True)
+
+a = x ** 2
+b = x * y
+z = a + b
+
+z.backward()
+
+print(x.grad)   # tensor([7.])
+print(y.grad)   # tensor([2.])
+```
+
+Each line that computes a new value from tracked tensors silently adds a node to the graph. Calling `.backward()` then traverses that graph from the output back to the leaves, multiplying local gradients at each step. The next article covers exactly how that traversal works.
+
+---
+
+The computation graph is the data structure; backpropagation is the algorithm that walks it. With the graph in place, computing every gradient simultaneously costs roughly the same as a single forward pass, regardless of how many parameters the network has.

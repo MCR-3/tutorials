@@ -12,6 +12,7 @@ import {
   GradientDiagram,
   GradientDescentDiagram,
   ChainRuleDiagram,
+  ComputationGraphDiagram,
 } from "./diagrams";
 
 export const mdxComponents = {
@@ -29,4 +30,5 @@ export const mdxComponents = {
   GradientDiagram,
   GradientDescentDiagram,
   ChainRuleDiagram,
+  ComputationGraphDiagram,
 };

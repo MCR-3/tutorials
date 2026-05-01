@@ -561,6 +561,96 @@ export function BatchMatrixDiagram() {
   );
 }
 
+export function ComputationGraphDiagram() {
+  const r = 26;
+
+  function edge(x1: number, y1: number, x2: number, y2: number) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const as = 7;
+    const tipX = x2 - ux * r, tipY = y2 - uy * r;
+    const lx2 = tipX - ux * as, ly2 = tipY - uy * as;
+    return {
+      lx1: x1 + ux * r, ly1: y1 + uy * r,
+      lx2, ly2,
+      ahPoints: [
+        `${tipX.toFixed(1)},${tipY.toFixed(1)}`,
+        `${(lx2 - uy * 3.5).toFixed(1)},${(ly2 + ux * 3.5).toFixed(1)}`,
+        `${(lx2 + uy * 3.5).toFixed(1)},${(ly2 - ux * 3.5).toFixed(1)}`,
+      ].join(" "),
+    };
+  }
+
+  const X: [number, number] = [80, 175];
+  const Y: [number, number] = [80, 255];
+  const A: [number, number] = [255, 90];
+  const B: [number, number] = [255, 255];
+  const Z: [number, number] = [430, 175];
+
+  const sc = "var(--border-strong)";
+
+  function drawEdge(
+    e: { lx1: number; ly1: number; lx2: number; ly2: number; ahPoints: string },
+    label: string, lx: number, ly: number,
+  ) {
+    return (
+      <>
+        <line x1={e.lx1} y1={e.ly1} x2={e.lx2} y2={e.ly2}
+          stroke={sc} strokeWidth={1.5} />
+        <polygon points={e.ahPoints} fill={sc} />
+        <text x={lx} y={ly} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">{label}</text>
+      </>
+    );
+  }
+
+  function drawNode(cx: number, cy: number, top: string, bottom: string, color: string) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r}
+          fill="transparent" stroke={color} strokeWidth={1.5} />
+        <text x={cx} y={cy - 3} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill={color}>{top}</text>
+        <text x={cx} y={cy + 14} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">{bottom}</text>
+      </g>
+    );
+  }
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={480} height={340}>
+        {drawEdge(edge(...X, ...A), "²", 152, 118)}
+        {drawEdge(edge(...X, ...B), "×", 150, 220)}
+        {drawEdge(edge(...Y, ...B), "×", 168, 266)}
+        {drawEdge(edge(...A, ...Z), "+", 358, 118)}
+        {drawEdge(edge(...B, ...Z), "+", 358, 222)}
+
+        {drawNode(X[0], X[1], "x", "= 2", "var(--color-green)")}
+        {drawNode(Y[0], Y[1], "y", "= 3", "var(--color-green)")}
+        {drawNode(A[0], A[1], "x²", "= 4", "var(--color-blue)")}
+        {drawNode(B[0], B[1], "x·y", "= 6", "var(--color-blue)")}
+        {drawNode(Z[0], Z[1], "z", "= 10", "var(--color-orange)")}
+
+        {/* Legend */}
+        <circle cx={20} cy={318} r={6} fill="transparent"
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <text x={32} y={322} fontFamily="var(--font-code)" fontSize={11}
+          fill="var(--muted)">inputs (leaf)</text>
+        <circle cx={140} cy={318} r={6} fill="transparent"
+          stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={152} y={322} fontFamily="var(--font-code)" fontSize={11}
+          fill="var(--muted)">computed</text>
+        <circle cx={230} cy={318} r={6} fill="transparent"
+          stroke="var(--color-orange)" strokeWidth={1.5} />
+        <text x={242} y={322} fontFamily="var(--font-code)" fontSize={11}
+          fill="var(--muted)">output</text>
+      </svg>
+    </div>
+  );
+}
+
 export function ChainRuleDiagram() {
   const bw = 85, bh = 34, rx = 3;
   const nx1 = 15, nx2 = 210, nx3 = 400;
