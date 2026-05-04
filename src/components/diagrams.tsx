@@ -472,15 +472,15 @@ export function GradientDescentDiagram() {
         {/* Dashed verticals */}
         <MafsLine.Segment
           point1={[w0, 0]} point2={[w0, loss(w0)]}
-          style="dashed" color="var(--muted)" weight={1}
+          style="dashed" color="var(--color-yellow)" weight={1}
         />
         <MafsLine.Segment
           point1={[w1, 0]} point2={[w1, loss(w1)]}
-          style="dashed" color="var(--muted)" weight={1}
+          style="dashed" color="var(--color-yellow)" weight={1}
         />
         <MafsLine.Segment
           point1={[w2, 0]} point2={[w2, loss(w2)]}
-          style="dashed" color="var(--muted)" weight={1}
+          style="dashed" color="var(--color-yellow)" weight={1}
         />
         {/* Points on curve */}
         <Point x={w0} y={loss(w0)} color="var(--color-orange)" />
@@ -786,7 +786,7 @@ export function LossCurveDiagram() {
         <MafsText x={13.0} y={0.30} size={12} color="var(--color-blue)">training</MafsText>
         <MafsText x={13.0} y={0.72} size={12} color="var(--color-orange)">validation</MafsText>
         <MafsText x={8} y={0.70} size={11} color="var(--color-green)">best</MafsText>
-        <MafsText x={16.5} y={-0.03} size={11} color="var(--muted)">epoch</MafsText>
+        <MafsText x={16.5} y={-0.2} size={11} color="var(--color-white)">epoch</MafsText>
       </Mafs>
     </div>
   );
@@ -814,7 +814,7 @@ export function ReLUDiagram() {
         {/* Labels */}
         <MafsText x={2.2} y={3.2} size={14} color="var(--color-blue)">ReLU(x)</MafsText>
         <MafsText x={1.6} y={1.28} size={12} color="var(--color-orange)">gradient = 1</MafsText>
-        <MafsText x={-3.2} y={-0.5} size={12} color="var(--muted)">gradient = 0</MafsText>
+        <MafsText x={-3} y={-0.5} size={12} color="var(--color-white)">gradient = 0</MafsText>
       </Mafs>
     </div>
   );
@@ -838,9 +838,9 @@ export function SigmoidTanhDiagram() {
         <MafsText x={-2.2} y={0.38} size={13} color="var(--color-orange)">σ(x)</MafsText>
         <MafsText x={-2.8} y={-0.55} size={13} color="var(--color-green)">tanh(x)</MafsText>
         {/* Asymptote markers at the right edge */}
-        <MafsText x={4.4} y={1.12} size={11} color="var(--muted)">1</MafsText>
-        <MafsText x={4.4} y={0.12} size={11} color="var(--muted)">½</MafsText>
-        <MafsText x={4.2} y={-0.88} size={11} color="var(--muted)">−1</MafsText>
+        <MafsText x={4.4} y={1.12} size={11} color="var(--color-white)">1</MafsText>
+        <MafsText x={4.4} y={0.12} size={11} color="var(--color-white)">½</MafsText>
+        <MafsText x={4.4} y={-0.88} size={11} color="var(--color-white)">-1</MafsText>
       </Mafs>
     </div>
   );
@@ -1011,6 +1011,100 @@ export function MLPDiagram() {
           fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
         >3 → 4 → 2 fully connected network  (16 + 10 = 26 parameters)</text>
       </svg>
+    </div>
+  );
+}
+
+export function DropoutDiagram() {
+  const svgW = 400, svgH = 250;
+  const r = 18;
+  const nodeYs = [45, 83, 121, 159, 197];
+  const droppedIdxs = new Set([1, 3]); // 2 of 5 neurons dropped
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Vertical divider */}
+        <line x1={200} y1={8} x2={200} y2={215}
+          stroke="var(--border)" strokeWidth={1} strokeDasharray="4 3" />
+
+        {/* Section labels */}
+        <text x={100} y={20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >training  (p = 0.4)</text>
+        <text x={300} y={20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >inference</text>
+
+        {/* Training nodes */}
+        {nodeYs.map((y, i) => {
+          const dropped = droppedIdxs.has(i);
+          return (
+            <g key={`t-${i}`}>
+              <circle cx={100} cy={y} r={r}
+                fill={dropped ? "var(--surface-hover)" : "var(--white)"}
+                stroke={dropped ? "var(--muted)" : "var(--color-blue)"}
+                strokeWidth={dropped ? 1 : 1.5}
+                strokeDasharray={dropped ? "3 2" : "none"}
+              />
+              {dropped && (
+                <text x={100} y={y + 5} textAnchor="middle"
+                  fontFamily="var(--font-code)" fontSize={13} fill="var(--muted)"
+                >x</text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Inference nodes — all active */}
+        {nodeYs.map((y, i) => (
+          <circle key={`i-${i}`} cx={300} cy={y} r={r}
+            fill="var(--white)" stroke="var(--color-green)" strokeWidth={1.5} />
+        ))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 14} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >2 of 5 neurons randomly zeroed during training; </text>
+        <text x={svgW / 2} y={svgH} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >all active at inference</text>
+      </svg>
+    </div>
+  );
+}
+
+export function BatchNormDiagram() {
+  const gauss = (x: number, m: number, s: number) =>
+    (1 / (s * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - m) / s) ** 2);
+
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-3.5, 6.5], y: [0, 0.5], padding: 0 }}
+        height={200}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 0.25 }} />
+        {/* Before BatchNorm: offset mean, higher variance */}
+        <Plot.OfX y={(x) => gauss(x, 2.0, 1.5)} color="var(--color-orange)" weight={2} />
+        {/* After BatchNorm: zero mean, unit variance */}
+        <Plot.OfX y={(x) => gauss(x, 0.0, 1.0)} color="var(--color-green)" weight={2} />
+        {/* Zero-mean reference line */}
+        <MafsLine.Segment
+          point1={[0, 0]} point2={[0, 0.42]}
+          color="var(--color-yellow)" weight={1} style="dashed"
+        />
+        {/* Labels */}
+        <MafsText x={3.8} y={0.17} size={12} color="var(--color-orange)">before</MafsText>
+        <MafsText x={-0.7} y={0.44} size={12} color="var(--color-green)">after</MafsText>
+        <MafsText x={0} y={0.6} size={16} color="var(--color-blue)">μ = 0</MafsText>
+      </Mafs>
     </div>
   );
 }
