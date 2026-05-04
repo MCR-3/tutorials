@@ -1425,6 +1425,66 @@ export function Im2colDiagram() {
   );
 }
 
+export function DigitClassifierDiagram() {
+  const svgW = 340;
+  const bw = 280, bh = 32, gap = 12;
+  const bx = (svgW - bw) / 2;  // = 30
+  const marginT = 15, marginB = 10;
+  const cx = svgW / 2;
+
+  const layers = [
+    { label: "input", shape: "1 × 28 × 28", color: "var(--color-pink)" },
+    { label: "Conv(1→32) + BN + ReLU", shape: "32 × 28 × 28", color: "var(--color-blue)" },
+    { label: "MaxPool(2×2)", shape: "32 × 14 × 14", color: "var(--color-orange)" },
+    { label: "Conv(32→64) + BN + ReLU", shape: "64 × 14 × 14", color: "var(--color-blue)" },
+    { label: "MaxPool(2×2)", shape: "64 × 7 × 7", color: "var(--color-orange)" },
+    { label: "Flatten  +  Dropout(0.3)", shape: "3 136", color: "var(--color-pink)" },
+    { label: "Linear(3136 → 10)", shape: "10 classes", color: "var(--color-green)" },
+  ] as const;
+
+  const svgH = marginT + layers.length * bh + (layers.length - 1) * gap + marginB;
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {layers.map(({ label, shape, color }, i) => {
+          const y = marginT + i * (bh + gap);
+          return (
+            <g key={i}>
+              {/* Downward arrow to next layer */}
+              {i < layers.length - 1 && (
+                <>
+                  <line x1={cx} y1={y + bh} x2={cx} y2={y + bh + gap - 4}
+                    stroke="var(--border-strong)" strokeWidth={1.2} />
+                  <polygon
+                    points={`${cx},${y + bh + gap - 4} ${cx - 3.5},${y + bh + gap - 10} ${cx + 3.5},${y + bh + gap - 10}`}
+                    fill="var(--border-strong)"
+                  />
+                </>
+              )}
+              {/* Layer box */}
+              <rect x={bx} y={y} width={bw} height={bh}
+                fill="var(--white)" stroke={color} strokeWidth={1.5} rx={3} />
+              {/* Operation label (left-aligned) */}
+              <text x={bx + 10} y={y + bh / 2 + 4} textAnchor="start"
+                fontFamily="var(--font-code)" fontSize={10} fill={color}
+              >{label}</text>
+              {/* Shape annotation (right-aligned, muted) */}
+              <text x={bx + bw - 8} y={y + bh / 2 + 4} textAnchor="end"
+                fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+              >{shape}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

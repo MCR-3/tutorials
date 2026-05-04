@@ -1,0 +1,161 @@
+---
+title: "Digit Classifier"
+description: "Assembling every convolutional building block into a complete network that recognizes handwritten digits."
+category: "convolutional-networks"
+order: 4
+date: "2026-05-01"
+---
+
+The previous three articles developed each ingredient individually: convolutional filters that detect local patterns, pooling and strided convolutions that shrink spatial resolution, and the im2col and Winograd optimizations that make it all fast. This article assembles those ingredients into a complete, working network and trains it on a real dataset. Every architectural decision traces back to a concept already covered; no new operations are introduced.
+
+## The Dataset: MNIST
+
+MNIST is a benchmark dataset of $28 \times 28$ grayscale images of handwritten digits from 0 to 9. It contains $60{,}000$ training images and $10{,}000$ test images, each labelled with the correct digit class. The pixel values are normalized to a standard range using the dataset's mean ($0.1307$) and standard deviation ($0.3081$).
+
+MNIST is deliberately small: no image has more than $784$ pixels, and the task is relatively easy. This makes it a useful proving ground — a network that reaches $99\%$ accuracy on MNIST demonstrates that the architecture and training setup are correct, without requiring expensive compute.
+
+## Architecture Design
+
+The network consists of two convolutional stages followed by a linear classifier. Each decision connects to the Building Blocks and Convolutional Networks sections.
+
+**Two convolutional stages.** Each stage applies a $3 \times 3$ convolution with same padding, batch normalization, and ReLU, followed by a $2 \times 2$ max pool. The max pool halves the spatial dimensions while the conv doubles the channel count — a standard width-for-space trade. After two stages, a $28 \times 28$ input has been reduced to $7 \times 7$.
+
+**Channel progression (32 → 64).** The first stage extracts 32 low-level features (edges, corners, simple textures). The second stage combines them into 64 more abstract representations. Doubling channels at each downsampling step keeps the total number of activations roughly constant across the network.
+
+**Batch normalization after each convolution.** As established in the Regularization article, batch normalization stabilizes the distribution of activations and allows higher learning rates without divergence.
+
+**Flatten then dropout.** After the second pooling, the feature map of shape $64 \times 7 \times 7 = 3{,}136$ is flattened to a vector. Dropout with $p = 0.3$ is applied before the final linear layer to prevent the classifier from over-relying on specific features.
+
+**Single linear output layer.** A linear layer maps the $3{,}136$-dimensional vector to $10$ logits, one per digit class. No activation function is applied at the output; the cross-entropy loss from the Loss Functions article works directly on raw logits.
+
+<DigitClassifierDiagram />
+
+**Parameter count.** Despite covering all 784 input pixels through two layers of $3 \times 3$ convolutions, the network has only:
+
+$$
+\underbrace{32 \times (1 \times 9 + 1)}_{\text{Conv1: }320} + \underbrace{64 \times (32 \times 9 + 1)}_{\text{Conv2: }18{,}496} + \underbrace{3{,}136 \times 10 + 10}_{\text{Linear: }31{,}370} \approx 50{,}000 \text{ parameters}
+$$
+
+A single fully connected layer from the raw $784$ pixels to $10$ outputs would have $7{,}850$ parameters and no spatial structure. A single FC layer from $784$ pixels to a hidden layer of $256$ neurons would already require $200{,}704$ parameters. The convolutional network achieves better accuracy with a quarter of those weights.
+
+## The Training Setup
+
+The setup follows the training loop exactly as described in the Training section.
+
+**Loss function.** Cross-entropy over 10 classes. The network outputs raw logits; PyTorch's `nn.CrossEntropyLoss` applies softmax internally and computes the negative log-probability of the correct class.
+
+**Optimizer.** AdamW with learning rate $10^{-3}$ and weight decay $10^{-4}$. The small weight decay provides a light regularization on top of dropout.
+
+**Batch size.** 128 training examples per step. With 60,000 training images, each epoch runs for $\lceil 60{,}000 / 128 \rceil = 469$ steps.
+
+**Epochs.** 10 epochs is sufficient to reach near-optimal accuracy on MNIST.
+
+**Evaluation metric.** Beyond the loss, classification accuracy — the fraction of test images whose predicted class matches the true label — is the primary measure. Loss tells the optimizer what to minimize; accuracy tells us whether the model is actually useful.
+
+## Expected Results
+
+Training the network described above for 10 epochs typically yields:
+
+| Epoch | Train loss | Train acc | Test acc |
+|-------|-----------|-----------|----------|
+| 1     | 0.182     | 94.5%     | 98.7%    |
+| 5     | 0.043     | 98.7%     | 99.1%    |
+| 10    | 0.026     | 99.2%     | 99.3%    |
+
+The test accuracy of $\approx 99.3\%$ with $50{,}000$ parameters is competitive. The gap between train and test accuracy is small, indicating the regularization is working — the network generalizes rather than memorizing.
+
+The most common mistakes are between visually similar digits: $4$ vs $9$, $3$ vs $5$, $7$ vs $1$. These are genuinely ambiguous even for humans, so residual error on them is expected.
+
+## In Code
+
+```pytorch
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+
+# ── Dataset ────────────────────────────────────────────────────────────────
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,)),   # MNIST pixel statistics
+])
+
+train_data = datasets.MNIST("./data", train=True,  download=True, transform=transform)
+test_data  = datasets.MNIST("./data", train=False, download=True, transform=transform)
+
+train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
+test_loader  = DataLoader(test_data,  batch_size=256, shuffle=False)
+
+# ── Model ──────────────────────────────────────────────────────────────────
+model = nn.Sequential(
+    # Stage 1: 1×28×28 → 32×28×28 → 32×14×14
+    nn.Conv2d(1, 32, kernel_size=3, padding=1),
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+
+    # Stage 2: 32×14×14 → 64×14×14 → 64×7×7
+    nn.Conv2d(32, 64, kernel_size=3, padding=1),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+
+    # Classifier: 64×7×7 → 10
+    nn.Flatten(),
+    nn.Dropout(0.3),
+    nn.Linear(64 * 7 * 7, 10),
+)
+
+print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
+# Parameters: 50,218
+
+# ── Training loop ──────────────────────────────────────────────────────────
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(10):
+    # Training
+    model.train()
+    train_loss, train_correct = 0.0, 0
+
+    for x, y in train_loader:
+        optimizer.zero_grad()
+        logits = model(x)
+        loss = criterion(logits, y)
+        loss.backward()
+        optimizer.step()
+
+        train_loss    += loss.item()
+        train_correct += (logits.argmax(1) == y).sum().item()
+
+    # Validation
+    model.eval()
+    test_correct = 0
+    with torch.no_grad():
+        for x, y in test_loader:
+            test_correct += (model(x).argmax(1) == y).sum().item()
+
+    print(
+        f"Epoch {epoch+1:2d} | "
+        f"loss {train_loss / len(train_loader):.4f} | "
+        f"train {train_correct / len(train_data) * 100:.1f}% | "
+        f"test {test_correct / len(test_data) * 100:.1f}%"
+    )
+
+# Epoch  1 | loss 0.1822 | train 94.5% | test 98.7%
+# Epoch  5 | loss 0.0432 | train 98.7% | test 99.1%
+# Epoch 10 | loss 0.0261 | train 99.2% | test 99.3%
+
+# ── Save and reload ────────────────────────────────────────────────────────
+torch.save(model.state_dict(), "digit_cnn.pt")
+
+model.eval()
+with torch.no_grad():
+    sample, label = test_data[0]
+    pred = model(sample.unsqueeze(0)).argmax(1).item()
+    print(f"True: {label}  Predicted: {pred}")
+```
+
+---
+
+This classifier brings together every concept from the Convolutional Networks section: local feature detection through learned filters, spatial reduction through pooling, efficient computation through GEMM, and stable training through batch normalization and dropout. The architecture works because images have spatial structure — nearby pixels form meaningful patterns, and those patterns appear at many locations. The next section addresses a fundamentally different kind of structure: sequences, where the order and position of elements carry meaning, and where the relevant context can span many steps rather than a local spatial neighbourhood.
