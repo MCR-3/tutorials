@@ -792,6 +792,60 @@ export function LossCurveDiagram() {
   );
 }
 
+export function ReLUDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-3.8, 3.8], y: [-0.8, 3.8], padding: 0 }}
+        height={230}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        {/* ReLU function */}
+        <Plot.OfX y={(x) => Math.max(0, x)} color="var(--color-blue)" weight={2.5} />
+        {/* Gradient = 1 for x > 0: dashed line at y = 1 */}
+        <MafsLine.Segment
+          point1={[0.08, 1]} point2={[3.8, 1]}
+          color="var(--color-orange)" weight={1.5} style="dashed"
+        />
+        {/* Kink point */}
+        <Point x={0} y={0} color="var(--color-green)" />
+        {/* Labels */}
+        <MafsText x={2.2} y={3.2} size={14} color="var(--color-blue)">ReLU(x)</MafsText>
+        <MafsText x={1.6} y={1.28} size={12} color="var(--color-orange)">gradient = 1</MafsText>
+        <MafsText x={-3.2} y={-0.5} size={12} color="var(--muted)">gradient = 0</MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
+export function SigmoidTanhDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-5, 5], y: [-1.35, 1.38], padding: 0 }}
+        height={230}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 2 }} yAxis={{ lines: 0.5 }} />
+        {/* Sigmoid: range (0, 1) */}
+        <Plot.OfX y={(x) => 1 / (1 + Math.exp(-x))} color="var(--color-orange)" weight={2} />
+        {/* Tanh: range (−1, 1) */}
+        <Plot.OfX y={(x) => Math.tanh(x)} color="var(--color-green)" weight={2} />
+        {/* Labels — placed in the left region where curves are well-separated */}
+        <MafsText x={-2.2} y={0.38} size={13} color="var(--color-orange)">σ(x)</MafsText>
+        <MafsText x={-2.8} y={-0.55} size={13} color="var(--color-green)">tanh(x)</MafsText>
+        {/* Asymptote markers at the right edge */}
+        <MafsText x={4.4} y={1.12} size={11} color="var(--muted)">1</MafsText>
+        <MafsText x={4.4} y={0.12} size={11} color="var(--muted)">½</MafsText>
+        <MafsText x={4.2} y={-0.88} size={11} color="var(--muted)">−1</MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
