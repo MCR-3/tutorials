@@ -1316,6 +1316,115 @@ export function MaxPoolDiagram() {
   );
 }
 
+export function Im2colDiagram() {
+  const svgW = 300, svgH = 185;
+  const csIn = 33;  // input cell size
+  const csIm = 25;  // im2col cell size
+
+  const input = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+  // im2col for 2×2 kernel, stride 1: 4 output positions
+  const im2col = [
+    [1, 2, 4, 5],  // patch at (0,0)
+    [2, 3, 5, 6],  // patch at (0,1)
+    [4, 5, 7, 8],  // patch at (1,0)
+    [5, 6, 8, 9],  // patch at (1,1)
+  ];
+  const rowLabels = ["(0,0)", "(0,1)", "(1,0)", "(1,1)"];
+
+  const xi = 12, yi = 38;
+  const xm = xi + 3 * csIn + 42, ym = yi;
+  const arY = yi + 3 * csIn / 2;   // vertical center of input grid
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Panel labels */}
+        <text x={xi + 3 * csIn / 2} y={24} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  3×3</text>
+        <text x={xm + 4 * csIm / 2} y={24} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">im2col  4×4</text>
+
+        {/* Input cells — blue highlight on top-left 2×2 patch */}
+        {input.flatMap((row, r) =>
+          row.map((val, c) => {
+            const inPatch = r < 2 && c < 2;
+            return (
+              <g key={`in-${r}-${c}`}>
+                <rect
+                  x={xi + c * csIn} y={yi + r * csIn}
+                  width={csIn} height={csIn}
+                  fill={inPatch ? "var(--color-blue)" : "var(--color-white)"}
+                  fillOpacity={inPatch ? 0.11 : 1}
+                  stroke={inPatch ? "var(--color-blue)" : "var(--border-strong)"}
+                  strokeWidth={inPatch ? 1.5 : 0.8}
+                />
+                <text
+                  x={xi + c * csIn + csIn / 2} y={yi + r * csIn + csIn / 2 + 5}
+                  textAnchor="middle" fontFamily="var(--font-code)"
+                  fontSize={13} fontWeight={inPatch ? 700 : 400}
+                  fill={inPatch ? "var(--color-blue)" : "var(--color-fg)"}
+                >{val}</text>
+              </g>
+            );
+          })
+        )}
+
+        {/* Arrow with "im2col" label */}
+        <text x={(xi + 3 * csIn + xm) / 2} y={arY - 7} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">im2col</text>
+        <line x1={xi + 3 * csIn + 5} y1={arY} x2={xm - 5} y2={arY}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon
+          points={`${xm - 5},${arY} ${xm - 11},${arY - 3} ${xm - 11},${arY + 3}`}
+          fill="var(--border-strong)" />
+
+        {/* im2col matrix — row 0 highlighted blue, others muted */}
+        {im2col.flatMap((row, r) =>
+          row.map((val, c) => {
+            const isFirst = r === 0;
+            return (
+              <g key={`im-${r}-${c}`}>
+                <rect
+                  x={xm + c * csIm} y={ym + r * csIm}
+                  width={csIm} height={csIm}
+                  fill={isFirst ? "var(--color-blue)" : "var(--color-white)"}
+                  fillOpacity={isFirst ? 0.11 : 1}
+                  stroke={isFirst ? "var(--color-blue)" : "var(--border)"}
+                  strokeWidth={isFirst ? 1.5 : 0.6}
+                />
+                <text
+                  x={xm + c * csIm + csIm / 2} y={ym + r * csIm + csIm / 2 + 4}
+                  textAnchor="middle" fontFamily="var(--font-code)"
+                  fontSize={10} fontWeight={isFirst ? 700 : 400}
+                  fill={isFirst ? "var(--color-blue)" : "var(--muted)"}
+                >{val}</text>
+              </g>
+            );
+          })
+        )}
+
+        {/* Row position labels */}
+        {rowLabels.map((lbl, r) => (
+          <text key={`lbl-${r}`}
+            x={xm + 4 * csIm + 5} y={ym + r * csIm + csIm / 2 + 4}
+            fontFamily="var(--font-code)" fontSize={9}
+            fill={r === 0 ? "var(--color-blue)" : "var(--muted)"}
+          >{lbl}</text>
+        ))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >blue patch → row 0;  Y = X_col × W^T</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

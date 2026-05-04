@@ -1,0 +1,306 @@
+---
+title: "Convolution Optimization"
+description: "Three levels of convolution: the naive nested loops, im2col mapped to GEMM, and Winograd for arithmetic-optimal 3×3 kernels."
+category: "convolutional-networks"
+order: 3
+date: "2026-05-01"
+---
+
+The previous articles established what a convolutional layer computes: slide a filter over the input and compute a dot product at each position. Three progressively more sophisticated methods implement this computation. The simplest is a direct loop over every output cell and filter element — correct, but too slow for practical use. **im2col** rearranges the input so that the entire convolution becomes a single matrix multiplication, inheriting highly optimized GEMM implementations. **Winograd convolution** goes further and reduces the number of multiplications algebraically, trading some additions for a significant arithmetic speedup on small kernels.
+
+## The Naive Implementation
+
+The definition of a convolution maps directly to nested loops. For a single input image with $C_{\text{in}}$ channels, $K$ output filters of size $k \times k$, and stride 1:
+
+```python
+for k_out in range(K):
+    for i in range(H_out):
+        for j in range(W_out):
+            val = bias[k_out]
+            for c in range(C_in):
+                for r in range(k):
+                    for cc in range(k):
+                        val += weight[k_out, c, r, cc] * input[c, i+r, j+cc]
+            output[k_out, i, j] = val
+```
+
+Six nested loops, one multiply-accumulate at the innermost level. For a batch of $B$ images the outermost loop becomes seven. The total number of multiply-accumulate operations is:
+
+$$
+B \times K \times H_{\text{out}} \times W_{\text{out}} \times C_{\text{in}} \times k^2
+$$
+
+**Concrete example.** The first convolutional layer of ResNet-50 has $K = 64$ filters of size $7 \times 7$, $C_{\text{in}} = 3$, and produces a $112 \times 112$ feature map. Per image:
+
+$$
+64 \times 112 \times 112 \times 3 \times 49 \approx 118 \text{ million MACs}
+$$
+
+Across all 50 layers of ResNet-50 the total is roughly 4 billion MACs per image. With a naive loop executing one MAC at a time at, say, 3 GHz, that is over a second per image — far too slow even before considering a batch.
+
+**Why the loop is slow.** Modern CPUs and GPUs are designed for wide, regular computation:
+
+- **SIMD goes unused.** AVX-512 can compute 16 single-precision multiplications in one instruction. The naive loop executes one at a time. The potential throughput gain of 16× sits idle.
+- **Cache thrashing.** Each iteration of the inner loops reads `input[c, i+r, j+cc]`. Adjacent output positions $(i, j)$ and $(i, j+1)$ read overlapping but not identical patches — the next patch is offset by one column. For stride 1 with $C_{\text{in}} = 64$, the full patch $k^2 C_{\text{in}} = 9 \times 64 = 576$ floats does not fit in L1 cache. Each new output position therefore causes cache refills.
+- **Loop overhead.** Six levels of bounds checks, counter increments, and conditional branches add instruction overhead on top of every useful MAC.
+- **No instruction-level parallelism.** Each MAC depends on the previous accumulation into `val`, blocking the CPU's pipeline from executing the next instruction early.
+
+## GEMM as the Fast Primitive
+
+The solution is to reformulate convolution as **GEMM**: General Matrix-Matrix Multiplication. GEMM is the most heavily optimized primitive in numerical computing. Libraries such as cuBLAS (NVIDIA), MKL (Intel), and OpenBLAS achieve 90–99% of peak hardware throughput by exploiting cache hierarchies, register blocking, fused multiply-add instructions, and on modern GPUs, dedicated tensor cores. If convolution can be expressed as GEMM, it inherits all of this for free.
+
+## The im2col Transformation
+
+The key observation is: a convolution's output at position $(i, j)$ is the dot product of the filter (a vector of $k^2 C_{\text{in}}$ values) with the input patch at $(i, j)$ (also a vector of $k^2 C_{\text{in}}$ values). If we collect all input patches into the rows of a matrix, the entire convolution becomes a single matrix-matrix multiply.
+
+**im2col** (image-to-column) does exactly this rearrangement. For every output position $(i, j)$, it extracts the $k \times k$ input patch and writes it as one row of a new matrix $\mathbf{X}_{\text{col}}$. If there are $P = H_{\text{out}} \times W_{\text{out}}$ output positions and the patch size is $k^2 C_{\text{in}}$, then:
+
+$$
+\mathbf{X}_{\text{col}} \in \mathbb{R}^{P \times k^2 C_{\text{in}}}
+$$
+
+The $K$ filters, each flattened to a vector of length $k^2 C_{\text{in}}$, are stacked as rows of a weight matrix:
+
+$$
+\mathbf{W}_{\text{col}} \in \mathbb{R}^{K \times k^2 C_{\text{in}}}
+$$
+
+The full convolution output is then:
+
+$$
+\mathbf{Y}_{\text{flat}} = \mathbf{X}_{\text{col}} \cdot \mathbf{W}_{\text{col}}^\top \in \mathbb{R}^{P \times K}
+$$
+
+Reshaping $\mathbf{Y}_{\text{flat}}$ to $(H_{\text{out}}, W_{\text{out}}, K)$ gives the standard feature map output. The convolution has become a single GEMM call.
+
+**Example.** For a $3 \times 3$ input with a $2 \times 2$ kernel and stride 1, there are $P = 4$ output positions. Each flattened patch has $4$ elements. The im2col matrix is $4 \times 4$:
+
+<Im2colDiagram />
+
+The first row $[1, 2, 4, 5]$ is the patch at position $(0, 0)$, read row-by-row. The second row $[2, 3, 5, 6]$ is the patch at $(0, 1)$ — it shares elements $2$ and $5$ with the first row, reflecting the overlap between adjacent kernel positions.
+
+## Memory Cost
+
+im2col duplicates data. An input value may appear in as many as $k^2$ rows of $\mathbf{X}_{\text{col}}$ — once for every patch it falls inside. For a $3 \times 3$ kernel, the im2col matrix is up to $9\times$ larger than the original input. For a $224 \times 224$ image with $C = 64$ channels and a $3 \times 3$ kernel:
+
+$$
+\text{im2col size} = 224^2 \times 9 \times 64 \times 4\,\text{bytes} \approx 1.2\,\text{GB}
+$$
+
+This is the main cost of im2col: a substantial memory buffer that must be allocated before the GEMM call. In practice, frameworks allocate this buffer once and reuse it across layers, and the GEMM throughput improvement far outweighs the memory cost for typical kernel sizes.
+
+## 1×1 Convolutions
+
+The $1 \times 1$ kernel is a special case where im2col is unnecessary. A $1 \times 1$ patch contains exactly one element per channel, so no spatial rearrangement is needed. The input of shape $(H, W, C_{\text{in}})$ is simply reshaped to $(HW, C_{\text{in}})$ and multiplied by the weight matrix of shape $(C_{\text{in}}, K)$:
+
+$$
+\mathbf{Y} = \mathbf{X}_{\text{reshape}} \cdot \mathbf{W}^\top
+$$
+
+This is a direct GEMM with no duplication overhead. $1 \times 1$ convolutions are used extensively in modern architectures to change channel depth without spatial mixing — a fact that makes them computationally efficient.
+
+## Winograd Convolution
+
+im2col cuts the overhead of the naive loop by restructuring memory access, but the total number of multiplications stays the same: $9 \times C_{\text{in}}$ per output cell for a $3 \times 3$ kernel. Winograd convolution reduces that count algebraically.
+
+### The Core Idea
+
+The Winograd algorithm computes several output positions together as a **tile**, exploiting the fact that adjacent output positions share most of their input data. By expressing the computation in a transformed domain, independent additions can replace some multiplications. Since additions are cheaper than multiplications on every modern processor (floating-point multipliers have longer latency and lower throughput), this trade improves wall-clock time even though the total operation count rises.
+
+### 1D Example: F(2, 3)
+
+The simplest variant, **F(2, 3)**, computes 2 output values at once from a 3-element filter applied to a 4-element input strip $[d_0, d_1, d_2, d_3]$.
+
+**Naive approach.** Two separate dot products, 3 multiplications each:
+$$
+y_0 = d_0 g_0 + d_1 g_1 + d_2 g_2 \qquad y_1 = d_1 g_0 + d_2 g_1 + d_3 g_2
+$$
+Total: **6 multiplications**, 4 additions.
+
+**Winograd F(2, 3).** First, transform the filter once (4 multiplications, but amortized across all tiles since filters are reused):
+$$
+\tilde{g} = \bigl[g_0,\ \tfrac{g_0+g_1+g_2}{2},\ \tfrac{g_0-g_1+g_2}{2},\ g_2\bigr]
+$$
+Then, for each input tile, compute the input transform using only additions:
+$$
+t_0 = d_0 - d_2 \qquad t_1 = d_1 + d_2 \qquad t_2 = d_2 - d_1 \qquad t_3 = d_1 - d_3
+$$
+Now perform **4 element-wise multiplications**:
+$$
+m_i = t_i \times \tilde{g}_i \quad (i = 0, 1, 2, 3)
+$$
+Finally, recover the outputs using only additions:
+$$
+y_0 = m_0 + m_1 + m_2 \qquad y_1 = m_1 - m_2 - m_3
+$$
+
+**Numerical verification.** For $g = [1, 2, 1]$ (a smoothing filter) and $d = [1, 3, 5, 7]$:
+
+Filter transform: $\tilde{g} = [1,\ 2,\ 0,\ 1]$
+
+Input transform: $t = [-4,\ 8,\ 2,\ -4]$
+
+Element-wise products: $m = [-4,\ 16,\ 0,\ -4]$
+
+Output:
+$$
+y_0 = -4 + 16 + 0 = 12 \qquad y_1 = 16 - 0 - (-4) = 20
+$$
+
+Check: $y_0 = 1 \cdot 1 + 3 \cdot 2 + 5 \cdot 1 = 12$ ✓, $y_1 = 3 \cdot 1 + 5 \cdot 2 + 7 \cdot 1 = 20$ ✓
+
+4 multiplications instead of 6, a **1.5× reduction** per tile in 1D.
+
+### Extension to 2D: F(2×2, 3×3)
+
+Applying the 1D transform in both spatial dimensions produces the standard 2D variant. A single $4 \times 4$ input tile produces $2 \times 2 = 4$ outputs from a $3 \times 3$ filter, using **16 element-wise multiplications** instead of the naive $4 \times 9 = 36$:
+
+$$
+\frac{36}{16} = 2.25\times \text{ fewer multiplications per output cell}
+$$
+
+The three steps — filter transform $G$, input transform $B^\top$, output transform $A^\top$ — each involve only additions. cuDNN implements these with hand-tuned CUDA kernels that keep the transformed tiles in registers throughout. The filter transform is performed once per layer (not per image), making its cost negligible for any non-trivial batch size.
+
+### When to Use Winograd Instead of im2col
+
+The 2.25× arithmetic reduction does not translate directly to a 2.25× wall-clock speedup. The transforms add overhead, and the situation where Winograd wins depends on several factors:
+
+| Condition | Favours |
+|-----------|---------|
+| $k = 3$ kernels, moderate feature maps ($28$–$112$ px) | **Winograd** |
+| $k = 1$ kernels (bottleneck layers) | **im2col** (direct GEMM, no transform needed) |
+| $k \geq 7$ or non-square kernels | **FFT** or im2col |
+| Very small feature maps ($7 \times 7$, last stage) | **im2col** (few tiles, transforms not amortized) |
+| Compute-bound layers (large $C_{\text{in}}$, large $K$) | **Winograd** |
+| Memory-bandwidth-bound regime | Tie (both methods bottlenecked by DRAM) |
+| Float16 / INT8 inference | **im2col** (Winograd transforms amplify rounding errors) |
+
+**Numerical stability.** The transforms involve differences of large values that nearly cancel, producing round-off error. F(2×2, 3×3) is reasonably stable in float32, but larger tile variants — F(4×4, 3×3) or F(6×6, 3×3), which reduce multiplications further — are numerically problematic in float16. cuDNN automatically falls back to im2col when the precision budget is tight or the feature map size falls below Winograd's amortization threshold.
+
+In practice, cuDNN benchmarks several candidate algorithms (im2col, Winograd, direct GEMM, FFT) on the first call to a given layer shape and caches the winner. Passing `torch.backends.cudnn.benchmark = True` enables this auto-tuning.
+
+## Other Approaches
+
+**FFT-based convolution.** Convolution in the spatial domain equals element-wise multiplication in the frequency domain. The Fast Fourier Transform evaluates this in $\mathcal{O}(N \log N)$ rather than $\mathcal{O}(N k^2)$. For large kernels ($k \geq 11$), where the $k^2$ factor dominates, FFT is faster than im2col. For the $3 \times 3$ kernels that dominate modern networks, the transform overhead makes FFT slower.
+
+**Implicit GEMM.** High-end GPU libraries such as CUTLASS avoid materializing the im2col matrix entirely. They implement GEMM with custom memory access patterns that read input patches on-the-fly, combining the transformation and multiplication in a single kernel. This eliminates the 9× memory overhead of im2col while retaining its throughput.
+
+## In Code
+
+```simplegrad
+import numpy as np
+
+# ── Naive implementation ───────────────────────────────────────────────────
+def conv2d_naive(x, weight, bias=None, stride=1):
+    """x: (C_in, H, W)  weight: (K, C_in, k, k)"""
+    K, C_in, kH, kW = weight.shape
+    H_out = (x.shape[1] - kH) // stride + 1
+    W_out = (x.shape[2] - kW) // stride + 1
+    out = np.zeros((K, H_out, W_out))
+    for k_out in range(K):
+        for i in range(H_out):
+            for j in range(W_out):
+                for c in range(C_in):
+                    for r in range(kH):
+                        for cc in range(kW):
+                            out[k_out, i, j] += (
+                                weight[k_out, c, r, cc]
+                                * x[c, i*stride+r, j*stride+cc]
+                            )
+        if bias is not None:
+            out[k_out] += bias[k_out]
+    return out
+
+# ── im2col implementation ─────────────────────────────────────────────────
+# im2col: extract all k×k patches as rows
+def im2col(x, k, stride=1):
+    H, W = len(x), len(x[0])
+    H_out = (H - k) // stride + 1
+    W_out = (W - k) // stride + 1
+    return [
+        [x[i*stride + r][j*stride + c]
+         for r in range(k) for c in range(k)]
+        for i in range(H_out)
+        for j in range(W_out)
+    ]
+
+x = [[1,2,3],[4,5,6],[7,8,9]]
+X_col = np.array(im2col(x, k=2))   # shape (4, 4)
+print(X_col)
+# [[ 1  2  4  5]
+#  [ 2  3  5  6]
+#  [ 4  5  7  8]
+#  [ 5  6  8  9]]
+
+# One filter: [[1,0],[0,1]] → flattened = [1,0,0,1]
+W_col = np.array([[1., 0., 0., 1.]])   # shape (1, 4)
+
+Y_flat = X_col @ W_col.T              # (4, 1)
+print(Y_flat.reshape(2, 2))
+# [[ 6.  8.]
+#  [12. 14.]]
+
+# Verification: direct conv at (0,0): 1×1 + 2×0 + 4×0 + 5×1 = 6  ✓
+```
+
+```pytorch
+import torch
+import torch.nn.functional as F
+
+# ── Naive implementation (reference, not for production) ──────────────────
+def conv2d_naive(x, weight, stride=1):
+    """x: (C_in, H, W)  weight: (K, C_in, k, k)"""
+    K, C_in, kH, kW = weight.shape
+    H_out = (x.shape[1] - kH) // stride + 1
+    W_out = (x.shape[2] - kW) // stride + 1
+    out = torch.zeros(K, H_out, W_out)
+    for k_out in range(K):
+        for i in range(H_out):
+            for j in range(W_out):
+                patch = x[:, i*stride:i*stride+kH, j*stride:j*stride+kW]
+                out[k_out, i, j] = (weight[k_out] * patch).sum()
+    return out
+
+# ── im2col via F.unfold ───────────────────────────────────────────────────
+# F.unfold is PyTorch's im2col
+x = torch.tensor([[1.,2.,3.],[4.,5.,6.],[7.,8.,9.]]).view(1, 1, 3, 3)
+
+x_col = F.unfold(x, kernel_size=2)   # shape: (N, C×k×k, L) = (1, 4, 4)
+print(x_col[0])
+# tensor([[ 1.,  2.,  4.,  5.],
+#          [ 2.,  3.,  5.,  6.],
+#          [ 4.,  5.,  7.,  8.],
+#          [ 5.,  6.,  8.,  9.]])
+# Each column is one patch (PyTorch transposes vs our convention above)
+
+W_col = torch.tensor([[1., 0., 0., 1.]])   # (K, k²C) = (1, 4)
+
+# Output: W_col @ x_col[0] → (K, L), then reshape
+y_flat = W_col @ x_col[0]             # (1, 4)
+y = y_flat.view(1, 1, 2, 2)           # (N, K, H_out, W_out)
+print(y)
+# tensor([[[[ 6.,  8.],
+#            [12., 14.]]]])
+
+# Verify: matches nn.Conv2d with the same weights
+conv = torch.nn.Conv2d(1, 1, kernel_size=2, bias=False)
+with torch.no_grad():
+    conv.weight[:] = torch.tensor([[[[1., 0.], [0., 1.]]]])
+print(conv(x))   # tensor([[[[ 6.,  8.], [12., 14.]]]])
+
+# ── Winograd: cuDNN selects it automatically ──────────────────────────────
+# Enable benchmark mode so cuDNN profiles naive / im2col / Winograd / FFT
+# on the first call and caches the fastest for each (layer shape, device).
+torch.backends.cudnn.benchmark = True
+
+# For a typical 3×3 conv on a mid-size feature map, cuDNN will pick Winograd.
+# Nothing changes in user code — the algorithm is chosen transparently.
+conv3x3 = torch.nn.Conv2d(64, 64, kernel_size=3, padding=1).cuda()
+x_gpu = torch.randn(32, 64, 56, 56).cuda()
+y_gpu = conv3x3(x_gpu)   # cuDNN may use Winograd F(2×2,3×3) here
+print(y_gpu.shape)        # torch.Size([32, 64, 56, 56])
+```
+
+---
+
+With convolution reduced to a matrix multiplication, the full computational toolkit for image processing is in place. The next article assembles a convolutional network end-to-end — convolutional layers, downsampling, activation functions, and a final classifier — and trains it on a real handwritten digit dataset.
