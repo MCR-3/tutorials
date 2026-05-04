@@ -1,4 +1,14 @@
+import type { ComponentPropsWithoutRef } from "react";
 import { TutorialLineChart, TutorialBarChart } from "./charts";
+
+function MdxTable({ children, ...props }: ComponentPropsWithoutRef<"table">) {
+  return (
+    <div className="table-wrapper">
+      <table {...props}>{children}</table>
+    </div>
+  );
+}
+
 import {
   VectorDiagram,
   VectorAdditionDiagram,
@@ -21,6 +31,7 @@ import {
 } from "./diagrams";
 
 export const mdxComponents = {
+  table: MdxTable,
   TutorialLineChart,
   TutorialBarChart,
   VectorDiagram,

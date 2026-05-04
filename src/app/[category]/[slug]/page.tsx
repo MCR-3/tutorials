@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import rehypePrettyCode from "rehype-pretty-code";
 import { getTutorial } from "@/lib/mdx";
@@ -169,7 +170,7 @@ export default async function TutorialPage({ params }: Props) {
             source={content}
             options={{
               mdxOptions: {
-                remarkPlugins: [remarkMath, remarkCodeGroups],
+                remarkPlugins: [remarkMath, remarkGfm, remarkCodeGroups],
                 rehypePlugins: [
                   rehypeKatex,
                   [rehypePrettyCode, { theme: "github-dark" }],
