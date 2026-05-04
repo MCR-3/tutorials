@@ -1,0 +1,176 @@
+---
+title: "The Training Loop"
+description: "Iterating over batches, running epochs, and measuring generalization through validation."
+category: "training"
+order: 4
+date: "2026-05-01"
+---
+
+The previous articles established three components of a training step: a loss function, a backward pass to compute gradients, and an optimizer to apply updates. What was missing was the surrounding structure: how data is fed into the network, how often updates are applied, and how to tell whether learning is actually happening. This article covers the training loop, the code that orchestrates all three components together.
+
+## Datasets and Batches
+
+In practice, training datasets contain thousands to billions of examples. Computing the exact gradient over the entire dataset before each update is prohibitively slow and often infeasible for memory reasons. Instead, the gradient is estimated from a small **mini-batch** of $B$ examples drawn from the full dataset.
+
+For a batch $\{(x_1, y_1), \ldots, (x_B, y_B)\}$, the batch loss is the mean over per-example losses:
+
+$$
+L_{\text{batch}} = \frac{1}{B} \sum_{i=1}^{B} L(x_i, y_i)
+$$
+
+This gradient estimate has two useful properties. First, it is unbiased: in expectation over random batches, it equals the true gradient over the full dataset. Second, it is noisy: each batch samples a different subset, so consecutive gradient estimates differ. This noise is not purely harmful — it can help the optimizer escape sharp local minima that a full-dataset gradient would get stuck in.
+
+Typical batch sizes range from $32$ to $512$. Larger batches give more stable gradient estimates but require more memory; smaller batches are noisier but update the weights more frequently per unit of data processed.
+
+**Example.** A dataset of $50{,}000$ training images with a batch size of $256$ produces $\lceil 50{,}000 / 256 \rceil = 196$ gradient steps per epoch.
+
+## Epochs
+
+One **epoch** is one complete pass through the training dataset. At the end of each epoch, every training example has contributed to exactly one gradient update (in expectation, after shuffling).
+
+Training typically runs for many epochs — tens to hundreds — because a single pass is rarely sufficient for the model to converge. The dataset is **shuffled** at the start of each epoch so that the model does not learn a fixed ordering of the data. Without shuffling, consecutive batches would be correlated, and the gradient estimates would be biased.
+
+Total number of gradient steps = epochs $\times$ steps per epoch.
+
+## The Training Step
+
+Each batch produces one training step. The step consists of four operations applied in strict order:
+
+1. **Zero the gradients.** Gradients accumulate by default; leftover values from the previous step must be cleared before the backward pass.
+2. **Forward pass.** Run the model on the current batch to produce predictions, then compute the loss.
+3. **Backward pass.** Call `.backward()` to propagate gradients from the loss back to every weight.
+4. **Optimizer step.** Apply the update rule to adjust every weight.
+
+<TrainingLoopDiagram />
+
+The cycle repeats once per batch. After all batches in a dataset pass, one epoch is complete.
+
+## Validation
+
+Training loss decreases by construction — the optimizer is explicitly minimizing it. But a model can memorize the training data rather than learning generalizable patterns, a phenomenon called **overfitting**. As the model fits noise in the training data, its performance on new examples degrades even as training loss continues to fall.
+
+To detect this, a portion of the data is held out as a **validation set** and never used for gradient updates. After each epoch, the model is evaluated on the validation set: predictions are computed, the loss is measured, but no backward pass runs and no weights are updated.
+
+During validation, gradient computation is disabled entirely:
+
+- In PyTorch: `with torch.no_grad():` wraps the validation forward pass, preventing the framework from building a computation graph or storing intermediate values.
+- The model should also be in evaluation mode (`model.eval()`) when layers behave differently during inference.
+
+The **validation loss** provides an honest measure of how well the model generalizes. When training loss and validation loss both decrease, the model is learning. When training loss continues to decrease but validation loss stops improving or begins to rise, the model has started to overfit.
+
+<LossCurveDiagram />
+
+The best model checkpoint is typically saved at the epoch with the lowest validation loss (the green marker). Training may continue beyond that point, but the saved weights from the best epoch are the ones actually used for inference.
+
+## Overfitting and Early Stopping
+
+Overfitting is characterized by a growing gap between training loss and validation loss. Several strategies exist for addressing it, but they are the subject of a later section. The training loop itself can incorporate a simple form of protection: **early stopping**, where training halts automatically if the validation loss fails to improve for a fixed number of consecutive epochs (the patience). This avoids wasted compute and prevents further degradation.
+
+## Putting It All Together
+
+The full training procedure combines all the pieces:
+
+```
+for each epoch:
+    shuffle training data
+    for each batch:
+        zero_grad → forward → loss → backward → optimizer.step
+    evaluate on validation set
+    log training loss and validation loss
+    save model if validation loss is the best so far
+```
+
+This structure is the same whether training a small network or a large one. The scale changes — batch sizes, epoch counts, optimizer state, learning rate schedules — but the loop remains the same.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+# Toy dataset: y = 2x (6 training, 2 validation)
+X_train = sg.Tensor([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]])
+y_train = sg.Tensor([[2.0], [4.0], [6.0], [8.0], [10.0], [12.0]])
+X_val   = sg.Tensor([[7.0], [8.0]])
+y_val   = sg.Tensor([[14.0], [16.0]])
+
+W = sg.Tensor([[0.5]], requires_grad=True)
+lr, batch_size, n = 0.05, 2, 6
+
+for epoch in range(20):
+    train_loss = 0.0
+
+    for start in range(0, n, batch_size):
+        Xb = X_train[start : start + batch_size]
+        yb = y_train[start : start + batch_size]
+
+        W.grad = None                             # 1. zero gradients
+        pred = Xb @ W                             # 2. forward pass
+        loss = ((pred - yb) ** 2).mean()          # 3. compute loss
+        loss.backward()                           # 4. backward pass
+        W.data -= lr * W.grad                     # 5. optimizer step (SGD)
+        train_loss += float(loss)
+
+    # Validation — no gradient computation
+    val_pred = X_val @ W
+    val_loss = float(((val_pred - y_val) ** 2).mean())
+
+    if epoch % 5 == 0:
+        print(f"epoch {epoch:2d}  train={train_loss/3:.4f}  val={val_loss:.4f}")
+
+# epoch  0  train=16.73  val=64.12
+# epoch  5  train=0.165   val=0.496
+# epoch 10  train=0.016   val=0.040
+# epoch 15  train=0.002   val=0.004
+# W converges to [[2.0]]
+```
+
+```pytorch
+import torch
+
+# Toy dataset: y = 2x (6 training, 2 validation)
+X_train = torch.tensor([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]])
+y_train = torch.tensor([[2.0], [4.0], [6.0], [8.0], [10.0], [12.0]])
+X_val   = torch.tensor([[7.0], [8.0]])
+y_val   = torch.tensor([[14.0], [16.0]])
+
+W = torch.tensor([[0.5]], requires_grad=True)
+optimizer = torch.optim.AdamW([W], lr=0.1, weight_decay=0.0)
+batch_size, n = 2, 6
+
+best_val, best_W = float("inf"), None
+
+for epoch in range(30):
+    # Training
+    train_loss = 0.0
+    idx = torch.randperm(n)                        # shuffle each epoch
+
+    for start in range(0, n, batch_size):
+        Xb = X_train[idx[start : start + batch_size]]
+        yb = y_train[idx[start : start + batch_size]]
+
+        optimizer.zero_grad()                      # 1. zero gradients
+        loss = ((Xb @ W - yb) ** 2).mean()         # 2+3. forward + loss
+        loss.backward()                            # 4. backward
+        optimizer.step()                           # 5. update
+        train_loss += loss.item()
+
+    # Validation
+    with torch.no_grad():
+        val_loss = ((X_val @ W - y_val) ** 2).mean().item()
+
+    if val_loss < best_val:
+        best_val = val_loss
+        best_W = W.detach().clone()                # save best weights
+
+    if epoch % 10 == 0:
+        print(f"epoch {epoch:2d}  train={train_loss/3:.4f}  val={val_loss:.4f}")
+
+# epoch  0  train=21.47  val=48.05
+# epoch 10  train=0.025   val=0.049
+# epoch 20  train=0.001   val=0.001
+print(best_W)   # tensor([[2.0]])
+```
+
+---
+
+This completes the Training section. The loop provides the mechanism for learning: feed data, measure error, propagate gradients, update weights, repeat. What determines the quality of those updates is the structure of the network itself — the operations that transform input data into predictions. That is the subject of the next section.

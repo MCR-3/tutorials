@@ -648,6 +648,150 @@ export function AdamDiagram() {
   );
 }
 
+export function TrainingLoopDiagram() {
+  const svgW = 400, svgH = 320;
+
+  // Pentagon layout — five training-step nodes arranged clockwise from top
+  const nodes = [
+    { label: "zero_grad", cx: 200, cy: 52, hw: 48, hh: 13, color: "var(--color-bg)" },
+    { label: "forward", cx: 288, cy: 115, hw: 40, hh: 13, color: "var(--color-blue)" },
+    { label: "loss", cx: 254, cy: 216, hw: 33, hh: 13, color: "var(--color-yellow)" },
+    { label: "backward", cx: 146, cy: 216, hw: 44, hh: 13, color: "var(--color-orange)" },
+    { label: "update", cx: 112, cy: 115, hw: 40, hh: 13, color: "var(--color-green)" },
+  ] as const;
+
+  // Compute the point on a rectangle's border in direction (dx, dy)
+  function rectEdge(cx: number, cy: number, hw: number, hh: number, dx: number, dy: number): [number, number] {
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    const t = Math.min(ax > 0 ? hw / ax : Infinity, ay > 0 ? hh / ay : Infinity);
+    return [cx + dx * t, cy + dy * t];
+  }
+
+  function arrowPts(x1: number, y1: number, x2: number, y2: number): string {
+    const as = 7;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return [
+      `${x2.toFixed(1)},${y2.toFixed(1)}`,
+      `${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)}`,
+      `${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`,
+    ].join(" ");
+  }
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Pentagon arrows */}
+        {nodes.map((a, i) => {
+          const b = nodes[(i + 1) % nodes.length];
+          const dx = b.cx - a.cx, dy = b.cy - a.cy;
+          const [x1, y1] = rectEdge(a.cx, a.cy, a.hw, a.hh, dx, dy);
+          const [x2, y2] = rectEdge(b.cx, b.cy, b.hw, b.hh, -dx, -dy);
+          return (
+            <g key={i}>
+              <line x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="var(--border-strong)" strokeWidth={1.5} />
+              <polygon points={arrowPts(x1, y1, x2, y2)} fill="var(--border-strong)" />
+            </g>
+          );
+        })}
+
+        {/* Boxes drawn over arrows */}
+        {nodes.map(({ label, cx, cy, hw, hh, color }) => (
+          <g key={label}>
+            <rect
+              x={cx - hw} y={cy - hh} width={hw * 2} height={hh * 2}
+              fill="var(--white)" stroke={color} strokeWidth={1.5} rx={4}
+            />
+            <text x={cx} y={cy + 4} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={11} fill={color}
+            >{label}</text>
+          </g>
+        ))}
+
+        {/* Center label */}
+        <text x={200} y={148} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >per batch</text>
+
+        {/* Validation box below the pentagon */}
+        <line x1={200} y1={229} x2={200} y2={256}
+          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="4 3" />
+        <polygon
+          points={`200,270 196,263 204,263`}
+          fill="var(--border-strong)"
+        />
+        <rect x={160} y={270} width={80} height={26}
+          fill="var(--white)" stroke="var(--border-strong)" strokeWidth={1.5}
+          strokeDasharray="4 3" rx={4}
+        />
+        <text x={200} y={287} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-bg)"
+        >validate</text>
+        <text x={214} y={247} fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">each epoch</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >four-step per-batch loop; validation runs once per epoch</text>
+      </svg>
+    </div>
+  );
+}
+
+export function LossCurveDiagram() {
+  const trainLoss = (t: number) => 1.0 / (t + 1) + 0.05;
+  const valLoss = (t: number) => 1.0 / (t + 1) + 0.28 + 0.005 * (t - 7) ** 2;
+  const bestEpoch = 8;
+
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-0.5, 17], y: [-0.05, 1.05], padding: 0 }}
+        height={230}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 4 }} yAxis={{ lines: 0.5 }} />
+        {/* Training loss — decreasing */}
+        <Plot.Parametric
+          xy={(t) => [t, trainLoss(t)]}
+          domain={[1, 16]}
+          color="var(--color-blue)"
+          weight={2}
+        />
+        {/* Validation loss — decreases then rises (overfitting) */}
+        <Plot.Parametric
+          xy={(t) => [t, valLoss(t)]}
+          domain={[1, 16]}
+          color="var(--color-orange)"
+          weight={2}
+        />
+        {/* Best epoch marker */}
+        <MafsLine.Segment
+          point1={[bestEpoch, 0]}
+          point2={[bestEpoch, valLoss(bestEpoch)]}
+          style="dashed"
+          color="var(--color-green)"
+          weight={1}
+        />
+        <Point x={bestEpoch} y={valLoss(bestEpoch)} color="var(--color-green)" />
+        {/* Labels */}
+        <MafsText x={13.0} y={0.30} size={12} color="var(--color-blue)">training</MafsText>
+        <MafsText x={13.0} y={0.72} size={12} color="var(--color-orange)">validation</MafsText>
+        <MafsText x={8} y={0.70} size={11} color="var(--color-green)">best</MafsText>
+        <MafsText x={16.5} y={-0.03} size={11} color="var(--muted)">epoch</MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
