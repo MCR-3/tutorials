@@ -13,6 +13,7 @@ import {
   GradientDescentDiagram,
   ChainRuleDiagram,
   ComputationGraphDiagram,
+  BackpropDiagram,
 } from "./diagrams";
 
 export const mdxComponents = {

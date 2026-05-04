@@ -651,6 +651,100 @@ export function ComputationGraphDiagram() {
   );
 }
 
+export function BackpropDiagram() {
+  const r = 26;
+
+  function ep(x1: number, y1: number, x2: number, y2: number) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const as = 7;
+    const tipX = x2 - ux * r, tipY = y2 - uy * r;
+    const lx2 = tipX - ux * as, ly2 = tipY - uy * as;
+    return {
+      lx1: x1 + ux * r, ly1: y1 + uy * r, lx2, ly2,
+      ahPoints: [
+        `${tipX.toFixed(1)},${tipY.toFixed(1)}`,
+        `${(lx2 - uy * 3.5).toFixed(1)},${(ly2 + ux * 3.5).toFixed(1)}`,
+        `${(lx2 + uy * 3.5).toFixed(1)},${(ly2 - ux * 3.5).toFixed(1)}`,
+      ].join(" "),
+    };
+  }
+
+  const X: [number, number] = [80, 175];
+  const Y: [number, number] = [80, 255];
+  const A: [number, number] = [255, 80];
+  const B: [number, number] = [255, 255];
+  const Z: [number, number] = [430, 175];
+  const gc = "var(--color-green)";
+
+  function bwdArr(
+    x1: number, y1: number, x2: number, y2: number,
+    label: string, lx: number, ly: number,
+  ) {
+    const e = ep(x1, y1, x2, y2);
+    return (
+      <>
+        <line x1={e.lx1} y1={e.ly1} x2={e.lx2} y2={e.ly2}
+          stroke={gc} strokeWidth={1.5} />
+        <polygon points={e.ahPoints} fill={gc} />
+        <text x={lx} y={ly} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill={gc}>{label}</text>
+      </>
+    );
+  }
+
+  function node(cx: number, cy: number, name: string, grad: string, color: string) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r}
+          fill="transparent" stroke={color} strokeWidth={1.5} />
+        <text x={cx} y={cy - 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill={color}>{name}</text>
+        <text x={cx} y={cy + 13} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">∂ = {grad}</text>
+      </g>
+    );
+  }
+
+  return (
+    <div className="my-8 flex justify-center overflow-x-auto">
+      <svg width={490} height={340}>
+        {/* Backward arrows with gradient labels */}
+        {bwdArr(Z[0], Z[1], A[0], A[1], "1", 356, 116)}
+        {bwdArr(Z[0], Z[1], B[0], B[1], "1", 356, 224)}
+        {bwdArr(A[0], A[1], X[0], X[1], "4", 149, 116)}
+        {bwdArr(B[0], B[1], X[0], X[1], "3", 147, 222)}
+        {bwdArr(B[0], B[1], Y[0], Y[1], "2", 168, 265)}
+
+        {/* Nodes */}
+        {node(X[0], X[1], "x", "7", "var(--color-green)")}
+        {node(Y[0], Y[1], "y", "2", "var(--color-green)")}
+        {node(A[0], A[1], "x²", "1", "var(--color-blue)")}
+        {node(B[0], B[1], "x·y", "1", "var(--color-blue)")}
+        {node(Z[0], Z[1], "z", "1", "var(--color-orange)")}
+
+        {/* Accumulation note at x */}
+        <text x={X[0]} y={X[1] + r + 15} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">(4 + 3)</text>
+
+        {/* Seed note at z */}
+        <text x={Z[0]} y={Z[1] - r - 6} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">seed</text>
+
+        {/* Legend */}
+        <line x1={15} y1={317} x2={29} y2={317} stroke={gc} strokeWidth={1.5} />
+        <text x={33} y={321}
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">gradient flow</text>
+        <text x={142} y={321}
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">∂ = N</text>
+        <text x={184} y={321}
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">accumulated gradient</text>
+      </svg>
+    </div>
+  );
+}
+
 export function ChainRuleDiagram() {
   const bw = 85, bh = 34, rx = 3;
   const nx1 = 15, nx2 = 210, nx3 = 400;

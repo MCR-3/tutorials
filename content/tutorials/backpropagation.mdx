@@ -1,0 +1,115 @@
+---
+title: "Backpropagation"
+description: "The algorithm that traverses the computation graph in reverse to compute every gradient in one pass."
+category: "autograd"
+order: 3
+date: "2026-05-01"
+---
+
+The chain rule provides the formula for differentiating compositions. The computation graph records the structure of a forward pass. Backpropagation is the algorithm that combines them: it walks the graph in reverse and accumulates gradients at every node, computing all derivatives simultaneously in a single backward pass.
+
+## The Algorithm
+
+Backpropagation operates in two phases.
+
+**Forward pass.** Run the computation normally, building the graph as you go. Each node stores its output value and a backward function, the local gradient of that operation.
+
+**Backward pass.** Starting from the output node, propagate gradients backward through the graph:
+
+1. Initialize the output node's gradient to $1$. This is $\dfrac{\partial z}{\partial z} = 1$, which is trivially true.
+2. Visit each node in **reverse topological order**: process a node only after all of its consumers (nodes that used it as input) have already been processed.
+3. At each node: take the gradient that has accumulated there (the incoming gradient from all downstream nodes), apply the node's backward function to distribute it to each input, and add those contributions to the inputs' gradients.
+4. Repeat until all leaf nodes have been reached.
+
+The reverse topological order guarantees that when we process a node, every contribution from downstream has already been accumulated. Nothing is double-counted or missed.
+
+## A Complete Walkthrough
+
+Take $z = x^2 + x \cdot y$ with $x = 2$ and $y = 3$. The forward pass produces: $a = x^2 = 4$, $b = x \cdot y = 6$, $z = a + b = 10$.
+
+The backward pass proceeds as follows.
+
+**Step 1.** Initialize: $z.\text{grad} = 1$ (the seed).
+
+**Step 2.** Process $z = a + b$. The local gradients are $\dfrac{\partial z}{\partial a} = 1$ and $\dfrac{\partial z}{\partial b} = 1$. Distribute:
+$$a.\text{grad} \mathrel{+}= 1 \cdot 1 = 1 \qquad b.\text{grad} \mathrel{+}= 1 \cdot 1 = 1$$
+
+**Step 3.** Process $a = x^2$. The local gradient is $\dfrac{\partial a}{\partial x} = 2x = 4$. Distribute:
+$$x.\text{grad} \mathrel{+}= 1 \cdot 4 = 4$$
+
+**Step 4.** Process $b = x \cdot y$. The local gradients are $\dfrac{\partial b}{\partial x} = y = 3$ and $\dfrac{\partial b}{\partial y} = x = 2$. Distribute:
+$$x.\text{grad} \mathrel{+}= 1 \cdot 3 = 3 \qquad y.\text{grad} \mathrel{+}= 1 \cdot 2 = 2$$
+
+**Result.** $x.\text{grad} = 4 + 3 = 7$, $y.\text{grad} = 2$. These match $\dfrac{\partial z}{\partial x} = 2x + y = 7$ and $\dfrac{\partial z}{\partial y} = x = 2$ computed analytically.
+
+<BackpropDiagram />
+
+The gradient labels on each arrow show the value being passed backward. At $x$, two arrows arrive and their contributions are summed: $4 + 3 = 7$.
+
+## Gradient Accumulation
+
+When a node is used in more than one operation, it receives gradient contributions from every path that passes through it. These contributions must all be **summed**.
+
+This is the multi-variable chain rule in action. In the example above, $x$ appears in both $a = x^2$ and $b = x \cdot y$. The total effect of a small change in $x$ on the output $z$ is the sum of the two partial effects:
+
+$$
+\frac{\partial z}{\partial x} = \underbrace{\frac{\partial z}{\partial a} \cdot \frac{\partial a}{\partial x}}_{= 4} + \underbrace{\frac{\partial z}{\partial b} \cdot \frac{\partial b}{\partial x}}_{= 3} = 7
+$$
+
+The graph makes accumulation automatic: whenever the backward function of a node distributes a gradient to an input, it adds to that input's accumulated total rather than overwriting it.
+
+## Why One Pass Is Enough
+
+Computing gradients by finite differences costs one forward pass per parameter: to find $\dfrac{\partial L}{\partial w_i}$, evaluate $L$ with $w_i$ slightly perturbed. For a model with $n$ parameters, that is $n + 1$ forward passes.
+
+Backpropagation costs one forward pass plus one backward pass, regardless of $n$. The backward pass visits each node exactly once and does work proportional to the operation at that node, making its total cost comparable to a single forward pass.
+
+For a model with one hundred million parameters, the speedup over numerical differentiation is on the order of fifty million. This is the computational argument that makes deep learning at scale feasible: the backward pass scales with the size of the graph, not with the number of parameters.
+
+## Connection to Deep Learning
+
+In a neural network, every weight matrix $\mathbf{W}$ is a leaf node with gradient tracking enabled. Every operation — matrix multiplication, addition of bias, activation function — adds interior nodes to the graph during the forward pass.
+
+After calling `.backward()`, each weight matrix $\mathbf{W}$ holds its gradient $\mathbf{W}.\text{grad}$, which has the same shape as $\mathbf{W}$ and contains $\dfrac{\partial L}{\partial W_{ij}}$ for every entry. This is the complete sensitivity of the output to every single weight, computed in one traversal.
+
+These gradients are then used to update each weight matrix. How that update is performed — the step size, the direction, whether to adjust the learning rate — is the subject of the Training section.
+
+## In Code
+
+The same computation we walked through by hand:
+
+```simplegrad
+import simplegrad as sg
+
+x = sg.Tensor([2.0], requires_grad=True)
+y = sg.Tensor([3.0], requires_grad=True)
+
+a = x ** 2      # forward: a = 4, stores ∂a/∂x = 2x
+b = x * y       # forward: b = 6, stores ∂b/∂x = y, ∂b/∂y = x
+z = a + b       # forward: z = 10, stores ∂z/∂a = 1, ∂z/∂b = 1
+
+z.backward()    # backward pass: traverses in reverse, accumulates
+
+print(x.grad)   # [7.0]  —  4 (from a) + 3 (from b)
+print(y.grad)   # [2.0]  —  2 (from b only)
+```
+
+```pytorch
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+y = torch.tensor([3.0], requires_grad=True)
+
+a = x ** 2
+b = x * y
+z = a + b
+
+z.backward()
+
+print(x.grad)   # tensor([7.])
+print(y.grad)   # tensor([2.])
+```
+
+---
+
+The backward pass is complete. Every leaf now holds a gradient. For a network, that means every weight has received $\dfrac{\partial L}{\partial \mathbf{W}}$, a matrix encoding how each weight affects the output. What happens next — how those gradients are used to move the weights in a direction that improves the model — is what the Training section covers.
