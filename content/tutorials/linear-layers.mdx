@@ -1,0 +1,185 @@
+---
+title: "Linear Layers"
+description: "What a neuron computes, how neurons combine into layers, and how layers stack into a network."
+category: "building-blocks"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article showed that activation functions must be applied to something. That something is the output of a **linear layer**: a learned affine transformation of the layer's input. Linear layers are the primary mechanism by which a network combines information — they are where the trainable weights live.
+
+## The Single Neuron
+
+The most basic unit is a single **neuron** (also called a unit or perceptron). It takes $n$ input values $x_1, \ldots, x_n$, computes a weighted sum, adds a scalar bias, and passes the result through an activation function:
+
+$$
+z = w_1 x_1 + w_2 x_2 + \cdots + w_n x_n + b = \mathbf{w} \cdot \mathbf{x} + b
+$$
+
+$$
+y = \sigma(z)
+$$
+
+The weights $\mathbf{w} \in \mathbb{R}^n$ and the bias $b \in \mathbb{R}$ are the neuron's trainable parameters. The activation $\sigma$ introduces non-linearity. Without $\sigma$, this is just a linear function of the inputs, and stacking such units would not extend the network's expressive power.
+
+<NeuronDiagram />
+
+**Why bias matters.** Without the bias term, every neuron's pre-activation $z = \mathbf{w} \cdot \mathbf{x}$ is zero whenever $\mathbf{x} = \mathbf{0}$. The bias shifts the activation threshold, allowing the neuron to fire even with zero input. Concretely, for ReLU: without bias, any neuron connected to an all-zero input is permanently inactive. With bias, the threshold is tunable.
+
+## A Layer of Neurons
+
+A single neuron produces one output. A **layer** groups $m$ neurons that all receive the same input $\mathbf{x} \in \mathbb{R}^n$ and each produce one output, giving an output vector $\mathbf{z} \in \mathbb{R}^m$.
+
+Writing the $m$ neurons' weight vectors as rows of a matrix $\mathbf{W} \in \mathbb{R}^{m \times n}$, the entire layer computes:
+
+$$
+\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}
+$$
+
+where $\mathbf{b} \in \mathbb{R}^m$ stacks the individual biases. This is exactly the matrix-vector product from the Matrices article. The layer applies $m$ linear transformations simultaneously, one per output neuron.
+
+**Parameter count.** A linear layer with $n$ inputs and $m$ outputs has $m \times n$ weight parameters plus $m$ bias parameters, for a total of $m(n + 1)$.
+
+**Example.** A layer mapping $3$ inputs to $4$ outputs has $4 \times 3 + 4 = 16$ parameters.
+
+For a batch of $B$ examples packed into a matrix $\mathbf{X} \in \mathbb{R}^{B \times n}$ (one example per row), the layer processes all examples simultaneously:
+
+$$
+\mathbf{Z} = \mathbf{X}\mathbf{W}^\top + \mathbf{b}
+$$
+
+giving $\mathbf{Z} \in \mathbb{R}^{B \times m}$ where each row $i$ holds the pre-activations for example $i$.
+
+## Stacking Layers
+
+A **multilayer perceptron** (MLP), also called a feedforward network, chains linear layers with activations:
+
+$$
+\mathbf{h}_1 = \sigma(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1)
+$$
+$$
+\mathbf{h}_2 = \sigma(\mathbf{W}_2 \mathbf{h}_1 + \mathbf{b}_2)
+$$
+$$
+\hat{\mathbf{y}} = \mathbf{W}_3 \mathbf{h}_2 + \mathbf{b}_3
+$$
+
+Each hidden layer $\mathbf{h}_k$ is a new representation of the input. The activation after each layer prevents collapse to a single affine transformation. The final layer typically has no activation (for regression) or is followed by a sigmoid or softmax (for classification).
+
+<MLPDiagram />
+
+**Numerical example.** A 3 → 2 → 1 network with ReLU hidden layer:
+
+$$
+\mathbf{W}_1 = \begin{pmatrix} 0.5 & 0.3 & 0.1 \\ 0.2 & 0.8 & 0.4 \end{pmatrix}, \quad \mathbf{b}_1 = \begin{pmatrix} 0.1 \\ -0.2 \end{pmatrix}, \quad \mathbf{x} = \begin{pmatrix} 1 \\ 2 \\ 3 \end{pmatrix}
+$$
+
+$$
+\mathbf{z}_1 = \mathbf{W}_1\mathbf{x} + \mathbf{b}_1 = \begin{pmatrix} 1.5 \\ 2.8 \end{pmatrix}, \quad \mathbf{h}_1 = \text{ReLU}(\mathbf{z}_1) = \begin{pmatrix} 1.5 \\ 2.8 \end{pmatrix}
+$$
+
+$$
+\mathbf{W}_2 = \begin{pmatrix} 0.3 & 0.7 \end{pmatrix}, \quad \mathbf{b}_2 = \begin{pmatrix} 0.5 \end{pmatrix}
+$$
+
+$$
+\hat{y} = \mathbf{W}_2\mathbf{h}_1 + \mathbf{b}_2 = 0.3 \times 1.5 + 0.7 \times 2.8 + 0.5 = 2.91
+$$
+
+Each layer transforms the representation. Layer 1 mixes the three raw inputs into two hidden features; layer 2 combines those features into a single prediction.
+
+## Width and Depth
+
+Two knobs control the capacity of an MLP: **width** (neurons per layer) and **depth** (number of layers).
+
+**Width** adds more neurons to a layer. More neurons means more parameters and a richer per-layer transformation. A sufficiently wide single hidden layer can theoretically approximate any function (the universal approximation theorem), but the required width can be enormous.
+
+**Depth** adds more layers. Deeper networks learn hierarchical representations: early layers detect simple patterns, later layers combine them into abstract concepts. For the same total parameter budget, deeper networks often generalize better because each layer builds on the features extracted by the previous one. This is the empirical observation that motivates architectures with many layers.
+
+In practice, a 2–4 layer MLP handles most tabular data tasks. Image and sequence models require more depth, but they also introduce specialized layers beyond the fully connected design.
+
+## Backpropagation Through a Linear Layer
+
+The chain rule applies cleanly to linear layers. For the layer $\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$, given the upstream gradient $\frac{\partial L}{\partial \mathbf{z}}$:
+
+$$
+\frac{\partial L}{\partial \mathbf{W}} = \frac{\partial L}{\partial \mathbf{z}} \cdot \mathbf{x}^\top \qquad
+\frac{\partial L}{\partial \mathbf{b}} = \frac{\partial L}{\partial \mathbf{z}} \qquad
+\frac{\partial L}{\partial \mathbf{x}} = \mathbf{W}^\top \frac{\partial L}{\partial \mathbf{z}}
+$$
+
+The gradient with respect to $\mathbf{W}$ has the same shape as $\mathbf{W}$ and is used by the optimizer to update the weights. The gradient with respect to $\mathbf{x}$ propagates the signal to earlier layers. The autograd engine builds this backward function automatically when the layer is applied during the forward pass.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+# Single linear layer: 3 inputs → 2 outputs
+W1 = sg.Tensor([[0.5, 0.3, 0.1],
+                [0.2, 0.8, 0.4]], requires_grad=True)   # (2, 3)
+b1 = sg.Tensor([0.1, -0.2],       requires_grad=True)   # (2,)
+
+x = sg.Tensor([1.0, 2.0, 3.0])
+
+z1 = x @ W1.T + b1   # (3,) @ (3,2) + (2,) → (2,)
+h1 = z1.relu()
+
+print(z1.data)  # [1.5, 2.8]
+print(h1.data)  # [1.5, 2.8]
+
+# Second layer: 2 inputs → 1 output
+W2 = sg.Tensor([[0.3, 0.7]], requires_grad=True)   # (1, 2)
+b2 = sg.Tensor([0.5],         requires_grad=True)   # (1,)
+
+y_hat = h1 @ W2.T + b2
+print(y_hat.data)   # [2.91]
+
+# Backward pass
+target = sg.Tensor([3.0])
+loss = ((y_hat - target) ** 2).mean()
+loss.backward()
+
+print(W1.grad)   # gradients for the first layer weights
+print(W2.grad)   # gradients for the second layer weights
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+# Single layer
+layer = nn.Linear(in_features=3, out_features=2)
+print(layer.weight.shape)   # torch.Size([2, 3])
+print(layer.bias.shape)     # torch.Size([2])
+
+x = torch.tensor([1.0, 2.0, 3.0])
+z = layer(x)
+print(z.shape)   # torch.Size([2])
+
+# Two-layer MLP: 3 → 4 → 2
+model = nn.Sequential(
+    nn.Linear(3, 4),
+    nn.ReLU(),
+    nn.Linear(4, 2),
+)
+
+x = torch.tensor([[1.0, 2.0, 3.0],   # batch of 2 examples
+                   [4.0, 5.0, 6.0]])
+y = model(x)
+print(y.shape)   # torch.Size([2, 2])
+
+# Gradients flow automatically
+loss = y.sum()
+loss.backward()
+for name, p in model.named_parameters():
+    print(name, p.grad.shape)
+# 0.weight  torch.Size([4, 3])
+# 0.bias    torch.Size([4])
+# 2.weight  torch.Size([2, 4])
+# 2.bias    torch.Size([2])
+```
+
+---
+
+Linear layers are the workhorses of any neural network: they combine and transform information, and their weights encode everything the network has learned. Activation functions introduce non-linearity between them; the next article covers two further operations that help networks train reliably — regularization techniques that prevent overfitting and stabilize learning.

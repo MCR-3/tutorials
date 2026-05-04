@@ -846,6 +846,175 @@ export function SigmoidTanhDiagram() {
   );
 }
 
+export function NeuronDiagram() {
+  const svgW = 420, svgH = 200;
+  const ir = 16; // input circle radius
+  const nr = 28; // neuron circle radius
+  const inputs: [number, number][] = [[55, 52], [55, 100], [55, 148]];
+  const neuron: [number, number] = [225, 100];
+  const weights = ["w₁", "w₂", "w₃"];
+  const inputLabels = ["x₁", "x₂", "x₃"];
+
+  function edgePt(fx: number, fy: number, tx: number, ty: number, r: number): [number, number] {
+    const dx = tx - fx, dy = ty - fy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    return [fx + (dx / len) * r, fy + (dy / len) * r];
+  }
+
+  function arrowPts(x1: number, y1: number, x2: number, y2: number, r: number): string {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const as = 7;
+    const tipX = x2 - ux * r, tipY = y2 - uy * r;
+    const bx = tipX - ux * as, by = tipY - uy * as;
+    return `${tipX.toFixed(1)},${tipY.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
+  }
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Connection lines */}
+        {inputs.map(([ix, iy], i) => {
+          const [x1, y1] = edgePt(ix, iy, neuron[0], neuron[1], ir);
+          return (
+            <g key={i}>
+              <line x1={x1} y1={y1}
+                x2={neuron[0] - (neuron[0] - ix) / Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2) * nr}
+                y2={neuron[1] - (neuron[1] - iy) / Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2) * nr}
+                stroke="var(--border-strong)" strokeWidth={1.5} />
+              <polygon
+                points={arrowPts(ix, iy, neuron[0], neuron[1], nr)}
+                fill="var(--border-strong)"
+              />
+            </g>
+          );
+        })}
+
+        {/* Arrow from neuron to output */}
+        <line x1={neuron[0] + nr} y1={neuron[1]} x2={345} y2={neuron[1]}
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={`350,${neuron[1]} 343,${neuron[1] - 3.5} 343,${neuron[1] + 3.5}`}
+          fill="var(--border-strong)" />
+
+        {/* Input circles (drawn over connections) */}
+        {inputs.map(([ix, iy], i) => (
+          <g key={i}>
+            <circle cx={ix} cy={iy} r={ir}
+              fill="var(--white)" stroke="var(--color-yellow)" strokeWidth={1.5} />
+            <text x={ix} y={iy + 4} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-yellow)"
+            >{inputLabels[i]}</text>
+          </g>
+        ))}
+
+        {/* Neuron circle */}
+        <circle cx={neuron[0]} cy={neuron[1]} r={nr}
+          fill="var(--white)" stroke="var(--color-blue)" strokeWidth={2} />
+        <text x={neuron[0]} y={neuron[1] + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={15} fill="var(--color-blue)"
+        >z</text>
+
+        {/* Weight labels on connections */}
+        {inputs.map(([ix, iy], i) => {
+          const mx = (ix + neuron[0]) / 2 - 2;
+          const my = (iy + neuron[1]) / 2 - 9;
+          return (
+            <text key={i} x={mx} y={my} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
+            >{weights[i]}</text>
+          );
+        })}
+
+        {/* Bias label */}
+        <text x={neuron[0]} y={neuron[1] + nr + 18} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)"
+        >+ b</text>
+
+        {/* Output label */}
+        <text x={357} y={neuron[1] + 5} textAnchor="start"
+          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-green)"
+        >σ(z)</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >z = w₁x₁ + w₂x₂ + w₃x₃ + b,  output y = σ(z)</text>
+      </svg>
+    </div>
+  );
+}
+
+export function MLPDiagram() {
+  const svgW = 460, svgH = 310;
+  const r = 18;
+
+  const inputNodes: [number, number][] = [[80, 100], [80, 165], [80, 230]];
+  const hiddenNodes: [number, number][] = [[250, 83], [250, 138], [250, 193], [250, 248]];
+  const outputNodes: [number, number][] = [[400, 130], [400, 200]];
+
+  const layerGroups = [
+    { nodes: inputNodes, color: "var(--muted)", label: "input", sublabel: "" },
+    { nodes: hiddenNodes, color: "var(--color-blue)", label: "hidden", sublabel: "σ(Wx + b)" },
+    { nodes: outputNodes, color: "var(--color-green)", label: "output", sublabel: "" },
+  ];
+
+  const allEdges: [number, number, number, number][] = [
+    ...inputNodes.flatMap(([x1, y1]) => hiddenNodes.map(([x2, y2]): [number, number, number, number] => [x1, y1, x2, y2])),
+    ...hiddenNodes.flatMap(([x1, y1]) => outputNodes.map(([x2, y2]): [number, number, number, number] => [x1, y1, x2, y2])),
+  ];
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Connection lines drawn first */}
+        {allEdges.map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke="var(--border)" strokeWidth={1} />
+        ))}
+
+        {/* Node circles drawn over connections */}
+        {layerGroups.map(({ nodes, color }, gi) =>
+          nodes.map(([cx, cy], ni) => (
+            <circle key={`${gi}-${ni}`} cx={cx} cy={cy} r={r}
+              fill="var(--white)" stroke={color} strokeWidth={1.5} />
+          ))
+        )}
+
+        {/* Layer labels */}
+        {layerGroups.map(({ nodes, color, label, sublabel }) => {
+          const x = nodes[0][0];
+          return (
+            <g key={label}>
+              <text x={x} y={22} textAnchor="middle"
+                fontFamily="var(--font-code)" fontSize={12} fill={color}
+              >{label}</text>
+              {sublabel && (
+                <text x={x} y={37} textAnchor="middle"
+                  fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+                >{sublabel}</text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >3 → 4 → 2 fully connected network  (16 + 10 = 26 parameters)</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
