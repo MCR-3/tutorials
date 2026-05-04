@@ -488,17 +488,20 @@ export function GradientDescentDiagram() {
         <Point x={w2} y={loss(w2)} color="var(--color-orange)" />
         <Point x={2} y={0} color="var(--color-green)" />
         {/* Descent arrows on w-axis */}
-        <Vector tail={[w0, 0]} tip={[w1, 0]} color="var(--color-orange)" weight={2} />
-        <Vector tail={[w1, 0]} tip={[w2, 0]} color="var(--color-orange)" weight={2} />
+        <Vector tail={[w0, loss(w0)]} tip={[w1, loss(w1)]} color="var(--color-orange)" weight={2} />
+        <Vector tail={[w1, loss(w1)]} tip={[w2, loss(w2)]} color="var(--color-orange)" weight={2} />
         {/* Labels */}
         <MafsText x={0.4} y={4.3} size={14} color="var(--color-blue)">
           L(w)
         </MafsText>
-        <MafsText x={w0 + 0.12} y={loss(w0) + 0.3} size={13} color="var(--color-orange)">
+        <MafsText x={w0 + 0.5} y={loss(w0)} size={13} color="var(--color-orange)">
           w₀
         </MafsText>
-        <MafsText x={w1 + 0.12} y={loss(w1) + 0.28} size={13} color="var(--color-orange)">
+        <MafsText x={w1 + 0.5} y={loss(w1)} size={13} color="var(--color-orange)">
           w₁
+        </MafsText>
+        <MafsText x={w2 + 0.5} y={loss(w2)} size={13} color="var(--color-orange)">
+          w₂
         </MafsText>
         <MafsText x={2.08} y={-0.38} size={12} color="var(--color-green)">
           min

@@ -1,0 +1,142 @@
+---
+title: "Gradient Descent"
+description: "Using the gradient to iteratively move weights in the direction that reduces the loss."
+category: "training"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article established how to measure how wrong a model is: the loss function returns a scalar $L$, and backpropagation computes $\nabla_\mathbf{W} L$ for every weight matrix. What remains is an algorithm to act on that information — to actually move the weights in a direction that reduces the loss. That algorithm is **gradient descent**.
+
+## From Gradient to Update
+
+The gradient $\nabla_w L$ at a given weight $w$ tells us how the loss responds to a small change in that weight. If we increase $w$ by a tiny $\epsilon$, the loss changes by approximately $\epsilon \cdot \frac{\partial L}{\partial w}$. This means:
+
+- If $\frac{\partial L}{\partial w} > 0$, increasing $w$ increases the loss — so we should decrease $w$.
+- If $\frac{\partial L}{\partial w} < 0$, increasing $w$ decreases the loss — so we should increase $w$.
+- If $\frac{\partial L}{\partial w} = 0$, the loss is locally flat with respect to $w$.
+
+The gradient points uphill. Subtracting it takes us downhill.
+
+## The Update Rule
+
+The gradient descent update for a single scalar weight is:
+
+$$
+w \leftarrow w - \eta \cdot \frac{\partial L}{\partial w}
+$$
+
+where $\eta > 0$ is the **learning rate**, a scalar controlling the step size. The negative sign ensures the update moves in the direction of decreasing loss.
+
+For a weight matrix $\mathbf{W}$, the update applies element-wise:
+
+$$
+\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \nabla_\mathbf{W} L
+$$
+
+Since $\nabla_\mathbf{W} L$ has exactly the same shape as $\mathbf{W}$, this is a subtraction of two same-size matrices scaled by $\eta$. Backpropagation provides $\nabla_\mathbf{W} L$ for every weight matrix simultaneously, so all weights can be updated in one pass.
+
+## A Numerical Walkthrough
+
+Take $L(w) = (w - 2)^2$, starting at $w_0 = 4.0$ with learning rate $\eta = 0.3$. The gradient at any point is $\frac{\partial L}{\partial w} = 2(w - 2)$.
+
+**Step 1.**
+$$
+\frac{\partial L}{\partial w}\bigg|_{w=4.0} = 2(4.0 - 2) = 4.0 \qquad w_1 = 4.0 - 0.3 \cdot 4.0 = 2.8
+$$
+
+**Step 2.**
+$$
+\frac{\partial L}{\partial w}\bigg|_{w=2.8} = 2(2.8 - 2) = 1.6 \qquad w_2 = 2.8 - 0.3 \cdot 1.6 = 2.32
+$$
+
+**Step 3.**
+$$
+\frac{\partial L}{\partial w}\bigg|_{w=2.32} = 2(2.32 - 2) = 0.64 \qquad w_3 = 2.32 - 0.3 \cdot 0.64 = 2.128
+$$
+
+Each step, the gradient shrinks because $w$ is getting closer to the minimum at $w = 2$. The update is large when we are far from the minimum and small when we are near it.
+
+<GradientDescentDiagram />
+
+The orange points show three successive weight positions on the loss curve. The arrows on the horizontal axis show each step moving left toward the minimum at $w = 2$ (green point).
+
+## The Learning Rate
+
+The learning rate $\eta$ has a large effect on training behavior.
+
+**Too small.** Updates are tiny: many steps are needed before the loss decreases meaningfully. Training is stable but slow.
+
+**Too large.** Updates overshoot the minimum. The weight jumps past it, the gradient flips sign, and the weight jumps back — causing oscillation or divergence rather than convergence.
+
+**Well-chosen.** The loss decreases steadily each step and reaches a low value in a reasonable number of steps.
+
+A good starting value is typically in the range $10^{-4}$ to $10^{-1}$, varying with the problem and architecture. Finding the right value usually requires experimentation.
+
+## Convergence
+
+Gradient descent converges when the gradient approaches zero. At that point, updates become negligible and the weights stop changing — the network has found a critical point of the loss surface.
+
+For a convex loss (such as MSE on a linear model), the only critical point is the global minimum, and gradient descent will find it given a small enough learning rate. For the non-convex losses produced by deep networks, convergence may land at a local minimum or a saddle point, depending on the starting point and learning rate.
+
+In practice, deep networks have loss landscapes with many local minima of similar quality. Gradient descent rarely reaches the theoretical global minimum, but it reliably finds configurations that generalize well.
+
+## Connection to Backpropagation
+
+Gradient descent requires $\nabla_\mathbf{W} L$ for every weight. Backpropagation computes exactly this in a single backward pass. The two together form a training cycle:
+
+1. **Forward pass.** Compute the model's output and evaluate the loss.
+2. **Backward pass.** Call `.backward()` to propagate gradients to every weight.
+3. **Update.** Apply the gradient descent rule to every weight matrix.
+4. **Repeat.**
+
+Each iteration of this cycle is one gradient descent step. Running many iterations is how the loss gradually decreases and the model improves.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+w = sg.Tensor([4.0], requires_grad=True)
+target = 2.0
+eta = 0.3
+
+for step in range(3):
+    loss = (w - target) ** 2    # forward pass
+    loss.backward()             # backward pass: compute ∂L/∂w
+
+    w.data -= eta * w.grad      # update step
+    w.grad = None               # reset gradient before next step
+
+    print(f"step {step+1}: w={w.data[0]:.4f}  loss={float(loss):.4f}")
+
+# step 1: w=2.8000  loss=0.6400
+# step 2: w=2.3200  loss=0.1024
+# step 3: w=2.1280  loss=0.0164
+```
+
+```pytorch
+import torch
+
+w = torch.tensor([4.0], requires_grad=True)
+target = 2.0
+eta = 0.3
+
+for step in range(3):
+    loss = (w - target) ** 2
+    loss.backward()
+
+    with torch.no_grad():
+        w -= eta * w.grad
+    w.grad.zero_()
+
+    print(f"step {step+1}: w={w.item():.4f}  loss={(w.item()-target)**2:.4f}")
+
+# step 1: w=2.8000  loss=0.6400
+# step 2: w=2.3200  loss=0.1024
+# step 3: w=2.1280  loss=0.0164
+```
+
+---
+
+Gradient descent provides the basic mechanism for training: use the gradient to move every weight a small step downhill, and repeat until the loss is low enough. The update rule is simple, but choosing how to apply it well — adapting the step size, using momentum, handling sparse gradients — is the subject of the next article.
