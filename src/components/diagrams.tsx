@@ -1109,6 +1109,101 @@ export function BatchNormDiagram() {
   );
 }
 
+export function ConvolutionDiagram() {
+  const svgW = 370, svgH = 212;
+
+  // Cell renderer for a grid — no brackets, just cells
+  function grid(
+    data: number[][],
+    gx: number, gy: number,
+    cs: number,
+    hlFn: (r: number, c: number) => { lit: boolean; color: string },
+  ) {
+    return data.flatMap((row, r) =>
+      row.map((val, c) => {
+        const { lit, color } = hlFn(r, c);
+        return (
+          <g key={`${gx}-${r}-${c}`}>
+            <rect
+              x={gx + c * cs} y={gy + r * cs}
+              width={cs} height={cs}
+              fill={lit ? color : "var(--color-white)"}
+              fillOpacity={lit ? 0.12 : 1}
+              stroke={lit ? color : "var(--border-strong)"}
+              strokeWidth={lit ? 1.5 : 0.8}
+            />
+            <text
+              x={gx + c * cs + cs / 2}
+              y={gy + r * cs + cs / 2 + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={10}
+              fill={lit ? color : "var(--color-fg)"}
+              fontWeight={lit ? 600 : 400}
+            >{val}</text>
+          </g>
+        );
+      })
+    );
+  }
+
+  const input = [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [3, 4, 5, 6, 7], [4, 5, 6, 7, 8], [5, 6, 7, 8, 9]];
+  const kernel = [[0, 1, 0], [1, 0, 1], [0, 1, 0]];
+  const output = [[12, 16, 20], [16, 20, 24], [20, 24, 28]];
+
+  // Layout: input (5×5, cs=22) | × | kernel (3×3, cs=26) | = | output (3×3, cs=22)
+  const cs = 22, ck = 26;
+  const xi = 12, yi = 38;
+  const xk = xi + 5 * cs + 24, yk = yi;           // kernel top-aligned with input
+  const xo = xk + 3 * ck + 24, yo = yi;           // output top-aligned with kernel
+
+  // vertical center of the 5-row input grid, for symbol placement
+  const symY = yi + (5 * cs) / 2 + 4;
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Grid labels */}
+        <text x={xi + 5 * cs / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  5×5</text>
+        <text x={xk + 3 * ck / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">kernel  3×3</text>
+        <text x={xo + 3 * cs / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">output  3×3</text>
+
+        {/* Input grid — blue highlight on top-left 3×3 (current kernel position) */}
+        {grid(input, xi, yi, cs, (r, c) => ({
+          lit: r < 3 && c < 3,
+          color: "var(--color-blue)",
+        }))}
+
+        {/* "×" operator */}
+        <text x={xk - 12} y={symY} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">×</text>
+
+        {/* Kernel grid — all cells highlighted blue */}
+        {grid(kernel, xk, yk, ck, () => ({ lit: true, color: "var(--color-blue)" }))}
+
+        {/* "=" operator (vertically centred with the kernel) */}
+        <text x={xo - 12} y={yk + 3 * ck / 2 + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">=</text>
+
+        {/* Output grid — green highlight on output[0,0] */}
+        {grid(output, xo, yo, cs, (r, c) => ({
+          lit: r === 0 && c === 0,
+          color: "var(--color-green)",
+        }))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >highlighted region × kernel = output[0,0] = 12</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

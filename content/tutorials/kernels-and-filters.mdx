@@ -1,0 +1,175 @@
+---
+title: "Kernels & Filters"
+description: "How convolutional filters detect local features by sliding a small weight matrix across the input."
+category: "convolutional-networks"
+order: 1
+date: "2026-05-01"
+---
+
+The Building Blocks section assembled the machinery of a deep network: linear layers transform data, activation functions introduce non-linearity, and regularization techniques keep models from overfitting. For many tasks — tabular data, simple classification — this is enough. But images present a different challenge. A standard linear layer applied directly to image pixels fails at scale, wasting parameters on patterns it is structurally unable to learn. This section introduces the solution: the **convolutional layer**.
+
+## Why Linear Layers Fail for Images
+
+Consider a modest $256 \times 256$ RGB image. Flattened, it has $256 \times 256 \times 3 = 196{,}608$ input values. A single fully connected layer with $1{,}024$ output neurons requires $196{,}608 \times 1{,}024 \approx 200$ million parameters — for one layer of moderate size. This is both memory-expensive and sample-inefficient: the model needs enormous amounts of training data to learn $200$ million weights reliably.
+
+More fundamentally, the parameter count is the least of the problems. A fully connected layer treats every input pixel identically. It cannot exploit two properties that all images share:
+
+**Spatial locality.** Meaningful features — edges, corners, textures — are formed by groups of nearby pixels. A pixel at position $(i, j)$ is far more informative in combination with its neighbours than with a pixel at a distant corner of the image.
+
+**Translation equivariance.** A horizontal edge in the top-left of an image looks the same as a horizontal edge in the bottom-right. A fully connected layer must learn to detect each feature independently at every spatial location, using entirely separate weights. There is no mechanism to share the knowledge that "a horizontal edge looks like this" across positions.
+
+## The Key Idea: Local Connectivity and Weight Sharing
+
+Two structural changes resolve both problems.
+
+**Local connectivity** restricts each output neuron to depend on only a small neighbourhood of the input, called its **receptive field**. Rather than connecting every output to every input, a 3×3 filter connects each output to a 3×3 patch — just 9 inputs instead of hundreds of thousands.
+
+**Weight sharing** goes further: the same $3 \times 3$ set of weights is applied at every spatial position. A single filter that detects horizontal edges uses the same 9 parameters whether it is looking at the top-left or the bottom-right of the image. This encodes translation equivariance directly into the architecture, and it reduces the parameter count from millions to single digits for the feature itself.
+
+These two ideas together define the **convolution** operation.
+
+## The Convolution Operation
+
+A **filter** (also called a **kernel**) $\mathbf{K}$ is a small matrix of learnable weights, typically $3 \times 3$ or $5 \times 5$. Applied to an input $\mathbf{X}$, it produces one output value per spatial position by computing the element-wise product between the filter and the corresponding input patch, then summing:
+
+$$
+(\mathbf{X} \star \mathbf{K})_{i,j} = \sum_{r=0}^{k_h - 1} \sum_{c=0}^{k_w - 1} K_{r,c} \cdot X_{i+r,\; j+c}
+$$
+
+This is the dot product of the filter weights with each local input patch, computed at every valid position $(i, j)$.
+
+**Numerical example.** Using the input $X_{i,j} = i + j + 1$ (so the top-left cell is $1$, increasing by $1$ in each direction) and the filter $\mathbf{K} = \bigl[\begin{smallmatrix}0&1&0\\1&0&1\\0&1&0\end{smallmatrix}\bigr]$ (which sums the four axis-adjacent neighbours):
+
+For position $(0, 0)$, the input patch is $\bigl[\begin{smallmatrix}1&2&3\\2&3&4\\3&4&5\end{smallmatrix}\bigr]$:
+
+$$
+(0\!\times\!1)+(1\!\times\!2)+(0\!\times\!3)+(1\!\times\!2)+(0\!\times\!3)+(1\!\times\!4)+(0\!\times\!3)+(1\!\times\!4)+(0\!\times\!5)
+$$
+$$
+= 2+2+4+4
+$$
+$$
+= 12
+$$
+
+<ConvolutionDiagram />
+
+The filter slides across every valid position of the input. For a $5 \times 5$ input and $3 \times 3$ filter with no padding, there are $(5 - 3 + 1)^2 = 9$ valid positions, producing a $3 \times 3$ output called a **feature map**.
+
+## Feature Maps and Multiple Filters
+
+The output of one filter is a two-dimensional **feature map**: a grid where each value encodes how strongly that filter's pattern was detected at that location. A large value at position $(i, j)$ means the input contained a strong match for the filter's learned pattern in the patch centred at $(i, j)$.
+
+A single filter can detect a single type of feature. A real convolutional layer applies $K$ different filters simultaneously, each learning to detect a different pattern. The $K$ feature maps are stacked along a new depth dimension, producing a three-dimensional output tensor of shape $H_{\text{out}} \times W_{\text{out}} \times K$.
+
+Early layers in a deep network typically learn low-level features: edges at various orientations, colour gradients, simple textures. Later layers, receiving stacked feature maps as their input, combine these into progressively higher-level patterns: corners, shapes, object parts.
+
+## Input Channels
+
+Natural images have three colour channels (RGB). A filter that operates on a three-channel input has shape $k_h \times k_w \times C_{\text{in}}$ — a separate $k \times k$ slice per input channel. The output at each position is the sum of the dot products across all input channels:
+
+$$
+(\mathbf{X} \star \mathbf{K})_{i,j} = \sum_{d=0}^{C_{\text{in}}-1} \sum_{r=0}^{k_h-1} \sum_{c=0}^{k_w-1} K_{r,c,d} \cdot X_{i+r,\; j+c,\; d}
+$$
+
+Each filter still produces a single 2D feature map, but it now combines information from all input channels. Applying $K$ such filters to a $C_{\text{in}}$-channel input produces a $C_{\text{in}}$-to-$K$ channel transformation.
+
+## Padding
+
+Without padding, every filter application consumes a border of $\lfloor k/2 \rfloor$ pixels, so the feature map shrinks relative to the input. In a deep network this progressive shrinkage can eliminate spatial resolution long before the network is done processing.
+
+**Valid padding** (no padding): the output is strictly smaller than the input.
+
+$$
+H_{\text{out}} = H_{\text{in}} - k + 1
+$$
+
+**Same padding**: add $\lfloor k/2 \rfloor$ rows and columns of zeros to each border so the output has the same spatial dimensions as the input.
+
+$$
+H_{\text{out}} = H_{\text{in}} \quad \bigl(P = \lfloor k / 2 \rfloor\bigr)
+$$
+
+Same padding is the default for most modern architectures. It preserves spatial dimensions through a stack of convolutional layers, giving later layers full-resolution feature maps to work with.
+
+## Output Size and Parameter Count
+
+For a layer with stride $1$ (the filter moves one step at a time), kernel size $k$, and padding $P$:
+
+$$
+H_{\text{out}} = H_{\text{in}} + 2P - k + 1
+$$
+
+Applying $K$ filters of size $k \times k$ to a $C_{\text{in}}$-channel input, with one bias per filter:
+
+$$
+\text{parameters} = K \times (k^2 \times C_{\text{in}} + 1)
+$$
+
+**Example.** A layer with $K = 32$ filters of size $3 \times 3$ applied to a $3$-channel RGB input:
+$$32 \times (9 \times 3 + 1) = 32 \times 28 = 896 \text{ parameters}$$
+
+Compare this to a fully connected layer from $256 \times 256 \times 3$ inputs to $32$ outputs: $32 \times (196{,}608 + 1) \approx 6.3$ million parameters. The convolutional layer achieves the same spatial feature extraction with $7{,}000\times$ fewer parameters, purely because of weight sharing.
+
+## Connection to Linear Layers
+
+A convolutional layer is a linear layer with two constraints baked in: **local connectivity** (each output depends on a small input region) and **weight sharing** (all positions use the same weights). The convolution operation is still a matrix multiplication — just a highly structured one with most weights tied to the same values.
+
+The choice of $3 \times 3$ kernels as the standard is not arbitrary: three stacked $3 \times 3$ layers have the same receptive field as one $7 \times 7$ layer, but with roughly half the parameters and two extra activation functions in between. Depth of $3 \times 3$ layers is the dominant design pattern in modern convolutional architectures.
+
+## In Code
+
+```simplegrad
+# Manual 2D cross-correlation (single filter, single channel)
+def conv2d(x, kernel):
+    H, W = len(x), len(x[0])
+    kH, kW = len(kernel), len(kernel[0])
+    return [
+        [
+            sum(kernel[r][c] * x[i+r][j+c]
+                for r in range(kH) for c in range(kW))
+            for j in range(W - kW + 1)
+        ]
+        for i in range(H - kH + 1)
+    ]
+
+inp    = [[1,2,3,4,5],[2,3,4,5,6],[3,4,5,6,7],[4,5,6,7,8],[5,6,7,8,9]]
+kernel = [[0,1,0],[1,0,1],[0,1,0]]
+
+print(conv2d(inp, kernel))
+# [[12, 16, 20], [16, 20, 24], [20, 24, 28]]
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+# Single conv layer: 1 input channel → 1 output channel, 3×3 kernel
+conv = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, padding=0)
+
+# Input: batch=1, channels=1, height=5, width=5
+x = torch.tensor([[[[1.,2.,3.,4.,5.],
+                     [2.,3.,4.,5.,6.],
+                     [3.,4.,5.,6.,7.],
+                     [4.,5.,6.,7.,8.],
+                     [5.,6.,7.,8.,9.]]]])
+
+# Set kernel weights manually
+with torch.no_grad():
+    conv.weight[:] = torch.tensor([[[[0.,1.,0.],[1.,0.,1.],[0.,1.,0.]]]])
+    conv.bias[:] = 0.
+
+print(conv(x)[0, 0])
+# tensor([[12., 16., 20.],
+#          [16., 20., 24.],
+#          [20., 24., 28.]])
+
+# 32 filters on a 3-channel input: shape and parameter count
+conv_multi = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
+print(conv_multi.weight.shape)                              # torch.Size([32, 3, 3, 3])
+print(sum(p.numel() for p in conv_multi.parameters()))     # 896
+```
+
+---
+
+A convolutional filter is a learned feature detector that scans the entire input for one type of pattern. Stacking many filters produces rich multi-channel feature representations, and stacking many layers builds increasingly abstract descriptions of the input. The next article examines the complementary operation: downsampling, which progressively reduces spatial resolution to increase the receptive field of later layers and control computational cost.
