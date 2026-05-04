@@ -1204,6 +1204,118 @@ export function ConvolutionDiagram() {
   );
 }
 
+export function MaxPoolDiagram() {
+  const svgW = 285, svgH = 200;
+  const cs = 28; // input cell size
+  const co = 42; // output cell size
+
+  const input = [
+    [1, 3, 2, 4],
+    [5, 6, 7, 8],
+    [3, 2, 1, 6],
+    [4, 1, 5, 3],
+  ];
+  const output = [[6, 8], [4, 6]];
+
+  const quadColor = (r: number, c: number): string => {
+    if (r < 2 && c < 2) return "var(--color-blue)";
+    if (r < 2 && c >= 2) return "var(--color-orange)";
+    if (r >= 2 && c < 2) return "var(--color-green)";
+    return "var(--color-yellow)";
+  };
+  const outColor = (r: number, c: number): string => {
+    if (r === 0 && c === 0) return "var(--color-blue)";
+    if (r === 0 && c === 1) return "var(--color-orange)";
+    if (r === 1 && c === 0) return "var(--color-green)";
+    return "var(--color-yellow)";
+  };
+
+  const xi = 15, yi = 38;
+  // Center the 2×2 output vertically with the 4×4 input
+  const xo = xi + 4 * cs + 32;
+  const yo = yi + (4 * cs - 2 * co) / 2;  // = 38 + (112-84)/2 = 52
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Labels */}
+        <text x={xi + 2 * cs} y={24} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  4×4</text>
+        <text x={xo + co} y={24} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">output  2×2</text>
+
+        {/* Dashed quadrant dividers */}
+        <line x1={xi + 2 * cs} y1={yi} x2={xi + 2 * cs} y2={yi + 4 * cs}
+          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="3 2" />
+        <line x1={xi} y1={yi + 2 * cs} x2={xi + 4 * cs} y2={yi + 2 * cs}
+          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="3 2" />
+
+        {/* Input cells */}
+        {input.flatMap((row, r) =>
+          row.map((val, c) => {
+            const color = quadColor(r, c);
+            const qr = r < 2 ? 0 : 1, qc = c < 2 ? 0 : 1;
+            const isMax = val === output[qr][qc];
+            return (
+              <g key={`in-${r}-${c}`}>
+                <rect x={xi + c * cs} y={yi + r * cs} width={cs} height={cs}
+                  fill={color} fillOpacity={0.10}
+                  stroke={isMax ? color : "var(--border)"}
+                  strokeWidth={isMax ? 2 : 0.8} />
+                <text x={xi + c * cs + cs / 2} y={yi + r * cs + cs / 2 + 4}
+                  textAnchor="middle" fontFamily="var(--font-code)"
+                  fontSize={11} fill={isMax ? color : "var(--color-fg)"}
+                  fontWeight={isMax ? 700 : 400}
+                >{val}</text>
+              </g>
+            );
+          })
+        )}
+
+        {/* Arrow + "max" label */}
+        <text x={xo - 16} y={yi + 2 * cs - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">max</text>
+        <line x1={xi + 4 * cs + 5} y1={yi + 2 * cs}
+          x2={xo - 5} y2={yi + 2 * cs}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon
+          points={`${xo - 5},${yi + 2 * cs} ${xo - 11},${yi + 2 * cs - 3} ${xo - 11},${yi + 2 * cs + 3}`}
+          fill="var(--border-strong)" />
+
+        {/* Output cells */}
+        {output.flatMap((row, r) =>
+          row.map((val, c) => {
+            const color = outColor(r, c);
+            return (
+              <g key={`out-${r}-${c}`}>
+                <rect x={xo + c * co} y={yo + r * co} width={co} height={co}
+                  fill={color} fillOpacity={0.15}
+                  stroke={color} strokeWidth={1.5} />
+                <text x={xo + c * co + co / 2} y={yo + r * co + co / 2 + 5}
+                  textAnchor="middle" fontFamily="var(--font-code)"
+                  fontSize={15} fill={color} fontWeight={700}
+                >{val}</text>
+              </g>
+            );
+          })
+        )}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >2×2 max pool (stride 2):</text>
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >each quadrant's maximum survives</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

@@ -1,0 +1,167 @@
+---
+title: "Downsampling"
+description: "Pooling and strided convolutions: reducing spatial dimensions to grow the receptive field efficiently."
+category: "convolutional-networks"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article showed how a convolutional filter produces a feature map of the same spatial size as the input (with same padding). After a stack of such layers, the network holds large feature maps at every stage — computationally expensive to process and, more importantly, not well-suited for recognizing the large-scale patterns that distinguish one class from another. A 3×3 filter sees only a 3×3 neighbourhood; if the spatial resolution never decreases, many layers are needed before any single unit "sees" a wide enough region of the image to detect, say, the outline of an animal. **Downsampling** solves both problems by deliberately reducing spatial resolution at key points in the network.
+
+## The Receptive Field Problem
+
+A 3×3 convolution with stride 1 has a receptive field of 3×3: each output cell integrates information from a 3×3 patch of its input. Stack five such layers and the receptive field grows to $2 \times 5 + 1 = 11$ pixels — still far less than the $224$ pixels wide a typical image. To see the whole image, you would need over 100 layers of stride-1 convolutions.
+
+Downsampling multiplies the receptive field growth rate of every subsequent layer. A 3×3 convolution applied to a feature map at half the original resolution "sees" twice as many original pixels per step. Three stages of $2\times$ downsampling mean a $3\times 3$ convolution at the deepest level covers $3 \times 8 = 24$ original pixels per dimension. Four stages cover $3 \times 16 = 48$ pixels — enough to see a large portion of a 224-pixel image in a single operation.
+
+## Max Pooling
+
+**Max pooling** is the most common spatial downsampling operation. A pooling window of size $k \times k$ slides over the feature map with stride $s$, and at each position the output is the **maximum** value within the window:
+
+$$
+(\text{MaxPool}(\mathbf{X}))_{i,j} = \max_{\substack{0 \le r < k \\ 0 \le c < k}} X_{i \cdot s + r,\; j \cdot s + c}
+$$
+
+The standard choice is a $2 \times 2$ window with stride $2$, which halves both height and width. The four quadrants of a $4 \times 4$ feature map each contribute one value to a $2 \times 2$ output:
+
+<MaxPoolDiagram />
+
+Max pooling has no trainable parameters. It acts as a feature selector: within each window, only the strongest activation survives. This provides a limited form of translation invariance — a feature shifted by one pixel within a pooling window produces the same output.
+
+**Backpropagation through max pooling.** During the forward pass, the position of the maximum within each window is recorded. During the backward pass, the upstream gradient flows exclusively to the max position; all other positions in the window receive a gradient of zero. This is sometimes called a "winner-takes-all" backward pass.
+
+## Average Pooling
+
+**Average pooling** replaces the maximum with the mean of the window:
+
+$$
+(\text{AvgPool}(\mathbf{X}))_{i,j} = \frac{1}{k^2} \sum_{r=0}^{k-1} \sum_{c=0}^{k-1} X_{i \cdot s + r,\; j \cdot s + c}
+$$
+
+For the same $4 \times 4$ input, a $2 \times 2$ average pool with stride $2$ produces:
+
+$$
+\begin{pmatrix} 3.75 & 5.25 \\ 2.50 & 3.75 \end{pmatrix}
+$$
+
+Average pooling distributes the gradient evenly across all cells in the window during backpropagation. It is smoother than max pooling but often performs slightly worse for image classification, where the presence of a feature matters more than its average strength.
+
+**Global average pooling** (GAP) is a special case where the window covers the entire feature map. A $7 \times 7 \times 512$ feature map passed through global average pooling becomes a $512$-dimensional vector — one value per channel, representing the mean activation of that filter across the entire spatial extent. GAP is widely used as the bridge between the convolutional body of a network and the final classification layer, replacing large fully connected layers that would otherwise require millions of parameters.
+
+## Strided Convolutions
+
+An alternative to pooling is to perform downsampling inside the convolution itself by increasing the stride. With stride $S > 1$, the filter moves $S$ pixels at each step rather than one:
+
+$$
+H_{\text{out}} = \left\lfloor \frac{H_{\text{in}} + 2P - k}{S} \right\rfloor + 1
+$$
+
+A $3 \times 3$ convolution with stride $2$ and padding $1$ on a $224 \times 224$ input produces:
+
+$$
+H_{\text{out}} = \left\lfloor \frac{224 + 2 - 3}{2} \right\rfloor + 1 = \left\lfloor \frac{223}{2} \right\rfloor + 1 = 111 + 1 = 112
+$$
+
+Compared to max pooling, strided convolutions have two differences:
+
+- **Learnable.** The filter weights are trained, so the network can learn which information to preserve when downsampling, rather than blindly taking the maximum.
+- **No explicit pooling step.** Downsampling and feature extraction happen simultaneously, which some architectures find preferable.
+
+Modern architectures such as ResNet use strided convolutions for downsampling rather than separate pooling layers. Older architectures (VGG, AlexNet) used separate max pool layers. Both approaches are effective; the choice is largely a design convention.
+
+## Receptive Field Growth in Practice
+
+A typical convolutional network for $224 \times 224$ images processes the input through four downsampling stages, each reducing spatial dimensions by $2\times$:
+
+| Stage | Spatial size | Downsampling factor | 3×3 conv covers |
+|-------|-------------|---------------------|-----------------|
+| 1     | 112 × 112   | 2×                  | 6 original px   |
+| 2     | 56 × 56     | 4×                  | 12 original px  |
+| 3     | 28 × 28     | 8×                  | 24 original px  |
+| 4     | 14 × 14     | 16×                 | 48 original px  |
+
+By the final stage, even a single $3 \times 3$ convolution integrates information from a $48 \times 48$ region of the original image. Multiple such convolutions within a stage, combined with the accumulated depth from earlier layers, give the network effectively global spatial awareness before the classifier is applied.
+
+## Putting It Together
+
+A standard convolutional body alternates between convolutional layers (that maintain resolution and increase channel depth) and downsampling operations (that halve resolution). This pattern appears in virtually every image classification network:
+
+```
+input (3 × H × W)
+   → conv stage 1 → downsample → (C₁ × H/2 × W/2)
+   → conv stage 2 → downsample → (C₂ × H/4 × W/4)
+   → conv stage 3 → downsample → (C₃ × H/8 × W/8)
+   → global average pool       → (C₃,)
+   → linear classifier         → (num_classes,)
+```
+
+Channel depth grows at each stage (32 → 64 → 128 is typical), compensating for the reduced spatial size. The total number of activations stays roughly constant, keeping per-layer compute balanced.
+
+## In Code
+
+```simplegrad
+# Manual 2×2 max pool with stride 2
+def max_pool2d(x, k=2, s=2):
+    H, W = len(x), len(x[0])
+    H_out = (H - k) // s + 1
+    W_out = (W - k) // s + 1
+    return [
+        [max(x[i*s+r][j*s+c] for r in range(k) for c in range(k))
+         for j in range(W_out)]
+        for i in range(H_out)
+    ]
+
+inp = [[1,3,2,4],[5,6,7,8],[3,2,1,6],[4,1,5,3]]
+print(max_pool2d(inp))   # [[6, 8], [4, 6]]
+
+# Average pool
+def avg_pool2d(x, k=2, s=2):
+    H, W = len(x), len(x[0])
+    H_out = (H - k) // s + 1
+    W_out = (W - k) // s + 1
+    return [
+        [sum(x[i*s+r][j*s+c] for r in range(k) for c in range(k)) / k**2
+         for j in range(W_out)]
+        for i in range(H_out)
+    ]
+
+print(avg_pool2d(inp))   # [[3.75, 5.25], [2.5, 3.75]]
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+x = torch.tensor([[[[1., 3., 2., 4.],
+                     [5., 6., 7., 8.],
+                     [3., 2., 1., 6.],
+                     [4., 1., 5., 3.]]]])   # shape: (1, 1, 4, 4)
+
+# Max pooling
+max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+print(max_pool(x))
+# tensor([[[[6., 8.],
+#            [4., 6.]]]])
+
+# Average pooling
+avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
+print(avg_pool(x))
+# tensor([[[[3.7500, 5.2500],
+#            [2.5000, 3.7500]]]])
+
+# Strided convolution as downsampling
+conv_stride2 = nn.Conv2d(in_channels=1, out_channels=1,
+                         kernel_size=3, stride=2, padding=1)
+# (4 + 2×1 - 3) / 2 + 1 = 2 → output shape (1, 1, 2, 2)
+print(conv_stride2(x).shape)   # torch.Size([1, 1, 2, 2])
+
+# Global average pooling: (1, 512, 7, 7) → (1, 512)
+gap = nn.AdaptiveAvgPool2d(1)
+feature_maps = torch.randn(1, 512, 7, 7)
+out = gap(feature_maps).flatten(1)
+print(out.shape)   # torch.Size([1, 512])
+```
+
+---
+
+Downsampling controls the trade-off between spatial resolution and the breadth of patterns a network can see. With the convolution operation and downsampling in place, the remaining question is computational: naively applying a filter to every patch is slow. The next article shows how the im2col transformation converts convolution into a single dense matrix multiplication, unlocking the full throughput of modern hardware.
