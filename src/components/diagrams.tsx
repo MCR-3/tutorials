@@ -511,6 +511,143 @@ export function GradientDescentDiagram() {
   );
 }
 
+export function MomentumDiagram() {
+  const svgW = 460, svgH = 260;
+  const cx = 230, cy = 130;
+
+  // SGD path: oscillates in y (narrow axis of the ravine) while slowly advancing in x
+  const sgd = [
+    [60, 90], [76, 194], [96, 70], [119, 188], [144, 79],
+    [168, 181], [192, 93], [212, 168], [223, 108], [228, 153],
+    [230, 129], [230, 130],
+  ];
+  // Momentum path: smooth curve following the valley floor
+  const mom = [
+    [60, 90], [96, 104], [142, 116], [184, 125], [216, 130],
+    [228, 130], [230, 130],
+  ];
+  const pts = (arr: number[][]) => arr.map(([x, y]) => `${x},${y}`).join(" ");
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Elliptical contour lines of the ravine loss landscape */}
+        {([[160, 80], [105, 52], [50, 25]] as [number, number][]).map(([rx, ry], i) => (
+          <ellipse
+            key={i}
+            cx={cx} cy={cy} rx={rx} ry={ry}
+            fill="none"
+            stroke="var(--border-strong)"
+            strokeWidth={1}
+            strokeDasharray="4 3"
+          />
+        ))}
+        {/* SGD path */}
+        <polyline points={pts(sgd)} fill="none" stroke="var(--color-orange)" strokeWidth={1.5} />
+        {/* Momentum path */}
+        <polyline points={pts(mom)} fill="none" stroke="var(--color-green)" strokeWidth={2.5} />
+        {/* Shared start marker */}
+        <circle cx={60} cy={90} r={4} fill="none" stroke="var(--muted)" strokeWidth={1.5} />
+        {/* Minimum */}
+        <circle cx={cx} cy={cy} r={5} fill="var(--color-green)" />
+        {/* Legend */}
+        <text x={310} y={50} fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">— SGD</text>
+        <text x={310} y={68} fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">— Momentum</text>
+        <text x={cx + 8} y={cy + 5} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">min</text>
+        {/* Caption */}
+        <text
+          x={svgW / 2} y={svgH - 10}
+          textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >
+          SGD oscillates across the ravine; momentum follows the valley floor
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+export function AdamDiagram() {
+  const svgW = 480, svgH = 252;
+
+  function drawArrow(x1: number, y1: number, x2: number, y2: number) {
+    const as = 7;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    const ahPts = [
+      `${x2.toFixed(1)},${y2.toFixed(1)}`,
+      `${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)}`,
+      `${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`,
+    ].join(" ");
+    return (
+      <>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={ahPts} fill="var(--border-strong)" />
+      </>
+    );
+  }
+
+  function drawBox(cx: number, cy: number, w: number, h: number, label: string, color: string) {
+    return (
+      <>
+        <rect
+          x={cx - w / 2} y={cy - h / 2} width={w} height={h}
+          fill="var(--white)" stroke={color} strokeWidth={1.5} rx={4}
+        />
+        <text x={cx} y={cy + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill={color}
+        >{label}</text>
+      </>
+    );
+  }
+
+  // Node positions
+  const gx = 240, gy = 36;
+  const mx = 90, my = 130;
+  const vx = 390, vy = 130;
+  const ux = 240, uy = 215;
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Arrows */}
+        {drawArrow(222, 50, mx, 116)}
+        {drawArrow(258, 50, vx, 116)}
+        {drawArrow(mx, 144, 185, 201)}
+        {drawArrow(vx, 144, 295, 201)}
+
+        {/* Arrow labels */}
+        <text x={155} y={82} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)"
+        >β₁m + (1-β₁)g</text>
+        <text x={325} y={82} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)"
+        >β₂v + (1-β₂)g²</text>
+
+        {/* Boxes drawn after arrows so they sit on top */}
+        {drawBox(gx, gy, 80, 28, "g_t", "var(--color-bg)")}
+        {drawBox(mx, my, 148, 28, "first moment  m_t", "var(--color-blue)")}
+        {drawBox(vx, vy, 155, 28, "second moment  v_t", "var(--color-orange)")}
+        {drawBox(ux, uy, 180, 28, "weight update  Δw", "var(--color-green)")}
+
+        {/* Update formula below the Δw box */}
+        <text x={ux} y={uy + 35} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >Δw = η · m̂ / (√v̂ + ε)</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

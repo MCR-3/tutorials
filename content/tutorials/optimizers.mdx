@@ -1,0 +1,245 @@
+---
+title: "Optimizers"
+description: "Momentum, Adam, and AdamW: practical modifications that make gradient descent faster and more reliable."
+category: "training"
+order: 3
+date: "2026-05-01"
+---
+
+The previous article introduced gradient descent: at each step, compute the gradient of the loss with respect to every weight, and subtract a scaled version of it. This works, but two practical problems arise in real networks. First, a single learning rate $\eta$ applies to every weight, even though different parameters may require very different step sizes. Second, on loss surfaces with elongated valleys, gradient descent oscillates across the narrow dimension while making slow progress along the long one. **Optimizers** are modifications to the basic update rule that address these problems.
+
+## SGD (Stochastic Gradient Descent) with Momentum
+
+Plain gradient descent updates the weight directly from the current gradient:
+
+$$
+\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot g_t
+$$
+
+where $g_t = \nabla_\mathbf{W} L$ at step $t$. The update depends entirely on the current gradient, with no memory of past steps.
+
+**Momentum** introduces a velocity variable $\mathbf{m}_t$ that accumulates an exponential moving average of past gradients:
+
+$$
+\mathbf{m}_t = \beta \cdot \mathbf{m}_{t-1} + (1 - \beta) \cdot g_t \qquad \mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \mathbf{m}_t
+$$
+
+with $\mathbf{m}_0 = 0$ and a momentum coefficient $\beta$ typically set to $0.9$.
+
+The intuition is physical: $\mathbf{m}_t$ behaves like a velocity. Each step blends the current gradient with the previous velocity. When gradients consistently point in the same direction, the velocity grows and steps accelerate. When gradients alternate signs, they partially cancel and the velocity stays small.
+
+**Example.** Consider a parameter whose gradient is consistently $g = 4$ over three steps ($\beta = 0.9$):
+
+$$
+m_1 = 0.1 \cdot 4 = 0.4 \qquad m_2 = 0.9 \cdot 0.4 + 0.1 \cdot 4 = 0.76 \qquad m_3 = 0.9 \cdot 0.76 + 0.1 \cdot 4 = 1.08
+$$
+
+Now compare with oscillating gradients $g = +4, -4, +4$:
+
+$$
+m_1 = 0.4 \qquad m_2 = 0.9 \cdot 0.4 + 0.1 \cdot (-4) = -0.04 \qquad m_3 = 0.9 \cdot (-0.04) + 0.1 \cdot 4 = 0.36
+$$
+
+In the consistent case, the velocity grows to $1.08$. In the oscillating case, it stays near zero. Consistent directions build up speed; oscillations cancel out.
+
+<MomentumDiagram />
+
+On an elongated loss landscape, SGD oscillates back and forth across the narrow axis while creeping along the long one. Momentum damps the oscillations and follows the valley floor toward the minimum.
+
+## Adaptive Learning Rates
+
+Momentum addresses oscillation but not the second problem: parameters in a network see very different gradient magnitudes. Weights connected to frequently activated neurons accumulate large gradient updates; weights connected to rarely activated neurons receive small or infrequent gradients. A uniform $\eta$ is simultaneously too large for some parameters and too small for others.
+
+The solution is to give each parameter its own effective learning rate, scaled automatically by the history of its gradient magnitudes. A parameter that has consistently seen large gradients should take smaller steps; one that has seen small or rare gradients should take larger steps.
+
+## Adam
+
+**Adam** (Adaptive Moment Estimation) combines momentum with per-parameter adaptive scaling. It maintains two running statistics for every weight:
+
+**First moment** $\mathbf{m}_t$ — an exponential moving average of the gradient, tracking direction:
+
+$$
+\mathbf{m}_t = \beta_1 \cdot \mathbf{m}_{t-1} + (1 - \beta_1) \cdot g_t
+$$
+
+**Second moment** $\mathbf{v}_t$ — an exponential moving average of the squared gradient, tracking scale:
+
+$$
+\mathbf{v}_t = \beta_2 \cdot \mathbf{v}_{t-1} + (1 - \beta_2) \cdot g_t^2
+$$
+
+Both accumulators start at zero. Early in training this causes them to be systematically underestimated, so **bias correction** is applied before the update:
+
+$$
+\hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1 - \beta_1^t} \qquad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1 - \beta_2^t}
+$$
+
+At step $t = 1$ with $\beta_1 = 0.9$: the denominator is $1 - 0.9 = 0.1$, which exactly compensates for the $(1 - \beta_1)$ factor in $\mathbf{m}_1$. As $t \to \infty$, $\beta_1^t \to 0$ and the correction factor approaches $1$ — the accumulators have warmed up.
+
+The weight update divides the bias-corrected momentum by the square root of the bias-corrected variance:
+
+$$
+\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \varepsilon}
+$$
+
+where $\varepsilon \approx 10^{-8}$ prevents division by zero when $\hat{\mathbf{v}}_t$ is near zero.
+
+<AdamDiagram />
+
+**Why this normalizes the step size.** At step $t = 1$, bias correction recovers $\hat{m}_1 = g_1$ and $\hat{v}_1 = g_1^2$. The update becomes:
+
+$$
+\Delta w = \eta \cdot \frac{g_1}{\sqrt{g_1^2} + \varepsilon} \approx \eta \cdot \operatorname{sign}(g_1)
+$$
+
+A parameter with gradient $g = 3.0$ and one with $g = 0.01$ both receive an update of approximately $\pm \eta$. The gradient magnitude does not control the step size — only the sign (direction) matters. Over subsequent steps, the ratio $\hat{m}_t / \sqrt{\hat{v}_t}$ adapts as the accumulated statistics diverge across parameters, but the effective step size remains close to $\eta$ throughout.
+
+### Default Hyperparameters
+
+Adam's defaults work well across a very wide range of architectures and datasets with little tuning:
+
+| Parameter | Default | Role |
+|-----------|---------|------|
+| $\beta_1$ | $0.9$ | Decay for first moment (momentum) |
+| $\beta_2$ | $0.999$ | Decay for second moment (variance) |
+| $\varepsilon$ | $10^{-8}$ | Numerical stability |
+| $\eta$ | $10^{-3}$ | Learning rate |
+
+The learning rate $\eta$ remains the most important hyperparameter to tune. $\beta_1$, $\beta_2$, and $\varepsilon$ rarely need adjustment.
+
+## AdamW
+
+A common technique for preventing overfitting is **weight decay**: after each update, shrink every weight slightly toward zero. The naive way to implement this with Adam is to add $\lambda \mathbf{W}$ to the gradient before the update:
+
+$$
+g_t \leftarrow g_t + \lambda \mathbf{W}
+$$
+
+This is equivalent to L2 regularization, but it interacts badly with Adam's adaptive scaling. Because the update is divided by $\sqrt{\hat{\mathbf{v}}_t}$, the weight decay term also gets divided by $\sqrt{\hat{\mathbf{v}}_t}$. Parameters with large gradient variance (large $\hat{\mathbf{v}}_t$) end up receiving less effective weight decay than parameters with small gradient variance. The intended regularization is inconsistent across the network.
+
+**AdamW** fixes this by decoupling weight decay from the gradient update. Instead of mixing $\lambda \mathbf{W}$ into the gradient, it applies the decay directly to the weights after the Adam step:
+
+$$
+\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \varepsilon} - \eta \cdot \lambda \cdot \mathbf{W}
+$$
+
+The second term, $\eta \cdot \lambda \cdot \mathbf{W}$, is the weight decay. It is proportional to the current weight value and scaled by $\eta \cdot \lambda$, not by the adaptive denominator. Every parameter is decayed by the same factor, regardless of its gradient history.
+
+**Example.** For a weight $w = 0.8$ with $\eta = 10^{-3}$ and $\lambda = 0.01$, the decay term alone subtracts $10^{-3} \times 0.01 \times 0.8 = 8 \times 10^{-6}$ from $w$ each step, independently of whatever Adam computes for the gradient term.
+
+The weight decay coefficient $\lambda$ is typically set to $0.01$–$0.1$. A common default for transformer training is $\lambda = 0.1$.
+
+## Which Optimizer to Use
+
+**AdamW** is the standard choice for training transformer-based models and most modern architectures. It combines Adam's fast convergence with well-behaved regularization. Virtually all recent large language model training uses AdamW.
+
+**Adam** works well when weight decay is not needed or is handled separately. For tasks where regularization is less critical, plain Adam is a simpler option.
+
+**SGD with momentum** is preferred in some computer vision settings. When a learning rate schedule is carefully tuned, it can reach lower final loss values than adaptive methods on image classification benchmarks, at the cost of more careful hyperparameter search.
+
+For a new project, AdamW with $\lambda = 0.01$ and $\eta = 10^{-3}$ is a reliable starting point.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+# SGD with momentum — manual implementation
+w = sg.Tensor([4.0], requires_grad=True)
+m = 0.0          # velocity accumulator
+beta, eta = 0.9, 0.3
+
+for step in range(5):
+    loss = (w - 2) ** 2
+    loss.backward()
+
+    g = float(w.grad)
+    m = beta * m + (1 - beta) * g    # update velocity
+    w.data -= eta * m                # apply momentum update
+    w.grad = None
+
+    print(f"step {step+1}: w={w.data[0]:.4f}")
+
+# Adam — manual implementation
+w = sg.Tensor([4.0], requires_grad=True)
+m, v = 0.0, 0.0
+b1, b2, eps, lr = 0.9, 0.999, 1e-8, 1e-2
+
+for t in range(1, 201):
+    loss = (w - 2) ** 2
+    loss.backward()
+
+    g = float(w.grad)
+    m = b1 * m + (1 - b1) * g           # first moment
+    v = b2 * v + (1 - b2) * g * g       # second moment
+    m_hat = m / (1 - b1 ** t)           # bias correction
+    v_hat = v / (1 - b2 ** t)
+    w.data -= lr * m_hat / (v_hat ** 0.5 + eps)
+    w.grad = None
+
+# After ~200 steps: w ≈ 2.000
+
+# AdamW — add decoupled weight decay
+w = sg.Tensor([0.8], requires_grad=True)   # start away from zero
+target = 0.0                               # true optimum at 0
+b1, b2, eps, lr, wd = 0.9, 0.999, 1e-8, 1e-2, 0.1
+m, v = 0.0, 0.0
+
+for t in range(1, 201):
+    loss = (w - target) ** 2
+    loss.backward()
+
+    g = float(w.grad)
+    m = b1 * m + (1 - b1) * g
+    v = b2 * v + (1 - b2) * g * g
+    m_hat = m / (1 - b1 ** t)
+    v_hat = v / (1 - b2 ** t)
+    w.data -= lr * m_hat / (v_hat ** 0.5 + eps)   # Adam gradient step
+    w.data -= lr * wd * w.data                     # decoupled weight decay
+    w.grad = None
+```
+
+```pytorch
+import torch
+
+# SGD with momentum
+w = torch.tensor([4.0], requires_grad=True)
+optimizer = torch.optim.SGD([w], lr=0.3, momentum=0.9)
+
+for step in range(5):
+    optimizer.zero_grad()
+    loss = (w - 2) ** 2
+    loss.backward()
+    optimizer.step()
+
+    print(f"step {step+1}: w={w.item():.4f}")
+
+# Adam
+w = torch.tensor([4.0], requires_grad=True)
+optimizer = torch.optim.Adam([w], lr=1e-2, betas=(0.9, 0.999), eps=1e-8)
+
+for t in range(200):
+    optimizer.zero_grad()
+    loss = (w - 2) ** 2
+    loss.backward()
+    optimizer.step()
+
+# After ~200 steps: w ≈ 2.000
+print(w.item())  # 2.0002...
+
+# AdamW
+w = torch.tensor([0.8], requires_grad=True)
+optimizer = torch.optim.AdamW([w], lr=1e-2, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.1)
+
+for t in range(200):
+    optimizer.zero_grad()
+    loss = w ** 2           # minimum at 0; weight decay also pushes toward 0
+    loss.backward()
+    optimizer.step()
+
+print(w.item())  # ≈ 0.000 (gradient + weight decay both pull toward 0)
+```
+
+---
+
+We now have the three components of a training step: a loss function that measures the error, backpropagation that computes the gradient of that error with respect to every weight, and an optimizer that applies the resulting updates. What remains is the structure that ties these together: iterating over training data, deciding how many passes to run, and measuring whether the model has actually learned. That is the subject of the next article.
