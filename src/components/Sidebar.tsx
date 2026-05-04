@@ -115,7 +115,7 @@ function NavTree({ onNavigate }: { onNavigate?: () => void }) {
 export function DesktopSidebar() {
   return (
     <aside
-      className="hidden md:flex flex-col w-64 shrink-0 overflow-y-auto sticky top-0 h-screen"
+      className="hidden md:flex flex-col w-64 shrink-0 overflow-y-auto sticky top-0 h-full"
       style={{
         borderRight: "1px solid var(--border)",
         background: "var(--color-white)",
