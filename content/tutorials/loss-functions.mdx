@@ -1,0 +1,177 @@
+---
+title: "Loss Functions"
+description: "Measuring how wrong a model is: MSE for regression and cross-entropy for classification."
+category: "training"
+order: 1
+date: "2026-05-01"
+---
+
+The Autograd section established how to compute $\frac{\partial L}{\partial \mathbf{W}}$ for every weight matrix in a network. The remaining question is: what is $L$? Training cannot begin until we can measure whether the model's predictions are good or bad. A **loss function** provides that measurement.
+
+## What Is a Loss Function?
+
+A loss function takes the model's predictions $\hat{\mathbf{y}}$ and the ground-truth labels $\mathbf{y}$, and returns a single non-negative scalar:
+
+$$
+L = f(\hat{\mathbf{y}},\, \mathbf{y}) \in \mathbb{R}_{\geq 0}
+$$
+
+Three properties are required:
+
+- **Scalar output.** Backpropagation starts with $\frac{\partial L}{\partial L} = 1$. This requires $L$ to be a single number, not a vector.
+- **Non-negative, with zero at perfect predictions.** A loss of zero means the model has nothing left to improve. Any positive value signals room for improvement.
+- **Differentiable.** We need $\frac{\partial L}{\partial \hat{\mathbf{y}}}$ to flow backward through the network. Discontinuities would break the gradient computation.
+
+The loss is the root node of the computation graph — the single value from which the entire backward pass begins.
+
+## Mean Squared Error
+
+**Mean Squared Error** (MSE) is the standard loss for regression: problems where the output is a continuous value.
+
+$$
+L_{\text{MSE}} = \frac{1}{n} \sum_{i=1}^{n} (\hat{y}_i - y_i)^2
+$$
+
+Each term $(\hat{y}_i - y_i)^2$ is the squared prediction error for one example. Squaring serves two purposes: it makes every term non-negative regardless of the sign of the error, and it penalizes large errors more than small ones — an error of $2$ contributes four times as much as an error of $1$.
+
+**Example.** With predictions $\hat{\mathbf{y}} = [1, 2, 3]$ and targets $\mathbf{y} = [2, 2, 2]$:
+
+$$
+L_{\text{MSE}} = \frac{(1-2)^2 + (2-2)^2 + (3-2)^2}{3} = \frac{1 + 0 + 1}{3} \approx 0.667
+$$
+
+The partial derivative with respect to prediction $\hat{y}_i$ is:
+
+$$
+\frac{\partial L_{\text{MSE}}}{\partial \hat{y}_i} = \frac{2(\hat{y}_i - y_i)}{n}
+$$
+
+When $\hat{y}_i > y_i$, this gradient is positive: the loss decreases if we reduce the prediction. When $\hat{y}_i < y_i$, it is negative: the loss decreases if we increase the prediction. At $\hat{y}_i = y_i$, the gradient is zero and the loss is at its minimum.
+
+<MSELossDiagram />
+
+MSE works well when the output is unbounded and errors in both directions carry the same importance. Typical use cases: estimating a price, predicting a temperature, regressing on any continuous quantity.
+
+## Cross-Entropy
+
+**Cross-entropy** is the standard loss for classification: problems where the output is a discrete category. Unlike regression, the network's raw output must first be converted to a probability — a number between $0$ and $1$ — before the loss can be applied.
+
+### Binary Cross-Entropy
+
+For binary classification (two possible classes), the loss for a single example is:
+
+$$
+L_{\text{BCE}} = -\bigl[y \log \hat{y} + (1 - y) \log(1 - \hat{y})\bigr]
+$$
+
+where $y \in \{0, 1\}$ is the true label and $\hat{y} \in (0, 1)$ is the predicted probability of class $1$.
+
+When the true label is $y = 1$, only the first term survives: $L = -\log \hat{y}$. This decreases toward zero as $\hat{y} \to 1$ (correct prediction) and grows to infinity as $\hat{y} \to 0$ (confidently wrong prediction). When $y = 0$, the second term applies symmetrically.
+
+**Example.** True label $y = 1$, predicted probability $\hat{y} = 0.9$:
+
+$$
+L_{\text{BCE}} = -[1 \cdot \log(0.9) + 0 \cdot \log(0.1)] = -\log(0.9) \approx 0.105
+$$
+
+The model was confident and correct, so the loss is small. With $\hat{y} = 0.1$ instead (confident but wrong): $L = -\log(0.1) \approx 2.303$.
+
+### Categorical Cross-Entropy
+
+For multi-class classification ($K$ classes), the loss generalizes to:
+
+$$
+L_{\text{CE}} = -\sum_{k=1}^{K} y_k \log \hat{y}_k
+$$
+
+where $\mathbf{y}$ is a one-hot vector (all zeros except a single $1$ at the true class) and $\hat{\mathbf{y}}$ is a probability vector summing to $1$ (typically produced by a softmax layer). Because only the true class has $y_k = 1$, this reduces to $L = -\log \hat{y}_{\text{true}}$: the negative log-probability assigned to the correct class.
+
+**Example.** Three classes, true class is $k = 2$, predicted probabilities $\hat{\mathbf{y}} = [0.1,\ 0.7,\ 0.2]$:
+
+$$
+L_{\text{CE}} = -(0 \cdot \log 0.1 + 1 \cdot \log 0.7 + 0 \cdot \log 0.2) = -\log(0.7) \approx 0.357
+$$
+
+Only the probability at the correct class enters the sum. A model that assigns $\hat{y}_{\text{true}} = 0.99$ would incur $L \approx 0.01$; one that assigns $0.01$ would incur $L \approx 4.6$.
+
+<CrossEntropyDiagram />
+
+The shape of the curve explains why cross-entropy works well for classification. A model that assigns probability $0.99$ to the correct class incurs a loss near zero — confident and right. A model that assigns $0.01$ incurs a loss near $4.6$ — confident and wrong. The steep slope near $p = 0$ creates a strong gradient signal exactly when the model most needs correction.
+
+The partial derivative with respect to the predicted probability of the correct class is:
+
+$$
+\frac{\partial L_{\text{CE}}}{\partial \hat{y}_{\text{true}}} = -\frac{1}{\hat{y}_{\text{true}}}
+$$
+
+This grows large as $\hat{y}_{\text{true}} \to 0$, giving a strong correction gradient for badly wrong predictions.
+
+## The Loss as a Landscape
+
+For a network with weight matrices $\mathbf{W}_1, \mathbf{W}_2, \ldots$, the loss is a function of all weights at once: $L(\mathbf{W}_1, \mathbf{W}_2, \ldots)$. Evaluated over all possible weight configurations, this defines a high-dimensional surface.
+
+Good weight configurations sit in valleys of this surface; bad configurations sit on peaks or plateaus. The goal of training is to find a valley. The gradient $\nabla_\mathbf{W} L$ points toward higher ground at the current position, and the next article shows how to use it to descend.
+
+## Connection to Backpropagation
+
+The loss computation $\hat{\mathbf{y}} \to L$ adds one final node to the computation graph built during the forward pass. When `.backward()` is called:
+
+1. The seed gradient is $\frac{\partial L}{\partial L} = 1$.
+2. The loss's backward function immediately computes $\frac{\partial L}{\partial \hat{\mathbf{y}}}$ — the gradient of the loss with respect to the network's predictions.
+3. This gradient flows backward through every operation in the network, ultimately reaching the weight matrices.
+
+The choice of loss function determines $\frac{\partial L}{\partial \hat{\mathbf{y}}}$, which in turn shapes how every weight is updated. A different loss function produces a different gradient signal, leading to different learned representations.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+
+# MSE — regression
+pred   = sg.Tensor([1.0, 2.0, 3.0], requires_grad=True)
+target = sg.Tensor([2.0, 2.0, 2.0])
+
+mse = ((pred - target) ** 2).mean()
+mse.backward()
+
+print(mse)        # 0.667  — (1 + 0 + 1) / 3
+print(pred.grad)  # [-0.667, 0.0, 0.667]  — 2·(pred − target) / 3
+
+# Binary cross-entropy — classification
+p = sg.Tensor([0.9], requires_grad=True)
+y = sg.Tensor([1.0])
+
+bce = -(y * sg.log(p) + (1 - y) * sg.log(1 - p))
+bce.backward()
+
+print(bce)      # 0.105  — −log(0.9): model was confident and correct
+print(p.grad)   # [-1.111]  — −1/p: strong signal when p is low
+```
+
+```pytorch
+import torch
+
+# MSE — regression
+pred   = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+target = torch.tensor([2.0, 2.0, 2.0])
+
+mse = ((pred - target) ** 2).mean()
+mse.backward()
+
+print(mse)        # tensor(0.6667)
+print(pred.grad)  # tensor([-0.6667,  0.0000,  0.6667])
+
+# Binary cross-entropy — classification
+p = torch.tensor([0.9], requires_grad=True)
+y = torch.tensor([1.0])
+
+bce = -(y * torch.log(p) + (1 - y) * torch.log(1 - p))
+bce.backward()
+
+print(bce)      # tensor([0.1054])
+print(p.grad)   # tensor([-1.1111])
+```
+
+---
+
+A loss function measures where the model stands. Its gradient, propagated backward through the network, tells every weight how much it contributed to that error. The next step is to use this information to adjust those weights in a direction that reduces the loss.

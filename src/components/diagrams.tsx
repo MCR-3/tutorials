@@ -651,6 +651,66 @@ export function ComputationGraphDiagram() {
   );
 }
 
+export function MSELossDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-2.8, 2.8], y: [-1, 7], padding: 0 }}
+        height={230}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        <Plot.OfX y={(x) => x * x} color="var(--color-blue)" weight={2} />
+        <Point x={0} y={0} color="var(--color-green)" />
+        <MafsText x={1.55} y={5.2} size={14} color="var(--color-blue)">
+          L = (ŷ − y)²
+        </MafsText>
+        <MafsText x={0.55} y={0.72} size={12} color="var(--color-green)">
+          minimum
+        </MafsText>
+        <MafsText x={2.55} y={-0.28} size={12} color="var(--muted)">
+          ŷ − y
+        </MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
+export function CrossEntropyDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [0, 1.1], y: [-1, 5], padding: 0 }}
+        height={230}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
+        <Plot.Parametric
+          xy={(t) => [t, -Math.log(t)]}
+          domain={[0.02, 1.0]}
+          color="var(--color-orange)"
+          weight={2}
+        />
+        <Point x={1} y={0} color="var(--color-green)" />
+        <MafsText x={0.42} y={3.3} size={14} color="var(--color-orange)">
+          L = −log(p)
+        </MafsText>
+        <MafsText x={0.88} y={0.45} size={12} color="var(--color-green)">
+          p = 1
+        </MafsText>
+        <MafsText x={0.08} y={3.85} size={11} color="var(--muted)">
+          → ∞
+        </MafsText>
+        <MafsText x={1.05} y={-0.15} size={12} color="var(--muted)">
+          p
+        </MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
 export function BackpropDiagram() {
   const r = 26;
 

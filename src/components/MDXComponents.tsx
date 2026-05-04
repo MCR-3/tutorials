@@ -14,6 +14,8 @@ import {
   ChainRuleDiagram,
   ComputationGraphDiagram,
   BackpropDiagram,
+  MSELossDiagram,
+  CrossEntropyDiagram,
 } from "./diagrams";
 
 export const mdxComponents = {
@@ -32,4 +34,7 @@ export const mdxComponents = {
   GradientDescentDiagram,
   ChainRuleDiagram,
   ComputationGraphDiagram,
+  BackpropDiagram,
+  MSELossDiagram,
+  CrossEntropyDiagram,
 };
