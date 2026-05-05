@@ -1669,6 +1669,167 @@ export function SequenceTasksDiagram() {
   );
 }
 
+export function RNNCellDiagram() {
+  const svgW = 385, svgH = 198;
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 7): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
+  }
+
+  // Positions
+  const hPrev = { cx: 38, cy: 72, r: 20 };
+  const xt = { cx: 38, cy: 150, r: 18 };
+  const Wh = { x: 70, y: 59, w: 58, h: 26 };  // W_h rect
+  const Wx = { x: 70, y: 137, w: 58, h: 26 };  // W_x rect
+  const sum = { cx: 215, cy: 110, r: 20 };          // + circle
+  const tanhB = { x: 249, y: 97, w: 52, h: 26 };  // tanh rect
+  const hOut = { cx: 350, cy: 110, r: 20 };          // output circle
+
+  // Helper centers
+  const WhCy = Wh.y + Wh.h / 2;
+  const WxCy = Wx.y + Wx.h / 2;
+  const tCx = tanhB.x + tanhB.w / 2, tCy = tanhB.y + tanhB.h / 2;
+
+  // Diagonal entry points on sum circle from Wh and Wx box right edges
+  function circleEntry(fromX: number, fromY: number, cx: number, cy: number, r: number): [number, number] {
+    const dx = cx - fromX, dy = cy - fromY, len = Math.sqrt(dx * dx + dy * dy);
+    return [cx - (dx / len) * r, cy - (dy / len) * r];
+  }
+  const [sum_ix1, sum_iy1] = circleEntry(Wh.x + Wh.w, WhCy, sum.cx, sum.cy, sum.r);
+  const [sum_ix2, sum_iy2] = circleEntry(Wx.x + Wx.w, WxCy, sum.cx, sum.cy, sum.r);
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* h_{t-1} → W_h */}
+        <line x1={hPrev.cx + hPrev.r} y1={hPrev.cy} x2={Wh.x - 2} y2={hPrev.cy}
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <polygon points={ap(hPrev.cx + hPrev.r, hPrev.cy, Wh.x, hPrev.cy)} fill="var(--color-green)" />
+
+        {/* x_t → W_x */}
+        <line x1={xt.cx + xt.r} y1={xt.cy} x2={Wx.x - 2} y2={xt.cy}
+          stroke="var(--color-orange)" strokeWidth={1.5} />
+        <polygon points={ap(xt.cx + xt.r, xt.cy, Wx.x, xt.cy)} fill="var(--color-orange)" />
+
+        {/* W_h → sum (diagonal) */}
+        <line x1={Wh.x + Wh.w} y1={WhCy} x2={sum_ix1} y2={sum_iy1}
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={ap(Wh.x + Wh.w, WhCy, sum.cx, sum.cy, sum.r)} fill="var(--border-strong)" />
+
+        {/* W_x → sum (diagonal) */}
+        <line x1={Wx.x + Wx.w} y1={WxCy} x2={sum_ix2} y2={sum_iy2}
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={ap(Wx.x + Wx.w, WxCy, sum.cx, sum.cy, sum.r)} fill="var(--border-strong)" />
+
+        {/* sum → tanh */}
+        <line x1={sum.cx + sum.r} y1={sum.cy} x2={tanhB.x - 2} y2={tCy}
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={ap(sum.cx + sum.r, sum.cy, tanhB.x, tCy)} fill="var(--border-strong)" />
+
+        {/* tanh → h_t */}
+        <line x1={tanhB.x + tanhB.w} y1={tCy} x2={hOut.cx - hOut.r - 2} y2={hOut.cy}
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <polygon points={ap(tanhB.x + tanhB.w, tCy, hOut.cx - hOut.r, hOut.cy)} fill="var(--color-green)" />
+
+        {/* Input circles (drawn over arrows) */}
+        <circle cx={hPrev.cx} cy={hPrev.cy} r={hPrev.r}
+          fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
+        <text x={hPrev.cx - 1} y={hPrev.cy - 2} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h</text>
+        <text x={hPrev.cx + 4} y={hPrev.cy + 9} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">t-1</text>
+
+        <circle cx={xt.cx} cy={xt.cy} r={xt.r}
+          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} />
+        <text x={xt.cx - 2} y={xt.cy - 1} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">x</text>
+        <text x={xt.cx + 4} y={xt.cy + 9} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-orange)">t</text>
+
+        {/* W_h and W_x rects */}
+        {[{ r: Wh, lbl: "Wₕ", color: "var(--color-blue)" },
+        { r: Wx, lbl: "Wₓ", color: "var(--color-blue)" }].map(({ r, lbl, color }) => (
+          <g key={lbl}>
+            <rect x={r.x} y={r.y} width={r.w} height={r.h}
+              fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={3} />
+            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 5} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={12} fill={color}>{lbl}</text>
+          </g>
+        ))}
+
+        {/* + b circle */}
+        <circle cx={sum.cx} cy={sum.cy} r={sum.r}
+          fill="var(--color-white)" stroke="var(--border-strong)" strokeWidth={1.5} />
+        <text x={sum.cx} y={sum.cy + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">+ b</text>
+
+        {/* tanh rect */}
+        <rect x={tanhB.x} y={tanhB.y} width={tanhB.w} height={tanhB.h}
+          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} rx={3} />
+        <text x={tCx} y={tCy + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">tanh</text>
+
+        {/* h_t output circle */}
+        <circle cx={hOut.cx} cy={hOut.cy} r={hOut.r}
+          fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
+        <text x={hOut.cx - 2} y={hOut.cy - 1} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h</text>
+        <text x={hOut.cx + 5} y={hOut.cy + 9} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">t</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >{"one step: h_t = tanh(Wₕ h_{t-1} + Wₓ x_t + b)"}</text>
+      </svg>
+    </div>
+  );
+}
+
+export function GradientFlowDiagram() {
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-0.5, 22], y: [-0.3, 4.2], padding: 0 }}
+        height={220}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 5 }} yAxis={{ lines: 1 }} />
+        {/* Vanishing: 0.9^t */}
+        <Plot.Parametric
+          xy={(t) => [t, Math.pow(0.9, t)]}
+          domain={[0, 21]}
+          color="var(--color-blue)"
+          weight={2}
+        />
+        {/* Stable: constant at y=1 */}
+        <MafsLine.Segment
+          point1={[0, 1]} point2={[21, 1]}
+          color="var(--color-green)" weight={2} style="dashed"
+        />
+        {/* Exploding: 1.1^t (clipped at y=4 in view) */}
+        <Plot.Parametric
+          xy={(t) => [t, Math.min(Math.pow(1.1, t), 4.1)]}
+          domain={[0, 21]}
+          color="var(--color-orange)"
+          weight={2}
+        />
+        {/* Labels */}
+        <MafsText x={18.5} y={0.25} size={12} color="var(--color-blue)">vanishing</MafsText>
+        <MafsText x={18.5} y={1.22} size={12} color="var(--color-green)">stable</MafsText>
+        <MafsText x={12.5} y={3.6} size={12} color="var(--color-orange)">exploding</MafsText>
+        <MafsText x={21.5} y={-0.2} size={11} color="var(--color-white)">steps</MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

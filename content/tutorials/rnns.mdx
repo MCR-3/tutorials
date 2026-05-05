@@ -1,0 +1,193 @@
+---
+title: "Vanilla RNNs"
+description: "The concrete equations behind the recurrent cell: weight matrices, tanh, and backpropagation through time."
+category: "recurrent-networks"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article established what a sequential model needs: a hidden state that is updated at every step using the same function $f$. It left $f$ undefined. This article fills that gap with the simplest possible implementation — the **vanilla RNN** — and examines both how it works and where it breaks down.
+
+## The Cell Equation
+
+The vanilla RNN defines the update function $f$ as a linear transformation of the concatenated input and previous state, followed by a hyperbolic tangent:
+
+$$
+\mathbf{h}_t = \tanh(\mathbf{W}_h \mathbf{h}_{t-1} + \mathbf{W}_x \mathbf{x}_t + \mathbf{b})
+$$
+
+Three sets of parameters are shared across every time step:
+
+- $\mathbf{W}_h \in \mathbb{R}^{D \times D}$: the **recurrent weight matrix**, mapping the previous state to the new pre-activation.
+- $\mathbf{W}_x \in \mathbb{R}^{D \times I}$: the **input weight matrix**, mapping the current input to the pre-activation.
+- $\mathbf{b} \in \mathbb{R}^D$: a bias vector.
+
+The two terms are summed, the bias is added, and the result is squashed element-wise through tanh to produce the next state. The total parameter count is $D^2 + DI + D = D(D + I + 1)$, independent of sequence length. An RNN with $D = 128$ hidden units and $I = 64$-dimensional inputs has $128 \times (128 + 64 + 1) = 24{,}704$ parameters — the same whether the sequence contains 5 tokens or 5,000.
+
+**Why tanh?** Tanh bounds every element of $\mathbf{h}_t$ to $(-1, 1)$, preventing the state from growing without limit as it passes through step after step. An unbounded activation would cause the state to diverge on any non-trivial input. Tanh is also zero-centered, which helps gradients flow more evenly. The cost — as the Activation Functions article noted — is that tanh saturates for large inputs, squashing its gradient toward zero. This cost becomes severe during training, as we will see below.
+
+<RNNCellDiagram />
+
+## The Output Layer
+
+The hidden state $\mathbf{h}_t$ is not the final output. A separate linear layer maps the state to the task-specific output:
+
+$$
+\mathbf{y}_t = \mathbf{W}_y \mathbf{h}_t + \mathbf{b}_y
+$$
+
+For a **many-to-one** task (e.g., sentiment classification), only $\mathbf{y}_T$ — the output at the final step — is used, and the loss is computed once. For a **many-to-many** task (e.g., language modelling), $\mathbf{y}_t$ is computed at every step, and the loss is summed across all positions. The state-update parameters $\mathbf{W}_h$, $\mathbf{W}_x$, $\mathbf{b}$ are shared across steps; $\mathbf{W}_y$, $\mathbf{b}_y$ are applied at output positions only.
+
+## The Forward Pass
+
+Running a sequence of $T$ inputs through the RNN is a simple loop. Each step takes the current input and the previous state, applies the cell equation, and emits the new state.
+
+**Numerical example.** With $D = 2$, $I = 2$, and:
+
+$$
+\mathbf{W}_h = \begin{pmatrix}0.3 & 0 \\ 0 & 0.3\end{pmatrix}, \quad
+\mathbf{W}_x = \begin{pmatrix}0.5 & 0.2 \\ 0.1 & 0.6\end{pmatrix}, \quad
+\mathbf{b} = \mathbf{0}, \quad
+\mathbf{h}_0 = \mathbf{0}
+$$
+
+Processing $\mathbf{x}_1 = [1, 0]$, $\mathbf{x}_2 = [0, 1]$, $\mathbf{x}_3 = [0.5, 0.5]$:
+
+$$
+\mathbf{h}_1 = \tanh([0.5,\; 0.1]) = [0.462,\; 0.100]
+$$
+$$
+\mathbf{h}_2 = \tanh([0.339,\; 0.630]) = [0.327,\; 0.559]
+$$
+$$
+\mathbf{h}_3 = \tanh([0.448,\; 0.518]) = [0.422,\; 0.477]
+$$
+
+At each step the state blends the new input with a decayed version of the previous state ($\mathbf{W}_h$ scales each dimension by $0.3$). After three steps, $\mathbf{h}_3$ reflects the influence of all three inputs, with recent inputs weighted more heavily than earlier ones.
+
+## Backpropagation Through Time
+
+Training the RNN uses the same loss, backward pass, and optimizer from the Training section. The twist is that the computation graph is **unrolled through time**: every application of the cell equation is a node in the graph, and the shared parameters $\mathbf{W}_h$, $\mathbf{W}_x$, $\mathbf{b}$ appear at every step.
+
+When `.backward()` is called, gradients accumulate from every node where the parameters were used (the gradient accumulation rule from the Computation Graph article). For $\mathbf{W}_h$, the gradient sums $T$ contributions:
+
+$$
+\frac{\partial L}{\partial \mathbf{W}_h} = \sum_{t=1}^{T} \frac{\partial L}{\partial \mathbf{h}_t} \cdot \frac{\partial \mathbf{h}_t}{\partial \mathbf{W}_h}
+$$
+
+Computing $\frac{\partial L}{\partial \mathbf{h}_t}$ for steps far from the output requires propagating gradients backward through every intermediate step. The gradient at step $t$ reaching step $s < t$ involves the product:
+
+$$
+\frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_s} = \prod_{k=s+1}^{t} \underbrace{\mathbf{W}_h^\top \cdot \operatorname{diag}\bigl(\tanh'(\mathbf{z}_k)\bigr)}_{\text{Jacobian at step }k}
+$$
+
+This is a product of $t - s$ matrices. What happens to this product over many steps is the central practical problem of vanilla RNNs.
+
+## Vanishing and Exploding Gradients
+
+The behaviour of the Jacobian product depends on the **spectral radius** of $\mathbf{W}_h$: the largest absolute eigenvalue, denoted $\rho(\mathbf{W}_h)$.
+
+$$
+\left\|\frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_s}\right\| \approx \left(\rho(\mathbf{W}_h) \cdot \max_k \tanh'(z_k)\right)^{t-s}
+$$
+
+Since $\tanh'(z) \leq 1$, the product of the two factors is at most $\rho(\mathbf{W}_h)$. If $\rho(\mathbf{W}_h) < 1$, the norm of the gradient decays geometrically with $t - s$: after 20 steps back in time, the gradient contribution is at most $0.9^{20} \approx 0.12$, and after 50 steps it is below $0.005$. The parameters at early steps receive virtually no gradient signal and cannot be updated to capture long-range patterns. If $\rho(\mathbf{W}_h) > 1$, the gradient grows without bound, causing numerical overflow and training divergence.
+
+<GradientFlowDiagram />
+
+The flat "stable" curve requires $\rho(\mathbf{W}_h) = 1$ exactly — a condition impossible to maintain throughout training. In practice, gradient norms almost always collapse to near-zero or explode. The vanishing case is by far the more common and the harder to fix.
+
+## Practical Mitigations
+
+**Gradient clipping.** Exploding gradients can be controlled by rescaling the gradient whenever its norm exceeds a threshold $\tau$:
+
+$$
+\text{if}\;\; \|\mathbf{g}\| > \tau\,: \qquad \mathbf{g} \leftarrow \frac{\tau}{\|\mathbf{g}\|}\,\mathbf{g}
+$$
+
+This prevents overflow but does nothing about gradients that are already near zero.
+
+**Truncated BPTT.** Rather than unrolling the full sequence at training time, gradients are propagated backward only $K$ steps. This bounds the computational cost and avoids extreme vanishing, but the model cannot learn dependencies longer than $K$ steps by construction.
+
+Both mitigations address symptoms rather than the root cause. They make vanilla RNNs trainable on short sequences but leave long-range dependencies out of reach.
+
+## When Vanilla RNNs Are Sufficient
+
+Despite their limitations, vanilla RNNs work well for tasks where relevant context is local:
+
+- **Short sequences** (up to ~20 steps): the vanishing gradient is mild enough that all positions contribute meaningful gradients.
+- **Character-level language modelling** with limited context: predicting the next character in a word requires little history.
+- **Shallow sequence classification** where the final state provides a reasonable summary of the full input.
+
+For tasks requiring genuine long-range memory — a word referring back to something stated 50 tokens earlier, or a time series pattern spanning hundreds of steps — vanilla RNNs consistently fail. That failure, and the architectural solution to it, is the subject of the next article.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+class VanillaRNN:
+    def __init__(self, input_size, hidden_size):
+        scale = 0.01
+        self.Wh = sg.Tensor(np.random.randn(hidden_size, hidden_size) * scale,
+                            requires_grad=True)
+        self.Wx = sg.Tensor(np.random.randn(hidden_size, input_size) * scale,
+                            requires_grad=True)
+        self.bh = sg.Tensor(np.zeros(hidden_size), requires_grad=True)
+
+    def forward(self, xs, h=None):
+        if h is None:
+            h = sg.Tensor(np.zeros(self.Wh.shape[0]))
+        hs = []
+        for x in xs:
+            h = (self.Wh @ h + self.Wx @ x + self.bh).tanh()
+            hs.append(h)
+        return hs   # list of hidden states, one per input step
+
+# Forward pass
+D, I = 2, 2
+rnn = VanillaRNN(I, D)
+inputs = [sg.Tensor([1.0, 0.0]), sg.Tensor([0.0, 1.0]), sg.Tensor([0.5, 0.5])]
+hs = rnn.forward(inputs)
+print(hs[-1].data)   # ≈ [0.422, 0.477] with W_h=0.3I, W_x as above
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+# nn.RNN wraps the full sequence loop
+rnn = nn.RNN(
+    input_size=2,
+    hidden_size=4,
+    batch_first=True,   # input shape: (batch, seq_len, input_size)
+    nonlinearity='tanh',
+)
+
+# Input: batch=2, seq_len=5, input_size=2
+x = torch.randn(2, 5, 2)
+h0 = torch.zeros(1, 2, 4)   # (num_layers, batch, hidden_size)
+
+output, hn = rnn(x, h0)
+print(output.shape)  # torch.Size([2, 5, 4]) — h_t at every step
+print(hn.shape)      # torch.Size([1, 2, 4]) — h_T only
+
+# Many-to-one classifier
+fc = nn.Linear(4, 3)
+logits = fc(hn.squeeze(0))   # (batch, 3)
+
+# Many-to-many (e.g., sequence labelling)
+logits_all = fc(output)      # (batch, seq_len, 3)
+
+# ── Gradient clipping — essential for RNN stability ───────────────────────
+optimizer = torch.optim.Adam(list(rnn.parameters()) + list(fc.parameters()), lr=1e-3)
+loss = logits.sum()
+loss.backward()
+torch.nn.utils.clip_grad_norm_(rnn.parameters(), max_norm=1.0)
+optimizer.step()
+```
+
+---
+
+The vanilla RNN is the direct translation of the hidden-state abstraction into differentiable operations. It works, but its reliance on repeated matrix multiplication means that long-range gradients either vanish or explode. Fixing this requires an architecture that can selectively retain, update, and forget information over many steps — the gating mechanisms introduced in the next article.
