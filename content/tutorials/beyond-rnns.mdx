@@ -1,0 +1,107 @@
+---
+title: "The Limits of RNNs"
+description: "Why sequential computation, fixed-size bottlenecks, and recency bias prevent RNNs from scaling further."
+category: "recurrent-networks"
+order: 4
+date: "2026-05-01"
+---
+
+LSTMs and GRUs solved the problem that vanilla RNNs could not: gradients now flow reliably over hundreds of steps, and the forget gate gives the network direct control over what to remember. For many sequence tasks of moderate length — sentiment classification, language modelling with short context, time series prediction — they work well. But three structural properties of all recurrent architectures, regardless of how the gates are designed, impose limits that have proven difficult to overcome.
+
+## Limit 1: Sequential Computation
+
+Every recurrent architecture — vanilla RNN, LSTM, GRU — shares a fundamental constraint: each state $\mathbf{h}_t$ is a function of $\mathbf{h}_{t-1}$. This creates a dependency chain that runs through the entire sequence.
+
+To compute $\mathbf{h}_t$ you need $\mathbf{h}_{t-1}$. To compute $\mathbf{h}_{t-1}$ you need $\mathbf{h}_{t-2}$. This continues back to the beginning. The result is that processing a sequence of length $T$ requires exactly $T$ sequential operations — each one blocking the next. No amount of additional hardware can reduce this below $T$.
+
+**Why this matters in practice.** Modern GPUs contain thousands of processing units designed for massively parallel computation. When all computations are independent of each other, the hardware runs at near-peak efficiency. When computations form a sequential chain, only one core is active at each step while the rest wait. Training an RNN on sequences of length $T = 512$ uses a fraction of the GPU's available parallelism compared to an architecture with no sequential dependencies.
+
+The consequence is concrete: RNN training time scales linearly with sequence length. Doubling $T$ doubles wall-clock training time, and this cannot be offset by better hardware.
+
+<RNNParallelismDiagram />
+
+This limit also affects inference. For tasks like language generation, where the model produces one token at a time, sequential processing is unavoidable — each output token depends on the previous ones. But for encoder tasks — encoding a source sentence before translation, embedding a document for search — there is no reason in principle why all positions must be processed one by one. An architecture that allows all input positions to be processed in parallel would complete the encoding in a single step rather than $T$ steps.
+
+## Limit 2: The Encoding Bottleneck
+
+Sequence-to-sequence tasks — translation, summarization, question answering — typically use an **encoder-decoder** design. The encoder is an RNN that reads the source sequence from left to right and produces a final hidden state $\mathbf{h}_T$. The decoder is a second RNN that receives $\mathbf{h}_T$ as its initial state and generates the output sequence token by token.
+
+The bottleneck is structural: the encoder's entire understanding of the source sequence must pass through a single vector $\mathbf{h}_T \in \mathbb{R}^D$, regardless of how long the source is. A three-word source sentence and a three-hundred-word source sentence are both compressed into the same $D$-dimensional representation before the decoder can begin.
+
+<EncoderBottleneckDiagram />
+
+For short sequences, this compression is manageable: a few hundred numbers can capture the semantics of a handful of words. For long sequences, the compression becomes increasingly lossy. Information from early tokens is overwritten or diluted by the time the encoder reaches the end. When the decoder needs to produce a translation that depends on a detail from the beginning of the source, that detail may no longer be present in $\mathbf{h}_T$.
+
+**Empirical evidence.** Sutskever et al. (2014) and Cho et al. (2014) both documented this phenomenon directly: the BLEU score of LSTM-based translation systems drops sharply as source sentence length increases beyond about 20–30 words. The architecture is correct in structure but imposes an information constraint that degrades on longer inputs.
+
+## Limit 3: Recency Bias
+
+Even with gating, recurrent networks are biased toward recent inputs. Each step modifies the hidden state, and repeated modification naturally emphasizes the most recent tokens over earlier ones. The forget gate can counteract this — but only if the network learns to keep the relevant dimensions open across many steps, which requires the gradient to signal that those dimensions matter long before the relevant output is produced.
+
+In practice, analysis of trained LSTM hidden states shows that the representation of a token at position $t$ is dominated by the few dozen tokens that immediately precede $t$. Tokens from the distant past have measurable but weak influence. This recency bias is not a training failure — it is a structural consequence of the sequential update rule.
+
+The result is that two positions at distance $d$ in a sequence require $d$ intermediate state updates before their representations can interact. The cost of connecting distant positions scales linearly with $d$. For a 512-token sequence, positions 1 and 512 are separated by 511 sequential operations, each introducing a small opportunity for information loss.
+
+## What These Limits Have in Common
+
+All three limits trace to the same root: the hidden state acts simultaneously as a computation unit, a memory, and a communication channel. Every new input must be processed through the same state vector that is also responsible for carrying information forward across the full sequence.
+
+This design conflates two things that are arguably separable:
+
+1. **What to remember** — which information from the past is relevant.
+2. **How to process the current input** — transforming the current token given its context.
+
+An architecture that separates these two concerns — where accessing any part of the past is a direct operation rather than requiring a chain of state updates — would address all three limits simultaneously. It would allow parallel computation (no sequential state), direct access to any past position (no bottleneck), and equal computational cost regardless of the distance between positions.
+
+## In Code
+
+The sequential bottleneck is measurable. Processing a longer sequence takes proportionally longer — the computational cost grows linearly with $T$, and this cannot be parallelized:
+
+```pytorch
+import torch
+import torch.nn as nn
+import time
+
+lstm = nn.LSTM(input_size=64, hidden_size=256, batch_first=True)
+lstm.eval()
+
+# Compare forward-pass time for sequences of different lengths
+configs = [("T=64",  torch.randn(32, 64,  64)),
+           ("T=256", torch.randn(32, 256, 64)),
+           ("T=512", torch.randn(32, 512, 64))]
+
+with torch.no_grad():
+    for name, x in configs:
+        # Warm up
+        for _ in range(5): lstm(x)
+        # Measure
+        t0 = time.perf_counter()
+        for _ in range(50): lstm(x)
+        ms = (time.perf_counter() - t0) / 50 * 1000
+        print(f"{name}:  {ms:.1f} ms")
+
+# T=64:   ~1.2 ms
+# T=256:  ~4.7 ms   (≈4× more work → ≈4× longer)
+# T=512:  ~9.4 ms   (≈8× more work → ≈8× longer)
+# Each doubling of T roughly doubles the time — linear scaling confirmed.
+```
+
+The fixed-size bottleneck is also visible directly: regardless of how many tokens the encoder reads, its output is always the same size.
+
+```pytorch
+lstm_enc = nn.LSTM(input_size=64, hidden_size=256, batch_first=True)
+
+for T in [5, 50, 500]:
+    x = torch.randn(1, T, 64)
+    _, (h_T, _) = lstm_enc(x)
+    print(f"T={T:4d}: h_T.shape = {tuple(h_T.shape)}")
+
+# T=   5: h_T.shape = (1, 1, 256)
+# T=  50: h_T.shape = (1, 1, 256)
+# T= 500: h_T.shape = (1, 1, 256)
+# The same 256 numbers must carry the content of 5 words and 500 words alike.
+```
+
+---
+
+The three limits — sequential computation, the encoding bottleneck, and recency bias — are not flaws that better training can fix. They are structural properties of the recurrent design. Addressing them requires a different fundamental approach: one in which every position can attend directly to every other position without passing through a chain of intermediate states, and where all positions can be processed in parallel. The next section builds toward that design, starting from the most basic question: how to turn raw text into the numerical representations that any model needs to process it.

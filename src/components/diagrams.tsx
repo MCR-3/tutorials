@@ -1926,6 +1926,194 @@ export function LSTMDiagram() {
   );
 }
 
+export function RNNParallelismDiagram() {
+  const svgW = 380, svgH = 220;
+  const bw = 58, bh = 30;
+  const xs = [28, 108, 188, 268] as const; // box left edges
+
+  function hArrow(x1: number, x2: number, y: number, color: string) {
+    const as = 6, dx = x2 - x1;
+    const ux = dx / Math.abs(dx);
+    const tip = x2, base = x2 - ux * as;
+    return (
+      <>
+        <line x1={x1} y1={y} x2={x2 - ux * as} y2={y} stroke={color} strokeWidth={1.5} />
+        <polygon points={`${tip},${y} ${base},${y - 3} ${base},${y + 3}`} fill={color} />
+      </>
+    );
+  }
+
+  function inputArrow(cx: number, fromY: number, toY: number) {
+    const as = 5;
+    return (
+      <>
+        <line x1={cx} y1={fromY} x2={cx} y2={toY + as} stroke="var(--muted)" strokeWidth={1} />
+        <polygon points={`${cx},${toY} ${cx - 2.5},${toY + as} ${cx + 2.5},${toY + as}`} fill="var(--muted)" />
+      </>
+    );
+  }
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Section labels */}
+        <text x={8} y={22} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">RNN (sequential)</text>
+        <text x={8} y={116} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">parallel</text>
+        <text x={335} y={55} fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)">T steps</text>
+        <text x={335} y={149} fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)">1 step</text>
+
+        {/* Divider */}
+        <line x1={0} y1={98} x2={svgW} y2={98} stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+
+        {/* RNN row: boxes with horizontal dependency arrows */}
+        {xs.map((x, i) => (
+          <g key={`rnn-${i}`}>
+            <rect x={x} y={28} width={bw} height={bh} rx={3}
+              fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} />
+            <text x={x + bw / 2} y={47} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+              {["t₁", "t₂", "t₃", "t₄"][i]}
+            </text>
+            {/* Input arrow from below */}
+            {inputArrow(x + bw / 2, 80, 58)}
+          </g>
+        ))}
+        {/* Horizontal dependency arrows between RNN boxes */}
+        {xs.slice(0, -1).map((x, i) =>
+          <g key={`arr-${i}`}>{hArrow(x + bw, xs[i + 1], 43, "var(--color-orange)")}</g>
+        )}
+        {/* x_t labels */}
+        {xs.map((x, i) => (
+          <text key={`xl-${i}`} x={x + bw / 2} y={90} textAnchor="middle"
+            fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+          >{["x₁", "x₂", "x₃", "x₄"][i]}</text>
+        ))}
+
+        {/* Parallel row: same boxes, NO arrows between them */}
+        {xs.map((x, i) => (
+          <g key={`par-${i}`}>
+            <rect x={x} y={122} width={bw} height={bh} rx={3}
+              fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
+            <text x={x + bw / 2} y={141} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">
+              {["p₁", "p₂", "p₃", "p₄"][i]}
+            </text>
+            {inputArrow(x + bw / 2, 172, 152)}
+          </g>
+        ))}
+        {xs.map((x, i) => (
+          <text key={`xpl-${i}`} x={x + bw / 2} y={182} textAnchor="middle"
+            fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+          >{["x₁", "x₂", "x₃", "x₄"][i]}</text>
+        ))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 16} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >RNN: each state depends on the previous</text>
+        <text x={svgW / 2} y={svgH - 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >T sequential steps are required</text>
+      </svg>
+    </div>
+  );
+}
+
+export function EncoderBottleneckDiagram() {
+  const svgW = 500, svgH = 140;
+  const r = 12;   // encoder/decoder node radius
+  const rB = 22;  // bottleneck radius
+  const ys = [24, 44, 60, 76, 92] as const; // node y positions (5 nodes)
+  const xEnc = 50, xBot = svgW / 2, xDec = svgW - 50;
+  const midY = 58; // vertical center
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3).toFixed(1)},${(by + ux * 3).toFixed(1)} ${(bx + uy * 3).toFixed(1)},${(by - ux * 3).toFixed(1)}`;
+  }
+
+  function lineToCircle(fx: number, fy: number, cx: number, cy: number, targetR: number) {
+    const dx = cx - fx, dy = cy - fy, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const ex = fx + ux * r, ey = fy + uy * r;   // exit from src circle
+    const tx = cx - ux * targetR, ty = cy - uy * targetR; // entry to target circle
+    return { ex, ey, tx, ty, pts: ap(ex, ey, tx, ty) };
+  }
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Section labels */}
+        <text x={xEnc} y={7} textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">source  (T words)</text>
+        <text x={xDec} y={7} textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">output  (T′ words)</text>
+
+        {/* Lines from encoder nodes to bottleneck */}
+        {ys.map((y) => {
+          const { ex, ey, tx, ty, pts } = lineToCircle(xEnc, y, xBot, midY, rB);
+          return (
+            <g key={`enc-${y}`}>
+              <line x1={ex} y1={ey} x2={tx} y2={ty} stroke="var(--border-strong)" strokeWidth={0.9} />
+              <polygon points={pts} fill="var(--border-strong)" />
+            </g>
+          );
+        })}
+
+        {/* Lines from bottleneck to decoder nodes */}
+        {ys.map((y) => {
+          const { ex, ey, tx, ty, pts } = lineToCircle(xBot, midY, xDec, y, r);
+          return (
+            <g key={`dec-${y}`}>
+              <line x1={ex} y1={ey} x2={tx} y2={ty} stroke="var(--border-strong)" strokeWidth={0.9} />
+              <polygon points={pts} fill="var(--border-strong)" />
+            </g>
+          );
+        })}
+
+        {/* Encoder node circles */}
+        {ys.map((y, i) => (
+          <g key={`ec-${i}`}>
+            <circle cx={xEnc} cy={y} r={r}
+              fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
+            <text x={xEnc} y={y + 4} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)"
+            >{i === 0 ? "h₁" : i === ys.length - 1 ? "h_T" : "·"}</text>
+          </g>
+        ))}
+
+        {/* Bottleneck circle */}
+        <circle cx={xBot} cy={midY} r={rB}
+          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={2.5} />
+        <text x={xBot} y={midY + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">h_T</text>
+        <text x={xBot} y={midY + rB + 13} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-orange)">D numbers</text>
+
+        {/* Decoder node circles */}
+        {ys.map((y, i) => (
+          <g key={`dc-${i}`}>
+            <circle cx={xDec} cy={y} r={r}
+              fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
+            <text x={xDec} y={y + 4} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-green)"
+            >{i === 0 ? "y₁" : i === ys.length - 1 ? "y_T′" : "·"}</text>
+          </g>
+        ))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >T source words compressed into D numbers before any output is generated</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
