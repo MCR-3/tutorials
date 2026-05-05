@@ -1485,6 +1485,190 @@ export function DigitClassifierDiagram() {
   );
 }
 
+export function SequenceMemoryDiagram() {
+  const svgW = 440, svgH = 200;
+  const stepY = 65, bw = 52, bh = 30;
+  const steps = [88, 210, 332] as const;
+
+  function arrowPts(x1: number, y1: number, x2: number, y2: number): string {
+    const as = 7, dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
+  }
+
+  const hSegments: [number, number, number, number][] = [
+    [18, stepY, steps[0] - bw / 2, stepY],
+    [steps[0] + bw / 2, stepY, steps[1] - bw / 2, stepY],
+    [steps[1] + bw / 2, stepY, steps[2] - bw / 2, stepY],
+    [steps[2] + bw / 2, stepY, 415, stepY],
+  ];
+
+  const hLabels = [
+    { x: 10, label: "h₀" },
+    { x: (steps[0] + bw / 2 + steps[1] - bw / 2) / 2, label: "h₁" },
+    { x: (steps[1] + bw / 2 + steps[2] - bw / 2) / 2, label: "h₂" },
+    { x: steps[2] + bw / 2 + 20, label: "h₃" },
+  ];
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* h-state arrows — green, horizontal */}
+        {hSegments.map(([x1, y1, x2, y2], i) => {
+          const isDashed = i === hSegments.length - 1;
+          return (
+            <g key={`h-seg-${i}`}>
+              <line x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="var(--color-green)" strokeWidth={1.5}
+                strokeDasharray={isDashed ? "4 3" : "none"} />
+              {!isDashed && (
+                <polygon points={arrowPts(x1, y1, x2, y2)} fill="var(--color-green)" />
+              )}
+            </g>
+          );
+        })}
+
+        {/* h labels above the arrows */}
+        {hLabels.map(({ x, label }) => (
+          <text key={label} x={x} y={52} textAnchor="middle"
+            fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)"
+          >{label}</text>
+        ))}
+
+        {/* Continuation dots */}
+        <text x={425} y={stepY + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={15} fill="var(--muted)">…</text>
+
+        {/* x input arrows — orange, vertical from below */}
+        {steps.map((sx, i) => (
+          <g key={`x-${i}`}>
+            <line x1={sx} y1={125} x2={sx} y2={stepY + bh / 2 + 2}
+              stroke="var(--color-orange)" strokeWidth={1.5} />
+            <polygon points={arrowPts(sx, 125, sx, stepY + bh / 2)} fill="var(--color-orange)" />
+            <text x={sx} y={141} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)"
+            >{["x₁", "x₂", "x₃"][i]}</text>
+          </g>
+        ))}
+
+        {/* Step boxes — blue dashed border, labeled "f" */}
+        {steps.map((sx, i) => (
+          <g key={`box-${i}`}>
+            <rect
+              x={sx - bw / 2} y={stepY - bh / 2}
+              width={bw} height={bh}
+              fill="var(--white)"
+              stroke="var(--color-blue)" strokeWidth={1.5}
+              strokeDasharray="4 2" rx={4}
+            />
+            <text x={sx} y={stepY + 5} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-blue)"
+            >f</text>
+          </g>
+        ))}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >h (green): hidden state carried forward</text>
+        <text x={svgW / 2} y={svgH - 15} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >x (orange): input</text>
+        <text x={svgW / 2} y={svgH - 30} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >f: update function</text>
+      </svg>
+    </div>
+  );
+}
+
+export function SequenceTasksDiagram() {
+  const svgW = 440, svgH = 142;
+  const cw = 16, ch = 13, hgap = 5;
+  const rowYin = 28, rowYout = 74;
+  const step = cw + hgap; // 21
+
+  const panels = [
+    { cx: 73, inAct: [1, 1, 1, 1], outAct: [0, 0, 0, 1], label: "many → one", sub: "classification" },
+    { cx: 220, inAct: [1, 1, 1, 1], outAct: [1, 1, 1, 1], label: "many → many", sub: "language model" },
+    { cx: 367, inAct: [1, 0, 0, 0], outAct: [1, 1, 1, 1], label: "one → many", sub: "generation" },
+  ] as const;
+
+  return (
+    <div className="my-8">
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
+        {/* Panel dividers */}
+        <line x1={147} y1={10} x2={147} y2={118}
+          stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+        <line x1={294} y1={10} x2={294} y2={118}
+          stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+
+        {/* Row labels */}
+        <text x={5} y={rowYin + ch / 2 + 4}
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">in</text>
+        <text x={5} y={rowYout + ch / 2 + 4}
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">out</text>
+
+        {panels.map(({ cx, inAct, outAct, label, sub }) => {
+          const x0 = cx - (4 * cw + 3 * hgap) / 2;
+          return (
+            <g key={cx}>
+              {/* Input cells */}
+              {inAct.map((active, i) => (
+                <rect key={`in-${i}`}
+                  x={x0 + i * step} y={rowYin}
+                  width={cw} height={ch}
+                  fill="var(--color-blue)" fillOpacity={active ? 0.15 : 0}
+                  stroke={active ? "var(--color-blue)" : "var(--border)"}
+                  strokeWidth={active ? 1.5 : 0.7} rx={2}
+                />
+              ))}
+              {/* Output cells */}
+              {outAct.map((active, i) => (
+                <rect key={`out-${i}`}
+                  x={x0 + i * step} y={rowYout}
+                  width={cw} height={ch}
+                  fill="var(--color-green)" fillOpacity={active ? 0.15 : 0}
+                  stroke={active ? "var(--color-green)" : "var(--border)"}
+                  strokeWidth={active ? 1.5 : 0.7} rx={2}
+                />
+              ))}
+              {/* Vertical connectors where both input and output are active */}
+              {inAct.map((inA, i) => {
+                if (!inA || !outAct[i]) return null;
+                const xc = x0 + i * step + cw / 2;
+                return (
+                  <line key={`conn-${i}`}
+                    x1={xc} y1={rowYin + ch + 2}
+                    x2={xc} y2={rowYout - 3}
+                    stroke="var(--muted)" strokeWidth={1} />
+                );
+              })}
+              {/* Labels */}
+              <text x={cx} y={106} textAnchor="middle"
+                fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
+              >{label}</text>
+              <text x={cx} y={120} textAnchor="middle"
+                fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+              >{sub}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];

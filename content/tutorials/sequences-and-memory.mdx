@@ -1,0 +1,118 @@
+---
+title: "Sequences & Memory"
+description: "Why order and context matter in sequences, and what a model needs to process them."
+category: "recurrent-networks"
+order: 1
+date: "2026-05-01"
+---
+
+The Convolutional Networks section built image classifiers by exploiting a key property of images: local spatial patterns repeat across positions, and translation equivariance is a useful inductive bias. A different kind of structure characterizes text, audio, time series, and genomic data. In these domains the order of elements carries meaning, and the interpretation of any single element may depend on what came many steps before it. This requires a different class of architecture — one that processes elements in sequence and maintains a form of memory across steps.
+
+## Sequential Data Is Everywhere
+
+A **sequence** is an ordered collection of elements where position matters. Typical examples:
+
+- **Text.** "The trophy did not fit in the suitcase because it was too big." The pronoun "it" refers to the trophy, but only because the reader remembers the comparison that appeared earlier in the sentence. Shuffle the words and the sentence loses all meaning.
+- **Speech.** An audio signal is a waveform sampled at 16,000–44,100 Hz. A single sample means nothing; meaning emerges from patterns over hundreds or thousands of consecutive samples.
+- **Time series.** A patient's blood pressure measured every hour. Predicting whether a value is abnormal requires context from preceding readings — not just the current one.
+- **DNA.** A strand of nucleotides encodes proteins through specific codon sequences. The same nucleotide at different positions in a codon produces entirely different amino acids.
+
+In all these cases the data has a natural one-dimensional ordering — a timeline or a reading direction — and the semantics of each element depend on its context.
+
+## Why Existing Architectures Fall Short
+
+**Fully connected layers** have no notion of position or order. An MLP receives a fixed-length input vector and applies a learned linear transformation to every element simultaneously. Two problems arise:
+
+1. **Fixed input size.** Sentences have variable length. A word embedding model that concatenates word vectors into a flat vector would need a different model for sentences of different lengths, or would require padding to a maximum length and masking — an inefficient workaround.
+2. **No positional awareness.** Permuting the input dimensions of an MLP produces a different output, but the model assigns no semantic meaning to that permutation. "The cat chased the dog" and "The dog chased the cat" would be processed identically unless positions are explicitly encoded somehow.
+
+**Convolutional layers** address some of these issues by processing local windows and sharing weights across positions, but they too struggle with sequential data:
+
+1. **Limited receptive field.** A 3×3 temporal convolution sees only 3 consecutive timesteps. After $k$ convolutional layers the receptive field spans $2k + 1$ positions. For a sentence of 50 words, 24 layers are needed to connect the first and last word — deep, expensive, and prone to the vanishing gradient problem.
+2. **Wrong inductive bias.** Translation equivariance is the right prior for images: an edge looks the same wherever it appears. In language, the same word can play entirely different roles depending on its position and neighbours. The word "not" completely reverses the sentiment of whatever follows it; a CNN that treats "not terrible" and "not great" symmetrically would miss that distinction.
+
+## What a Sequential Model Needs
+
+An architecture suited to sequences must satisfy four requirements:
+
+1. **Variable-length input.** The model should accept sequences of any length without requiring architectural changes or padding.
+2. **Ordered processing.** Position 1 must be distinguishable from position 10, and the model must process them in order rather than all at once.
+3. **Long-range dependencies.** Information from the beginning of a sequence must remain accessible much later, even after many intermediate elements have been processed.
+4. **Parameter sharing across time.** The same learned transformation should apply at every position, just as a convolutional filter applies the same weights at every spatial location. This keeps the parameter count constant regardless of sequence length.
+
+## The Hidden State Abstraction
+
+These requirements are satisfied by a single conceptual device: a **hidden state** $\mathbf{h}_t$, a fixed-size vector that summarizes all information seen up to position $t$. At each step, the hidden state is updated using the current input and the previous state:
+
+$$
+\mathbf{h}_t = f(\mathbf{h}_{t-1},\, \mathbf{x}_t)
+$$
+
+where $f$ is a learned function applied identically at every step. The initial state $\mathbf{h}_0$ is typically a zero vector. After processing the full sequence, $\mathbf{h}_T$ contains a compressed representation of the entire input.
+
+<SequenceMemoryDiagram />
+
+The hidden state is the model's working memory. At step $t = 3$, $\mathbf{h}_3$ carries information from $\mathbf{x}_1$, $\mathbf{x}_2$, and $\mathbf{x}_3$ — all compressed into a $D$-dimensional vector. Every subsequent step builds on this accumulated context. The same function $f$ is applied at every position, so the parameter count does not grow with sequence length.
+
+## The Challenge: Finite Memory Under Pressure
+
+The hidden state has a fixed dimension $D$. It must compress the entire history of a sequence — potentially hundreds or thousands of elements — into $D$ numbers at every step. This creates an information bottleneck.
+
+Early in a sequence the compression is modest: $\mathbf{h}_3$ encodes only three inputs. By step $t = 100$ the same vector must summarize a hundred inputs while still leaving room for new information arriving at each step. Information from early positions must either be retained in the state — taking up capacity that could be used for more recent context — or discarded, making it inaccessible to later steps.
+
+This tension between retention and capacity is the central challenge of sequence modelling. How the update function $f$ decides what to keep, what to update, and what to discard determines how well the model handles long sequences.
+
+## Long-Range Dependencies and the Vanishing Gradient
+
+Learning to retain information over many steps is not only an architectural challenge — it is an optimization challenge. Training a sequential model requires propagating gradients backward through the state updates: **backpropagation through time** (BPTT). The gradient of the loss at step $T$ with respect to the state at step $t$ passes through $T - t$ applications of the update function.
+
+Recall from the Activation Functions article that sigmoid and tanh saturate for large activations, producing local gradients near zero. If the update function $f$ involves these activations, the gradient is multiplied by a near-zero factor at each step as it travels backward. Over $T - t = 50$ steps, $0.25^{50} \approx 10^{-30}$: the gradient has vanished completely.
+
+This is why vanilla implementations of the state-update idea — which will be the subject of the next article — struggle to learn dependencies spanning more than about twenty steps. The architecture is correct conceptually, but the training signal cannot reliably reach back far enough in time.
+
+## Types of Sequence Tasks
+
+Different applications require different input-output patterns. Three configurations cover the majority of sequence-to-sequence tasks:
+
+<SequenceTasksDiagram />
+
+**Many-to-one.** The model reads a full input sequence and produces a single output. The final hidden state $\mathbf{h}_T$ is passed to a linear classifier. Examples: sentiment classification (read a review, output positive/negative), spam detection, document categorization.
+
+**Many-to-many.** The model produces one output at every input step, or reads a full sequence then generates a new one. Examples: part-of-speech tagging (label each word), language modelling (predict the next word at each position).
+
+**One-to-many.** The model receives a single input and generates a sequence. The input initializes the hidden state, and the model then produces outputs auto-regressively — each output feeds back as the next input. Examples: generating a caption from an image embedding, producing a melody from a genre label.
+
+## In Code
+
+The abstract state-update loop, independent of any specific architecture:
+
+```python
+def process_sequence(f, h0, inputs):
+    """
+    f:      state update function  h(t-1), x(t) → h(t)
+    h0:     initial hidden state (zeros)
+    inputs: list of input vectors x_1 ... x_T
+    """
+    h = h0
+    all_states = []
+
+    for x in inputs:
+        h = f(h, x)          # apply the same function at every step
+        all_states.append(h) # every h can serve as an output
+
+    return all_states
+
+# Many-to-one: use only the final state
+final_state = process_sequence(f, h0, inputs)[-1]
+output = linear_classifier(final_state)
+
+# Many-to-many: use all states
+all_states = process_sequence(f, h0, inputs)
+outputs = [linear_classifier(h) for h in all_states]
+```
+
+The next article defines what $f$ actually looks like in the simplest possible form: a linear transformation of the concatenated input and previous state, followed by a non-linearity.
+
+---
+
+The hidden-state abstraction captures the essence of sequential processing: a compact memory that is read and written at every step, carrying context forward through time. The question is how to implement the update function $f$ so that it trains efficiently, retains useful information over long distances, and avoids the vanishing gradient. That is the subject of the next article.
