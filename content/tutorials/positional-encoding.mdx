@@ -1,0 +1,171 @@
+---
+title: "Positional Encoding"
+description: "Injecting order into an architecture that is otherwise blind to the position of each token."
+category: "transformers"
+order: 2
+date: "2026-05-01"
+---
+
+The previous article showed that the embedding operation maps each token ID to a dense vector. The same token always produces the same vector, regardless of where it appears in the sequence. This is exactly the problem the Tokenization article warned about: the embeddings carry no positional information.
+
+This matters because an architecture that cannot distinguish positions cannot distinguish meanings that depend on order. "The cat chased the dog" and "The dog chased the cat" would produce identical sets of embedding vectors, only in different order — and if the model has no way to see that order, it cannot distinguish the two sentences.
+
+**Positional encoding** adds a position-specific signal to each token's embedding before the sequence enters the model.
+
+## The Permutation Problem
+
+Consider the token sequence $[t_1, t_2, t_3]$ after embedding: $[\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3]$. A model that processes this sequence using only these vectors cannot tell, for example, whether $\mathbf{e}_2$ appeared in the middle or at the beginning. If the model applies the same computation to each position without any positional signal, then swapping two tokens changes only which vectors are present — not how any single vector is processed.
+
+This means the model cannot answer questions that depend on word order: who is the subject of a verb, which adjective modifies which noun, whether a negation appears before or after what it negates. Order is not optional information in language — it is fundamental.
+
+## What a Positional Encoding Needs
+
+A suitable positional encoding should satisfy several properties:
+
+1. **Uniqueness.** Each position $t$ must have a distinct representation, so the model can tell any two positions apart.
+2. **Bounded values.** The positional vectors should not dominate the token embeddings. Values in $[-1, 1]$ pair naturally with random-initialised embeddings.
+3. **Consistent across lengths.** Position $5$ should mean "fifth from the start" whether the sequence has $10$ or $1{,}000$ tokens — not "near the start" in a short sequence nor "near the middle" in a long one.
+4. **Generalisability.** Ideally, the model can handle sequences longer at inference time than at training time.
+
+## Sinusoidal Positional Encoding
+
+The original Transformer (Vaswani et al., 2017) proposed a fixed, parameter-free encoding using sinusoidal functions at exponentially spaced frequencies. For position $\text{pos} \in \{0, 1, \ldots, T-1\}$ and dimension index $i \in \{0, 1, \ldots, D/2-1\}$:
+
+$$
+\text{PE}(\text{pos},\, 2i) = \sin\!\left(\frac{\text{pos}}{10000^{2i/D}}\right)
+$$
+$$
+\text{PE}(\text{pos},\, 2i+1) = \cos\!\left(\frac{\text{pos}}{10000^{2i/D}}\right)
+$$
+
+Each pair of dimensions $(2i,\, 2i+1)$ forms a sinusoidal oscillation at a particular frequency. The frequencies span a range of $10{,}000$:
+
+- **Low-index dimensions** ($i = 0$): frequency $= 1$, period $= 2\pi \approx 6.3$ positions. These oscillate rapidly and distinguish neighbouring positions.
+- **High-index dimensions** ($i = D/2 - 1$): frequency $= 1/10{,}000$, period $\approx 62{,}832$ positions. These oscillate so slowly they are nearly constant over typical sequence lengths, providing coarse position information.
+
+**The clock analogy.** Think of multiple clocks running at exponentially different speeds. A fast clock distinguishes individual seconds; a slow clock distinguishes hours. Together they give a unique reading for any moment within a wide range. The sinusoidal encoding uses $D/2$ clocks — one per frequency — and their combined readings uniquely identify each position.
+
+This is a continuous, differentiable analogue of binary counting. In binary, the rightmost bit alternates $0, 1, 0, 1, \ldots$ (highest frequency), and each bit to the left halves that frequency. Sinusoidal PE does the same, but smoothly.
+
+<PositionalEncodingDiagram />
+
+For a small model with $D = 8$, dimension 0 cycles through three full oscillations over 20 positions; dimension 2 completes roughly one half-wave; dimension 4 barely moves. Combined, the $D$ sinusoids give each position a fingerprint that no other position shares.
+
+## The Relative Position Property
+
+A useful algebraic property of sinusoidal encodings: $\text{PE}(\text{pos} + k)$ can be written as a linear function of $\text{PE}(\text{pos})$, for any fixed offset $k$. This means the model can, in principle, learn a linear transformation that shifts a position encoding by $k$ steps. A well-trained model may therefore learn to recognise relative positions — "three tokens earlier" — even without explicit relative-position machinery.
+
+## Applying Positional Encoding
+
+The positional encoding is added element-wise to the token embedding before the first layer of the model. For position $t$ with token ID $\text{id}_t$:
+
+$$
+\mathbf{x}_t = \mathbf{E}[\text{id}_t] + \text{PE}(t)
+$$
+
+Both vectors have dimension $D$, so the addition is straightforward. The token embedding carries what the token is; the positional encoding carries where it is. Their sum carries both.
+
+<PEAdditionDiagram />
+
+The sinusoidal encoding has no trainable parameters. The values are computed once and fixed for all sequences. Gradients flow through the addition during backpropagation and update the token embedding $\mathbf{E}[\text{id}_t]$, but the positional encoding itself does not change.
+
+## Learned Positional Embeddings
+
+An alternative is to treat positions as a second vocabulary: maintain a table $\mathbf{P} \in \mathbb{R}^{T_{\max} \times D}$ where row $t$ is the learned positional vector for position $t$. The combined input is then:
+
+$$
+\mathbf{x}_t = \mathbf{E}[\text{id}_t] + \mathbf{P}[t]
+$$
+
+This is exactly what BERT and GPT-2 use. The table $\mathbf{P}$ is initialised randomly and trained jointly with the rest of the model.
+
+**Trade-offs.**
+
+| Property | Sinusoidal (fixed) | Learned |
+|----------|-------------------|---------|
+| Parameters | None | $T_{\max} \times D$ |
+| Generalises beyond $T_{\max}$ | Yes (decays gracefully) | No |
+| Fits training distribution | Fixed | Perfectly |
+| Interpretability | Analytic formula | Opaque |
+
+Learned positional embeddings often perform comparably or better within the training sequence length, because they can adapt to patterns in the training data. Beyond that length, they may fail unpredictably. Sinusoidal encodings degrade more smoothly outside the training range.
+
+In practice, the difference between the two is usually small for tasks where sequences rarely exceed the training length. GPT-2 uses learned embeddings with $T_{\max} = 1{,}024$; the original Transformer paper used sinusoidal encodings.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+def sinusoidal_pe(T: int, D: int) -> sg.Tensor:
+    PE = np.zeros((T, D))
+    for pos in range(T):
+        for i in range(D // 2):
+            freq = 10000 ** (2 * i / D)
+            PE[pos, 2*i]   = np.sin(pos / freq)
+            PE[pos, 2*i+1] = np.cos(pos / freq)
+    return sg.Tensor(PE)   # shape (T, D) — no requires_grad: not trainable
+
+# Combine with token embeddings
+T, D = 6, 8
+token_ids = [4285, 641, 389, 1049, 0, 0]
+E   = sg.Tensor(np.random.randn(10000, D) * 0.02, requires_grad=True)
+PE  = sinusoidal_pe(T, D)   # fixed, no gradient
+
+tok_emb = sg.Tensor(np.array([E.data[i] for i in token_ids]))  # (T, D)
+x = tok_emb + PE                                                 # (T, D)
+
+print(PE.data[0])   # [0., 1., 0., 1., 0., 1., 0., 1.]     — position 0
+print(PE.data[1])   # [0.841, 0.540, 0.177, 0.984, ...]    — position 1
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+import math
+
+class SinusoidalPositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, max_len: int = 5000):
+        super().__init__()
+        PE = torch.zeros(max_len, d_model)
+        position = torch.arange(max_len).unsqueeze(1)          # (max_len, 1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
+        )                                                        # (d_model/2,)
+        PE[:, 0::2] = torch.sin(position * div_term)           # even dims
+        PE[:, 1::2] = torch.cos(position * div_term)           # odd dims
+        self.register_buffer("PE", PE)                          # not a parameter
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (batch, seq_len, d_model)
+        return x + self.PE[:x.size(1)]   # broadcast over batch dimension
+
+# Sinusoidal encoding (no trainable parameters)
+embedding  = nn.Embedding(num_embeddings=50257, embedding_dim=64)
+pos_encode = SinusoidalPositionalEncoding(d_model=64)
+
+token_ids = torch.tensor([[4285, 641, 389, 1049]])   # (1, 4)
+x = pos_encode(embedding(token_ids))                  # (1, 4, 64)
+print(x.shape)   # torch.Size([1, 4, 64])
+
+# Learned positional embeddings (GPT-2 style)
+token_emb   = nn.Embedding(num_embeddings=50257, embedding_dim=64)
+pos_emb     = nn.Embedding(num_embeddings=1024,  embedding_dim=64)
+
+token_ids = torch.tensor([[4285, 641, 389, 1049]])
+positions = torch.arange(4).unsqueeze(0)              # [[0, 1, 2, 3]]
+
+x = token_emb(token_ids) + pos_emb(positions)         # (1, 4, 64)
+
+# Verify: same token at different positions gets different final vector
+print(token_emb(torch.tensor([[389, 389]])).shape)     # (1, 2, 64)
+same_tok = token_emb(torch.tensor([[389, 389]]))
+print(torch.allclose(same_tok[:, 0], same_tok[:, 1])) # True — same embedding
+combined = same_tok + pos_emb(torch.arange(2).unsqueeze(0))
+print(torch.allclose(combined[:, 0], combined[:, 1])) # False — different after PE
+```
+
+---
+
+Each token in the sequence now carries two kinds of information: what it is, from the embedding table, and where it is, from the positional encoding. With this position-aware input in place, the next question is how the model should combine information across positions. A token at position $5$ might be most relevant to the token at position $12$, barely relevant to position $2$, and irrelevant to position $1$. The mechanism that learns these relevance scores is the attention mechanism.

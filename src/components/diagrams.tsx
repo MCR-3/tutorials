@@ -2291,6 +2291,87 @@ export function EmbeddingLookupDiagram() {
   );
 }
 
+export function PositionalEncodingDiagram() {
+  // PE(pos, 2i) = sin(pos / 10000^(2i/D)) for D=8
+  const D = 8;
+  const pe = (pos: number, i: number) => Math.sin(pos / Math.pow(10000, (2 * i) / D));
+
+  return (
+    <div className="my-8">
+      <Mafs
+        viewBox={{ x: [-0.5, 22], y: [-1.38, 1.65], padding: 0 }}
+        height={220}
+        pan={false}
+        zoom={false}
+      >
+        <Coordinates.Cartesian xAxis={{ lines: 5 }} yAxis={{ lines: 0.5 }} />
+        {/* dim 0 (i=0): fast oscillation — period ≈ 2π */}
+        <Plot.Parametric xy={(t) => [t, pe(t, 0)]} domain={[0, 20]}
+          color="var(--color-blue)" weight={2} />
+        {/* dim 2 (i=1): medium — period ≈ 35 */}
+        <Plot.Parametric xy={(t) => [t, pe(t, 1)]} domain={[0, 20]}
+          color="var(--color-orange)" weight={2} />
+        {/* dim 4 (i=2): slow — period ≈ 628 */}
+        <Plot.Parametric xy={(t) => [t, pe(t, 2)]} domain={[0, 20]}
+          color="var(--color-green)" weight={2} />
+        {/* Labels */}
+        <MafsText x={19.5} y={pe(19.5, 0) + 0.2} size={12} color="var(--color-blue)">dim 0</MafsText>
+        <MafsText x={18.0} y={pe(18.0, 1) - 0.22} size={12} color="var(--color-orange)">dim 2</MafsText>
+        <MafsText x={17.0} y={pe(17.0, 2) + 0.22} size={12} color="var(--color-green)">dim 4</MafsText>
+        <MafsText x={21.5} y={-0.15} size={11} color="var(--color-white)">pos</MafsText>
+      </Mafs>
+    </div>
+  );
+}
+
+export function PEAdditionDiagram() {
+  const svgW = 385, svgH = 105;
+  const bh = 40, by = 30;
+
+  const boxes = [
+    { x: 1, w: 100, top: "token embedding", bot: "E[token_id]", color: "var(--color-blue)" },
+    { x: 153, w: 100, top: "positional enc.", bot: "PE(pos)", color: "var(--color-green)" },
+    { x: 278, w: 100, top: "input vector", bot: "x_t", color: "var(--color-orange)" },
+  ] as const;
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Boxes */}
+        {boxes.map(({ x, w, top, bot, color }) => (
+          <g key={x}>
+            <rect x={x} y={by} width={w} height={bh} rx={3}
+              fill={color} fillOpacity={0.09}
+              stroke={color} strokeWidth={1.5} />
+            <text x={x + w / 2} y={by + 14} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={10} fill={color}>{top}</text>
+            <text x={x + w / 2} y={by + 29} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={13} fill={color}>{bot}</text>
+          </g>
+        ))}
+
+        {/* "+" operator */}
+        <text x={127} y={by + bh / 2 + 6} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={18} fill="var(--muted)">+</text>
+
+        {/* "=" operator */}
+        <text x={265} y={by + bh / 2 + 6} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={18} fill="var(--muted)">=</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 18} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >added element-wise</text>
+        <text x={svgW / 2} y={svgH - 6} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >both vectors have the same dimension D</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
