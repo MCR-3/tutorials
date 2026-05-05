@@ -3100,3 +3100,105 @@ export function ChainRuleDiagram() {
     </div>
   );
 }
+
+export function GPT2Diagram() {
+  const svgW = 350, svgH = 340;
+  const cx = svgW / 2;
+  const bw = 200, bh = 28;
+  const bLeft = cx - bw / 2;
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const ex = x2 - ux * as, ey = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(ex - uy * 3).toFixed(1)},${(ey + ux * 3).toFixed(1)} ${(ex + uy * 3).toFixed(1)},${(ey - ux * 3).toFixed(1)}`;
+  }
+
+  function vArrow(y1: number, y2: number) {
+    return (
+      <>
+        <line x1={cx} y1={y1} x2={cx} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon points={ap(cx, y1, cx, y2)} fill="var(--border-strong)" />
+      </>
+    );
+  }
+
+  // Y layout
+  // idx box:    y=8,   h=28, bottom=36
+  // emb box:    y=52,  h=36, bottom=88
+  // dashed N:   y=104, h=82, bottom=186  (block box inside at y=118, h=52)
+  // lnf box:    y=202, h=28, bottom=230
+  // head box:   y=246, h=36, bottom=282
+  // logits txt: baseline y=312
+  // caption:    y=335
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Token IDs */}
+        <rect x={bLeft} y={8} width={bw} height={bh} rx={3}
+          fill="var(--muted)" fillOpacity={0.07} stroke="var(--muted)" strokeWidth={1.5} />
+        <text x={cx} y={8 + bh / 2 + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"idx  [t₁, t₂, …, t_T]"}</text>
+
+        {vArrow(36, 52)}
+
+        {/* Input Embedding */}
+        <rect x={bLeft} y={52} width={bw} height={36} rx={3}
+          fill="var(--color-blue)" fillOpacity={0.07} stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={cx} y={52 + 13} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)" fontWeight={600}>Input Embedding</text>
+        <text x={cx} y={52 + 26} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-blue)">{"E[t] + P[pos]  →  x ∈ ℝ^(T×D)"}</text>
+
+        {/* Arrow from emb bottom (88) into block box top (118), crossing dashed boundary */}
+        {vArrow(88, 118)}
+
+        {/* N blocks dashed boundary */}
+        <rect x={bLeft - 6} y={104} width={bw + 12} height={82} rx={4}
+          fill="none" stroke="var(--border)" strokeWidth={1} strokeDasharray="5 3" />
+        <text x={bLeft - 2} y={116}
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--muted)">× N</text>
+
+        {/* Transformer Block box (inside dashed region) */}
+        <rect x={bLeft + 10} y={118} width={bw - 20} height={52} rx={3}
+          fill="var(--color-green)" fillOpacity={0.08} stroke="var(--color-green)" strokeWidth={1.5} />
+        <text x={cx} y={118 + 20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)" fontWeight={600}>Transformer Block</text>
+        <text x={cx} y={118 + 35} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">MHA + FFN + LayerNorm + Residual</text>
+
+        {vArrow(186, 202)}
+
+        {/* Final LayerNorm */}
+        <rect x={bLeft} y={202} width={bw} height={bh} rx={3}
+          fill="var(--color-orange)" fillOpacity={0.08} stroke="var(--color-orange)" strokeWidth={1.5} />
+        <text x={cx} y={202 + bh / 2 + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)">Final LayerNorm</text>
+
+        {vArrow(230, 246)}
+
+        {/* LM Head */}
+        <rect x={bLeft} y={246} width={bw} height={36} rx={3}
+          fill="var(--pink)" fillOpacity={0.10} stroke="var(--pink)" strokeWidth={1.5} />
+        <text x={cx} y={246 + 13} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--pink)" fontWeight={600}>LM Head</text>
+        <text x={cx} y={246 + 26} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--pink)">{"h · E^T  (weight-tied)"}</text>
+
+        {vArrow(282, 298)}
+
+        {/* Logits output */}
+        <text x={cx} y={312} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">{"logits  (T × V)"}</text>
+
+        {/* Caption */}
+        <text x={cx} y={svgH - 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >GPT-2: causal attention throughout, weight-tied LM head</text>
+      </svg>
+    </div>
+  );
+}

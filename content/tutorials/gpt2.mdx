@@ -1,0 +1,212 @@
+---
+title: "GPT-2 from Scratch"
+description: "Assembling every piece into a working language model."
+category: "transformers"
+order: 6
+date: "2026-05-01"
+---
+
+The previous article assembled the transformer block: multi-head attention and a feed-forward network, each wrapped in a Pre-LN residual connection. Stacking $N$ identical blocks produces a powerful sequence processor. What it is not yet is a language model. Two things are still missing: a way to convert a token ID sequence into the $T \times D$ tensors the blocks expect, and a way to convert the blocks' $T \times D$ output back into a probability distribution over the vocabulary. GPT-2 adds both, and the result is a complete, trainable language model.
+
+## The Language Modeling Objective
+
+A language model assigns a probability to a sequence of tokens. The autoregressive factorization decomposes this into a product of conditional probabilities:
+
+$$
+P(t_1, t_2, \ldots, t_T) = \prod_{i=1}^{T} P(t_i \mid t_1, \ldots, t_{i-1})
+$$
+
+At each position $i$, the model receives the preceding context and produces a probability distribution over the $V$-token vocabulary. Training maximizes the log-likelihood of the training data, which is equivalent to minimizing the average cross-entropy:
+
+$$
+\mathcal{L} = -\frac{1}{T} \sum_{i=1}^{T} \log P(t_i \mid t_1, \ldots, t_{i-1})
+$$
+
+This is the same cross-entropy loss introduced in the Loss Functions article, applied at every position in the sequence. Because the transformer processes all positions in parallel, a single forward pass of length $T$ produces $T$ independent next-token predictions simultaneously. Causal masking in each attention layer ensures position $i$ cannot see tokens $t_{i+1}, \ldots, t_T$ during this computation.
+
+## Architecture Overview
+
+<GPT2Diagram />
+
+The model has three stages.
+
+**Input stage.** A sequence of token IDs is converted to $D$-dimensional vectors by combining two learned embedding tables.
+
+**Body.** The sequence flows through $N$ identical transformer blocks in series. The shape $T \times D$ is preserved at every block boundary.
+
+**Output stage.** A final layer normalization is applied to the output of the last block, then a linear projection maps each position from $\mathbb{R}^D$ to $\mathbb{R}^V$ logits. Softmax produces the next-token probability distribution.
+
+## Input Embeddings
+
+Two learned tables combine to form the input to the first block:
+
+$$
+\mathbf{x}_t = \mathbf{E}[t_t] + \mathbf{P}[t]
+$$
+
+$\mathbf{E} \in \mathbb{R}^{V \times D}$ is the token embedding table from the Tokenization and Embeddings article: each row is a $D$-dimensional learned vector for one vocabulary entry.
+
+$\mathbf{P} \in \mathbb{R}^{T_{\max} \times D}$ is a learned positional embedding table. The Positional Encoding article presented sinusoidal encodings computed from a fixed formula. GPT-2 takes a simpler approach: it allocates one trainable row for each of the $T_{\max} = 1{,}024$ positions it supports, and lets gradient descent find the best representation for each position. The two tables are added element-wise before the first block, so every position enters with both its token identity and its location encoded.
+
+For GPT-2 small ($D = 768$, $V = 50{,}257$):
+
+| Table | Shape | Parameters |
+|-------|-------|-----------|
+| Token embedding $\mathbf{E}$ | $50{,}257 \times 768$ | $\approx 38.6\text{ M}$ |
+| Positional embedding $\mathbf{P}$ | $1{,}024 \times 768$ | $\approx 0.8\text{ M}$ |
+
+## Weight Tying
+
+The output stage needs a matrix of shape $D \times V$ to project hidden states to logits. This is exactly the transpose of the token embedding table $\mathbf{E} \in \mathbb{R}^{V \times D}$.
+
+GPT-2 reuses the same matrix for both purposes:
+
+$$
+\text{logit}_v = \mathbf{h} \cdot \mathbf{E}[v]
+$$
+
+where $\mathbf{h} \in \mathbb{R}^D$ is the normalized hidden state at some position. The model predicts the next token by measuring how similar the current hidden state is to each row of the embedding table. This weight tying removes $V \times D \approx 38.6\text{ M}$ parameters from the count and tends to improve performance: the embedding space used to represent input tokens is forced to be consistent with the space used to score output tokens.
+
+## The LM Head
+
+The complete output computation for a position is:
+
+$$
+\mathbf{logits} = \text{LN}(\mathbf{h}) \cdot \mathbf{E}^\top \in \mathbb{R}^V
+$$
+
+where $\mathbf{h} \in \mathbb{R}^D$ is the output of the last transformer block. GPT-2 introduced a final layer normalization after the last block, applied before the output projection. Applying softmax to the logits produces the probability distribution over the next token.
+
+During training, logits at position $i$ are compared against the ground-truth token $t_{i+1}$ with cross-entropy. The sequence is shifted by one: the input to the model is $[t_1, \ldots, t_{T-1}]$ and the targets are $[t_2, \ldots, t_T]$, so every position has a label.
+
+## Autoregressive Generation
+
+Training uses teacher forcing: the correct tokens are fed at every step regardless of what the model predicts. At inference time, the model instead conditions each new token on its own previous outputs.
+
+Given a prompt $[t_1, \ldots, t_T]$:
+
+1. Run a forward pass. The logits at position $T$ encode the distribution for $t_{T+1}$.
+2. Sample $t_{T+1}$ from this distribution.
+3. Append $t_{T+1}$ to the sequence.
+4. Repeat from step 1 with the extended context.
+
+Generation terminates when the model produces a special end-of-sequence token or a maximum length is reached.
+
+**Temperature.** Before sampling, the logits are divided by a temperature $\tau > 0$:
+
+$$
+P(t) = \text{softmax}\!\left(\frac{\mathbf{logits}}{\tau}\right)
+$$
+
+$\tau = 1$ leaves the model's learned distribution unchanged. $\tau < 1$ concentrates probability on the highest-scoring tokens, producing more predictable output. $\tau > 1$ spreads probability more evenly, producing more varied output.
+
+**Top-$k$ sampling.** Before softmax, all logits below the $k$-th highest are set to $-\infty$. Only the $k$ most likely candidates survive. GPT-2's original paper used $k = 40$.
+
+**Top-$p$ (nucleus) sampling.** Instead of a fixed $k$, retain the smallest set of tokens whose cumulative probability exceeds $p$, and sample from that set. At $p = 0.9$ the model draws from the top 90% of probability mass, with the number of candidates adapting automatically to the model's confidence at each step.
+
+## Complete Parameter Count
+
+For GPT-2 small ($D = 768$, $H = 12$, $N = 12$, $V = 50{,}257$, $T_{\max} = 1{,}024$):
+
+| Component | Parameters |
+|-----------|-----------|
+| Token embedding $\mathbf{E}$ | $50{,}257 \times 768 \approx 38.6\text{ M}$ |
+| Positional embedding $\mathbf{P}$ | $1{,}024 \times 768 \approx 0.8\text{ M}$ |
+| 12 transformer blocks ($\approx 12D^2$ each) | $12 \times 7.1\text{ M} \approx 85.1\text{ M}$ |
+| Final LayerNorm ($2D$) | $1{,}536$ |
+| LM head (tied to $\mathbf{E}$) | $0$ (shared) |
+| **Total** | $\approx 124\text{ M}$ |
+
+The token embedding table accounts for 31% of the total at this scale. As models grow wider and deeper, the transformer blocks dominate: each block holds $12D^2$ parameters, which grows quadratically with $D$ while the embedding tables grow only linearly.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+class GPT2:
+    def __init__(self, V, D, H, N, T_max=1024):
+        s = 0.02
+        self.wte    = sg.Tensor(np.random.randn(V, D)     * s, requires_grad=True)
+        self.wpe    = sg.Tensor(np.random.randn(T_max, D) * s, requires_grad=True)
+        self.blocks = [TransformerBlock(D, H) for _ in range(N)]
+        self.ln_f   = LayerNorm(D)
+
+    def __call__(self, idx):
+        # idx: integer array of shape (T,)
+        T = len(idx)
+        x = self.wte[idx] + self.wpe[:T]   # (T, D): token + positional embeddings
+        for block in self.blocks:
+            x = block(x, causal=True)
+        x = self.ln_f(x)
+        return x @ self.wte.T              # (T, V): weight-tied projection
+
+    def loss(self, idx):
+        logits  = self(idx[:-1])           # predict from all tokens except last
+        targets = idx[1:]                  # labels shifted right by one
+        return logits.cross_entropy(targets)
+
+# GPT-2 small
+model = GPT2(V=50257, D=768, H=12, N=12)
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class GPT2(nn.Module):
+    def __init__(self, vocab_size: int, d_model: int, num_heads: int,
+                 n_layers: int, max_len: int = 1024):
+        super().__init__()
+        self.wte     = nn.Embedding(vocab_size, d_model)
+        self.wpe     = nn.Embedding(max_len, d_model)
+        self.blocks  = nn.ModuleList([
+            TransformerBlock(d_model, num_heads) for _ in range(n_layers)
+        ])
+        self.ln_f    = nn.LayerNorm(d_model)
+        self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
+        self.lm_head.weight = self.wte.weight      # weight tying
+
+    def forward(self, idx: torch.Tensor) -> torch.Tensor:
+        B, T = idx.shape
+        pos  = torch.arange(T, device=idx.device).unsqueeze(0)   # (1, T)
+        x    = self.wte(idx) + self.wpe(pos)                      # (B, T, D)
+        for block in self.blocks:
+            x = block(x, causal=True)
+        return self.lm_head(self.ln_f(x))                         # (B, T, V)
+
+    def loss(self, idx: torch.Tensor) -> torch.Tensor:
+        logits  = self(idx[:, :-1])               # (B, T-1, V)
+        targets = idx[:, 1:].contiguous()          # (B, T-1)
+        B, T, V = logits.shape
+        return F.cross_entropy(logits.view(B * T, V), targets.view(B * T))
+
+@torch.no_grad()
+def generate(model: GPT2, idx: torch.Tensor, max_new_tokens: int,
+             temperature: float = 1.0, top_k: int = 0) -> torch.Tensor:
+    model.eval()
+    for _ in range(max_new_tokens):
+        ctx    = idx if idx.size(1) <= 1024 else idx[:, -1024:]
+        logits = model(ctx)[:, -1, :] / temperature          # (B, V)
+        if top_k > 0:
+            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+            logits[logits < v[:, [-1]]] = float('-inf')
+        probs    = F.softmax(logits, dim=-1)
+        next_tok = torch.multinomial(probs, num_samples=1)   # (B, 1)
+        idx      = torch.cat([idx, next_tok], dim=1)
+    return idx
+
+# GPT-2 small: ~124 M parameters
+model = GPT2(vocab_size=50257, d_model=768, num_heads=12, n_layers=12)
+x     = torch.randint(0, 50257, (2, 64))    # batch=2, seq_len=64
+print(model(x).shape)                        # torch.Size([2, 64, 50257])
+
+total = sum(p.numel() for p in model.parameters())
+print(f"{total:,}")                           # ≈ 124,475,904
+```
+
+---
+
+GPT-2 brings together every concept covered in this series: the tokenizer and BPE vocabulary, learned embeddings with weight tying, positional encodings for sequence order, causal self-attention that gives each position direct access to all preceding positions, multi-head attention for parallel specialization, residual connections and layer normalization for training stability, and the position-wise feed-forward network for per-position transformation. Stacking $N$ of these blocks and training on next-token prediction over a large text corpus is, in its essentials, how modern language models are built.

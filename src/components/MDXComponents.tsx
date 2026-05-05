@@ -55,6 +55,7 @@ import {
   BackpropDiagram,
   MSELossDiagram,
   CrossEntropyDiagram,
+  GPT2Diagram,
 } from "./diagrams";
 
 export const mdxComponents = {
@@ -106,4 +107,5 @@ export const mdxComponents = {
   BackpropDiagram,
   MSELossDiagram,
   CrossEntropyDiagram,
+  GPT2Diagram,
 };
