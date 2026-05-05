@@ -1,0 +1,191 @@
+---
+title: "Attention Mechanism"
+description: "How scaled dot-product attention lets every position directly query every other position."
+category: "transformers"
+order: 3
+date: "2026-05-01"
+---
+
+The previous article added positional information to each token's embedding. The model now knows what each token is and where it sits in the sequence. What it still cannot do is combine information across positions in a learned, content-dependent way. The word "sat" needs to know about "cat" (its subject) much more than it needs to know about "the". The word "it" in a long sentence needs to find the noun it refers to, which could be many positions away.
+
+An architecture that addresses this must let every position directly query every other position, weighted by relevance. That is exactly what **attention** provides.
+
+## The Query-Key-Value Idea
+
+The library analogy captures the intuition well. Imagine a library where:
+
+- You arrive with a **query** — a description of what information you need.
+- Every book has a **key** — an index card summarising what it contains.
+- Every book also has a **value** — its actual content.
+
+To find relevant information, you compare your query against every key. The similarity score determines how much of each book's value you read. The final result is a blend: a weighted combination of all values, weighted by how well each key matched your query.
+
+In self-attention, each token simultaneously acts as a query (asking "what other tokens are relevant to me?"), a key (advertising "here is what I can offer to others"), and a value (providing the actual information to be aggregated). All three roles are computed from the same input via separate learned linear projections.
+
+## Query, Key, Value Projections
+
+Given the input sequence $\mathbf{X} \in \mathbb{R}^{T \times D}$ (a row per position), three projections produce three matrices:
+
+$$
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q \in \mathbb{R}^{T \times d_k}
+\qquad
+\mathbf{K} = \mathbf{X}\mathbf{W}_K \in \mathbb{R}^{T \times d_k}
+\qquad
+\mathbf{V} = \mathbf{X}\mathbf{W}_V \in \mathbb{R}^{T \times d_v}
+$$
+
+where $\mathbf{W}_Q, \mathbf{W}_K \in \mathbb{R}^{D \times d_k}$ and $\mathbf{W}_V \in \mathbb{R}^{D \times d_v}$ are the learned weight matrices. The dimension $d_k$ is the key/query dimension; $d_v$ is the value dimension. Typical choices are $d_k = d_v = D/h$, where $h$ is the number of attention heads — a detail that belongs to the next article.
+
+## Scaled Dot-Product Attention
+
+The core formula is:
+
+$$
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+$$
+
+Breaking this into steps:
+
+**Step 1: compute raw scores.** The score matrix $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top \in \mathbb{R}^{T \times T}$ gives the dot product of every query with every key. Entry $S_{ij}$ measures how well position $i$'s query matches position $j$'s key — in other words, how relevant position $j$ is to position $i$.
+
+**Step 2: scale.** Divide by $\sqrt{d_k}$ to prevent the dot products from becoming too large.
+
+**Step 3: apply softmax row-wise.** $\mathbf{A} = \text{softmax}(\mathbf{S}/\sqrt{d_k})$ normalises each row to a valid probability distribution. Entry $A_{ij}$ is the attention weight: the fraction of position $j$'s value that flows into position $i$'s output. Each row of $\mathbf{A}$ sums to $1$.
+
+**Step 4: weighted sum of values.** The output $\mathbf{Z} = \mathbf{A}\mathbf{V} \in \mathbb{R}^{T \times d_v}$ is a weighted blend of all value vectors. Row $i$ of $\mathbf{Z}$ is a convex combination of all value vectors, with position $j$ contributing in proportion to $A_{ij}$.
+
+<SelfAttentionDiagram />
+
+## Why Scale by $\sqrt{d_k}$
+
+The dot product $\mathbf{q}_i \cdot \mathbf{k}_j$ of two $d_k$-dimensional vectors with unit-normal entries has variance $d_k$. Without scaling, large $d_k$ produces large dot products, pushing the softmax into a nearly one-hot distribution: one score dominates and the rest become effectively zero.
+
+This saturation prevents gradients from reaching the positions that "almost" matched — the softmax gradient $\partial \text{softmax} / \partial s_j = A_j(1 - A_j)$ is near zero when any $A_j$ is near $0$ or $1$. Dividing by $\sqrt{d_k}$ brings the dot products back to roughly unit variance, keeping the softmax in a smooth regime where gradients flow to all positions.
+
+## What Attention Weights Represent
+
+Each row $i$ of $\mathbf{A}$ is a distribution over the $T$ key positions. It encodes the answer to: "given position $i$'s query, how relevant is each position $j$?" After training, these distributions capture learned linguistic and semantic relationships.
+
+**Example.** For the sentence "The cat sat down", one attention head might learn weights like:
+
+<AttentionMapDiagram />
+
+The verb "sat" attends strongly to "cat" — the subject — reflecting the subject-verb dependency. "down" attends to "sat" — the verb it modifies. These patterns are not hard-coded; they emerge from training on a language modelling objective.
+
+## Causal Masking
+
+In an autoregressive language model, the goal is to predict the next token from the preceding ones. When training on the sequence $[t_1, t_2, \ldots, t_T]$, position $t$ must not see tokens $t+1, t+2, \ldots, T$ — otherwise the model trivially reads the answer.
+
+This is enforced by **causal masking**: before applying the softmax, set $S_{ij} = -\infty$ for all $j > i$. Since $\exp(-\infty) = 0$, the softmax assigns zero weight to all future positions:
+
+$$
+\tilde{S}_{ij} = \begin{cases} S_{ij} & j \leq i \\ -\infty & j > i \end{cases}
+\qquad
+A_{ij} = \text{softmax}(\tilde{S}_{i\cdot})_j
+$$
+
+The resulting attention matrix $\mathbf{A}$ is lower-triangular: position $i$ can only draw information from positions $0$ through $i$. The original Transformer encoder uses full (bidirectional) attention; GPT-style decoders use causal attention.
+
+**Example for T=4:**
+
+$$
+\mathbf{A} = \begin{pmatrix}
+a_{11} & 0 & 0 & 0 \\
+a_{21} & a_{22} & 0 & 0 \\
+a_{31} & a_{32} & a_{33} & 0 \\
+a_{41} & a_{42} & a_{43} & a_{44}
+\end{pmatrix}
+$$
+
+Each row still sums to $1$ over the unmasked positions.
+
+## Computational Properties
+
+A single attention layer compares every pair of positions: the score matrix $\mathbf{Q}\mathbf{K}^\top$ has $T^2$ entries, each requiring a dot product of $d_k$ multiplications. The total cost is $O(T^2 d_k)$ per layer.
+
+This is expensive for very long sequences — $T = 4{,}096$ produces over 16 million attention scores — but the computation is entirely **parallel**: $\mathbf{Q}\mathbf{K}^\top$ is a single matrix multiplication that runs in one GPU step. Compare this to the RNN's sequential computation from the Limits of RNNs article: attention achieves $O(T^2)$ parallel operations where RNNs required $O(T)$ sequential operations. The constant is worse, but the hardware can use it.
+
+The $O(T^2)$ cost is also the direct answer to the bottleneck problem: there is no compressed $h_T$ through which all information must flow. Every output position has direct access to every input position, weighted by content.
+
+## In Code
+
+```python
+import numpy as np
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
+
+def attention(Q, K, V, mask=None):
+    d_k = Q.shape[-1]
+    scores = Q @ K.T / np.sqrt(d_k)    # (T, T)
+    if mask is not None:
+        scores[mask] = -1e9             # set masked positions to -∞
+    A = softmax(scores)                 # (T, T), rows sum to 1
+    return A @ V                        # (T, d_v)
+
+# Simple example: T=3, d_k=d_v=2, identity projections
+X = np.array([[1., 0.], [0., 1.], [1., 1.]])
+Z = attention(Q=X, K=X, V=X)
+print(Z.round(3))
+# [[0.802, 0.599],
+#  [0.599, 0.802],
+#  [0.752, 0.752]]
+# Each output is a weighted average of the input rows.
+
+# Causal mask for T=3: block upper triangle
+mask = np.triu(np.ones((3, 3), dtype=bool), k=1)
+# [[False, True,  True ],
+#  [False, False, True ],
+#  [False, False, False]]
+Z_causal = attention(Q=X, K=X, V=X, mask=mask)
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class SingleHeadAttention(nn.Module):
+    def __init__(self, d_model: int, d_k: int):
+        super().__init__()
+        self.W_Q = nn.Linear(d_model, d_k, bias=False)
+        self.W_K = nn.Linear(d_model, d_k, bias=False)
+        self.W_V = nn.Linear(d_model, d_k, bias=False)
+        self.scale = math.sqrt(d_k)
+
+    def forward(self, x: torch.Tensor, causal: bool = False):
+        # x: (batch, T, d_model)
+        Q = self.W_Q(x)   # (batch, T, d_k)
+        K = self.W_K(x)
+        V = self.W_V(x)
+
+        scores = torch.bmm(Q, K.transpose(-2, -1)) / self.scale  # (batch, T, T)
+
+        if causal:
+            T = x.size(1)
+            mask = torch.triu(torch.ones(T, T, device=x.device), diagonal=1).bool()
+            scores = scores.masked_fill(mask, float('-inf'))
+
+        A = F.softmax(scores, dim=-1)   # rows sum to 1
+        return torch.bmm(A, V)          # (batch, T, d_k)
+
+# Verify attention weights sum to 1 per row
+attn = SingleHeadAttention(d_model=64, d_k=32)
+x = torch.randn(2, 6, 64)             # batch=2, seq_len=6
+z = attn(x, causal=True)
+print(z.shape)   # torch.Size([2, 6, 32])
+
+# PyTorch's built-in efficient implementation
+z_builtin, weights = F.scaled_dot_product_attention(
+    Q := attn.W_Q(x),
+    K := attn.W_K(x),
+    V := attn.W_V(x),
+    is_causal=True,
+)
+```
+
+---
+
+Single-head attention computes one set of scores, one attention distribution, and one output. But a sentence has many types of relationships simultaneously — subject-verb, modifier-noun, pronoun-antecedent, long-range coreference — and a single attention distribution cannot specialise in all of them at once. The next article extends attention by running several independent heads in parallel, each free to focus on a different kind of dependency.

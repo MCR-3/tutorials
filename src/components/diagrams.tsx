@@ -2372,6 +2372,125 @@ export function PEAdditionDiagram() {
   );
 }
 
+export function SelfAttentionDiagram() {
+  const svgW = 350, svgH = 250;
+  const bw = 255, bh = 32;
+  const bx = (svgW - bw) / 2;
+  const cx = svgW / 2;
+  const gap = 27; // space between box bottom and next box top
+
+  const steps = [
+    { y: 12, label: "X  (input sequence,  T × D)", color: "var(--muted)" },
+    { y: 72, label: "Q = XWQ,   K = XWK,   V = XWV", color: "var(--color-blue)" },
+    { y: 132, label: "scores = QKᵀ / √d_k   (T × T)", color: "var(--color-orange)" },
+    { y: 192, label: "A = softmax(scores) × V = Z (T × d_v)", color: "var(--color-green)" },
+  ];
+
+  function arrowDown(topY: number) {
+    const y1 = topY + bh, y2 = topY + bh + gap;
+    return (
+      <>
+        <line x1={cx} y1={y1} x2={cx} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon points={`${cx},${y2} ${cx - 3},${y2 - 6} ${cx + 3},${y2 - 6}`} fill="var(--border-strong)" />
+      </>
+    );
+  }
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+        {steps.map(({ y, label, color }, i) => (
+          <g key={y}>
+            <rect x={bx} y={y} width={bw} height={bh} rx={3}
+              fill={color} fillOpacity={0.07}
+              stroke={color} strokeWidth={1.5} />
+            <text x={cx} y={y + bh / 2 + 4} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={10} fill={color}
+            >{label}</text>
+            {i < steps.length - 1 && arrowDown(y)}
+          </g>
+        ))}
+        <text x={cx} y={svgH - 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >attention: every position queries every other position</text>
+      </svg>
+    </div>
+  );
+}
+
+export function AttentionMapDiagram() {
+  const svgW = 295, svgH = 220;
+  const tokens = ["The", "cat", "sat", "down"] as const;
+  const weights = [
+    [0.70, 0.10, 0.10, 0.10],
+    [0.10, 0.60, 0.20, 0.10],
+    [0.15, 0.45, 0.30, 0.10],
+    [0.05, 0.20, 0.35, 0.40],
+  ];
+
+  const cw = 44, ch = 28;
+  const offX = 52, offY = 42; // top-left of grid
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Column labels (keys) */}
+        <text x={offX + 4 * cw / 2} y={12} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">key (source)</text>
+        {tokens.map((tok, j) => (
+          <text key={`col-${j}`}
+            x={offX + j * cw + cw / 2} y={30}
+            textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+          >{tok}</text>
+        ))}
+
+        {/* Row labels (queries) */}
+        <text x={20} y={offY + 4 * ch / 2} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)"
+          transform={`rotate(-90, 20, ${offY + 4 * ch / 2})`}
+        >query</text>
+        {tokens.map((tok, i) => (
+          <text key={`row-${i}`}
+            x={offX - 5} y={offY + i * ch + ch / 2 + 4}
+            textAnchor="end" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+          >{tok}</text>
+        ))}
+
+        {/* Grid cells */}
+        {weights.map((row, i) =>
+          row.map((w, j) => (
+            <g key={`${i}-${j}`}>
+              <rect
+                x={offX + j * cw} y={offY + i * ch}
+                width={cw - 1} height={ch - 1} rx={2}
+                fill="var(--color-blue)" fillOpacity={w * 0.85 + 0.05}
+                stroke="var(--border)" strokeWidth={0.5}
+              />
+              <text
+                x={offX + j * cw + cw / 2} y={offY + i * ch + ch / 2 + 4}
+                textAnchor="middle" fontFamily="var(--font-code)"
+                fontSize={10} fill={w > 0.4 ? "var(--color-white)" : "var(--color-fg)"}
+                fontWeight={w > 0.4 ? 700 : 400}
+              >{w.toFixed(2)}</text>
+            </g>
+          ))
+        )}
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >attention weights A (each row sums to 1)</text>
+        <text x={svgW / 2} y={svgH - 7} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)"
+        >{'"sat" attends strongly to "cat" — the subject'}</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
