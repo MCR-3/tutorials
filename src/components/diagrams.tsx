@@ -103,7 +103,7 @@ export function NormalizationDiagram() {
         <MafsText x={0.68} y={0.96} size={14} color="var(--color-green)">
           v̂
         </MafsText>
-        <MafsText x={1.08} y={0.1} size={13} color="white">
+        <MafsText x={1.08} y={0.1} size={13} color="color-white">
           r = 1
         </MafsText>
       </Mafs>
@@ -597,7 +597,7 @@ export function AdamDiagram() {
       <>
         <rect
           x={cx - w / 2} y={cy - h / 2} width={w} height={h}
-          fill="var(--white)" stroke={color} strokeWidth={1.5} rx={4}
+          fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={4}
         />
         <text x={cx} y={cy + 5} textAnchor="middle"
           fontFamily="var(--font-code)" fontSize={12} fill={color}
@@ -634,7 +634,7 @@ export function AdamDiagram() {
         >β₂v + (1-β₂)g²</text>
 
         {/* Boxes drawn after arrows so they sit on top */}
-        {drawBox(gx, gy, 80, 28, "g_t", "var(--color-bg)")}
+        {drawBox(gx, gy, 80, 28, "g_t", "var(--color-fg)")}
         {drawBox(mx, my, 148, 28, "first moment  m_t", "var(--color-blue)")}
         {drawBox(vx, vy, 155, 28, "second moment  v_t", "var(--color-orange)")}
         {drawBox(ux, uy, 180, 28, "weight update  Δw", "var(--color-green)")}
@@ -653,7 +653,7 @@ export function TrainingLoopDiagram() {
 
   // Pentagon layout — five training-step nodes arranged clockwise from top
   const nodes = [
-    { label: "zero_grad", cx: 200, cy: 52, hw: 48, hh: 13, color: "var(--color-bg)" },
+    { label: "zero_grad", cx: 200, cy: 52, hw: 48, hh: 13, color: "var(--color-fg)" },
     { label: "forward", cx: 288, cy: 115, hw: 40, hh: 13, color: "var(--color-blue)" },
     { label: "loss", cx: 254, cy: 216, hw: 33, hh: 13, color: "var(--color-yellow)" },
     { label: "backward", cx: 146, cy: 216, hw: 44, hh: 13, color: "var(--color-orange)" },
@@ -707,7 +707,7 @@ export function TrainingLoopDiagram() {
           <g key={label}>
             <rect
               x={cx - hw} y={cy - hh} width={hw * 2} height={hh * 2}
-              fill="var(--white)" stroke={color} strokeWidth={1.5} rx={4}
+              fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={4}
             />
             <text x={cx} y={cy + 4} textAnchor="middle"
               fontFamily="var(--font-code)" fontSize={11} fill={color}
@@ -728,11 +728,11 @@ export function TrainingLoopDiagram() {
           fill="var(--border-strong)"
         />
         <rect x={160} y={270} width={80} height={26}
-          fill="var(--white)" stroke="var(--border-strong)" strokeWidth={1.5}
+          fill="var(--color-white)" stroke="var(--border-strong)" strokeWidth={1.5}
           strokeDasharray="4 3" rx={4}
         />
         <text x={200} y={287} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-bg)"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
         >validate</text>
         <text x={214} y={247} fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">each epoch</text>
 
@@ -905,16 +905,16 @@ export function NeuronDiagram() {
         {inputs.map(([ix, iy], i) => (
           <g key={i}>
             <circle cx={ix} cy={iy} r={ir}
-              fill="var(--white)" stroke="var(--color-yellow)" strokeWidth={1.5} />
+              fill="var(--color-white)" stroke="var(--muted)" strokeWidth={1.5} />
             <text x={ix} y={iy + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-yellow)"
+              fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)"
             >{inputLabels[i]}</text>
           </g>
         ))}
 
         {/* Neuron circle */}
         <circle cx={neuron[0]} cy={neuron[1]} r={nr}
-          fill="var(--white)" stroke="var(--color-blue)" strokeWidth={2} />
+          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={2} />
         <text x={neuron[0]} y={neuron[1] + 5} textAnchor="middle"
           fontFamily="var(--font-code)" fontSize={15} fill="var(--color-blue)"
         >z</text>
@@ -985,7 +985,7 @@ export function MLPDiagram() {
         {layerGroups.map(({ nodes, color }, gi) =>
           nodes.map(([cx, cy], ni) => (
             <circle key={`${gi}-${ni}`} cx={cx} cy={cy} r={r}
-              fill="var(--white)" stroke={color} strokeWidth={1.5} />
+              fill="var(--color-white)" stroke={color} strokeWidth={1.5} />
           ))
         )}
 
@@ -1046,7 +1046,7 @@ export function DropoutDiagram() {
           return (
             <g key={`t-${i}`}>
               <circle cx={100} cy={y} r={r}
-                fill={dropped ? "var(--surface-hover)" : "var(--white)"}
+                fill={dropped ? "var(--surface-hover)" : "var(--color-white)"}
                 stroke={dropped ? "var(--muted)" : "var(--color-blue)"}
                 strokeWidth={dropped ? 1 : 1.5}
                 strokeDasharray={dropped ? "3 2" : "none"}
@@ -1063,7 +1063,7 @@ export function DropoutDiagram() {
         {/* Inference nodes — all active */}
         {nodeYs.map((y, i) => (
           <circle key={`i-${i}`} cx={300} cy={y} r={r}
-            fill="var(--white)" stroke="var(--color-green)" strokeWidth={1.5} />
+            fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
         ))}
 
         {/* Caption */}
@@ -1433,12 +1433,12 @@ export function DigitClassifierDiagram() {
   const cx = svgW / 2;
 
   const layers = [
-    { label: "input", shape: "1 × 28 × 28", color: "var(--color-pink)" },
+    { label: "input", shape: "1 × 28 × 28", color: "var(--muted)" },
     { label: "Conv(1→32) + BN + ReLU", shape: "32 × 28 × 28", color: "var(--color-blue)" },
     { label: "MaxPool(2×2)", shape: "32 × 14 × 14", color: "var(--color-orange)" },
     { label: "Conv(32→64) + BN + ReLU", shape: "64 × 14 × 14", color: "var(--color-blue)" },
     { label: "MaxPool(2×2)", shape: "64 × 7 × 7", color: "var(--color-orange)" },
-    { label: "Flatten  +  Dropout(0.3)", shape: "3 136", color: "var(--color-pink)" },
+    { label: "Flatten  +  Dropout(0.3)", shape: "3 136", color: "var(--muted)" },
     { label: "Linear(3136 → 10)", shape: "10 classes", color: "var(--color-green)" },
   ] as const;
 
@@ -1468,7 +1468,7 @@ export function DigitClassifierDiagram() {
               )}
               {/* Layer box */}
               <rect x={bx} y={y} width={bw} height={bh}
-                fill="var(--white)" stroke={color} strokeWidth={1.5} rx={3} />
+                fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={3} />
               {/* Operation label (left-aligned) */}
               <text x={bx + 10} y={y + bh / 2 + 4} textAnchor="start"
                 fontFamily="var(--font-code)" fontSize={10} fill={color}
@@ -1563,7 +1563,7 @@ export function SequenceMemoryDiagram() {
             <rect
               x={sx - bw / 2} y={stepY - bh / 2}
               width={bw} height={bh}
-              fill="var(--white)"
+              fill="var(--color-white)"
               stroke="var(--color-blue)" strokeWidth={1.5}
               strokeDasharray="4 2" rx={4}
             />
