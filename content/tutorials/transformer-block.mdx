@@ -1,0 +1,213 @@
+---
+title: "The Transformer Block"
+description: "Residual connections, layer normalization, and the feed-forward network that complete each transformer layer."
+category: "transformers"
+order: 5
+date: "2026-05-01"
+---
+
+Multi-head attention gives every position direct access to every other position. But attention alone is not a complete layer: it aggregates information from across the sequence, but it does not transform the aggregated representations non-linearly. And without normalization, stacking many such layers produces training instability. The **transformer block** wraps multi-head attention in two additional components — residual connections and layer normalization — and pairs it with a position-wise feed-forward network.
+
+## Residual Connections
+
+A residual connection adds the input of a sub-layer directly to its output:
+
+$$
+\mathbf{x} \leftarrow \mathbf{x} + \text{SubLayer}(\mathbf{x})
+$$
+
+This idea, introduced by He et al. (2016) for deep convolutional networks, has two benefits in the context of transformers.
+
+**Gradient flow.** During backpropagation, the gradient passes through both paths: the sub-layer computation and the direct shortcut. Even if the sub-layer has a near-zero gradient (due to saturation or weight initialization), the gradient still flows unimpeded through the shortcut. This makes it practical to train very deep networks — 12, 24, or even 96 layers — without the vanishing gradient problem that plagued early deep architectures.
+
+**Incremental refinement.** The sub-layer only needs to learn the residual — the improvement over the identity. If the best transformation at some layer is close to doing nothing, the sub-layer learns weights near zero and the output approaches the input. This is far easier to learn than an unconstrained transformation.
+
+## Layer Normalization
+
+Layer normalization stabilises training by normalising the feature dimension of each token's representation. For a token vector $\mathbf{x} \in \mathbb{R}^D$:
+
+$$
+\text{LN}(\mathbf{x}) = \frac{\mathbf{x} - \mu}{\sigma + \varepsilon} \odot \boldsymbol{\gamma} + \boldsymbol{\beta}
+$$
+
+where $\mu = \frac{1}{D}\sum_i x_i$ and $\sigma = \sqrt{\frac{1}{D}\sum_i (x_i - \mu)^2}$ are the mean and standard deviation computed over the $D$ dimensions of $\mathbf{x}$, and $\boldsymbol{\gamma}, \boldsymbol{\beta} \in \mathbb{R}^D$ are learned scale and shift parameters initialised to $\mathbf{1}$ and $\mathbf{0}$.
+
+**Why not batch normalization?** The Regularization article introduced batch normalization, which computes statistics across the batch dimension. Layer normalization computes statistics across the feature dimension for each individual token, making it:
+
+- Independent of batch size (works with batch size 1).
+- Independent of sequence length (each position is normalised separately).
+- Compatible with variable-length sequences and autoregressive generation, where batches may contain sequences of very different lengths.
+
+Layer norm adds $2D$ parameters ($\boldsymbol{\gamma}$ and $\boldsymbol{\beta}$) per normalisation, negligible compared to the attention matrices.
+
+## Pre-Norm vs Post-Norm
+
+The original 2017 Transformer paper applied layer normalisation **after** the residual add (Post-LN):
+
+$$
+\mathbf{x} \leftarrow \text{LN}(\mathbf{x} + \text{SubLayer}(\mathbf{x}))
+$$
+
+Later work found that applying layer normalisation **before** the sub-layer (Pre-LN) leads to more stable training and removes the need for careful learning rate warmup:
+
+$$
+\mathbf{x} \leftarrow \mathbf{x} + \text{SubLayer}(\text{LN}(\mathbf{x}))
+$$
+
+GPT-2 and most modern transformers use Pre-LN. In Pre-LN, each sub-layer receives a normalised input, the sub-layer output is unconstrained, and the residual path remains clean. The difference matters most for very deep models where gradients in Post-LN can become problematic.
+
+## The Feed-Forward Network
+
+The second sub-layer in each block is a **position-wise feed-forward network** (FFN): two linear transformations with a non-linearity between them.
+
+$$
+\text{FFN}(\mathbf{x}) = \mathbf{W}_2\,\text{GELU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2
+$$
+
+where $\mathbf{W}_1 \in \mathbb{R}^{D \times d_{ff}}$, $\mathbf{W}_2 \in \mathbb{R}^{d_{ff} \times D}$, and $d_{ff} = 4D$ is the standard intermediate dimension.
+
+**Position-wise** means the same FFN is applied independently to every position's $D$-dimensional vector. There is no interaction across positions inside the FFN — that mixing already happened in the attention sub-layer. The FFN applies a richer non-linear transformation to each position's individual representation.
+
+**Why 4D?** The $4\times$ expansion gives each position enough capacity to represent and transform the information aggregated by attention. The expansion factor of four has been empirically stable across a wide range of model sizes and tasks, though values between two and eight are also used in practice.
+
+**GELU** (Gaussian Error Linear Unit) is the activation function used in GPT-2 and BERT. From the Activation Functions article: GELU is a smooth approximation to ReLU that allows small negative outputs and is everywhere differentiable. The FFN with GELU and $d_{ff} = 4D$ contributes $2 \times D \times 4D = 8D^2$ parameters per block.
+
+## The Complete Block
+
+With Pre-LN notation, one transformer block computes:
+
+$$
+\mathbf{x} \leftarrow \mathbf{x} + \text{MHA}(\text{LN}(\mathbf{x})) \qquad \text{(attention sub-layer)}
+$$
+$$
+\mathbf{x} \leftarrow \mathbf{x} + \text{FFN}(\text{LN}(\mathbf{x})) \qquad \text{(FFN sub-layer)}
+$$
+
+The input shape $T \times D$ passes through and the output has exactly the same shape. Each block is a pure function from $\mathbb{R}^{T \times D}$ to $\mathbb{R}^{T \times D}$: the sequence length and embedding dimension are preserved, making blocks trivially stackable.
+
+<TransformerBlockDiagram />
+
+## Parameter Count Per Block
+
+For a model with embedding dimension $D$:
+
+| Component | Count |
+|-----------|-------|
+| MHA (4 weight matrices $D \times D$) | $4D^2$ |
+| FFN ($\mathbf{W}_1$ and $\mathbf{W}_2$) | $8D^2$ |
+| Two LayerNorm ($2 \times 2D$) | $4D$ |
+| **Total per block** | $\approx 12D^2$ |
+
+For GPT-2 small ($D = 768$, 12 blocks): each block holds $\approx 7.1$ million parameters, for a total of $\approx 85$ million parameters across all blocks (plus the embedding table of $38.6$ million).
+
+## Stacking N Blocks
+
+A transformer model consists of $N$ identical blocks in sequence, where the output of block $\ell$ is the input to block $\ell + 1$. All blocks share the same structure but have independent parameters. For GPT-2 sizes:
+
+| Model | $D$ | $N$ (layers) | Parameters |
+|-------|-----|-------------|-----------|
+| GPT-2 small | 768 | 12 | 117 M |
+| GPT-2 medium | 1,024 | 24 | 345 M |
+| GPT-2 large | 1,280 | 36 | 762 M |
+| GPT-2 XL | 1,600 | 48 | 1.5 B |
+
+Deeper networks (more $N$) have more capacity to learn hierarchical abstractions. Wider networks (larger $D$) have more representational capacity per layer. The optimal $N$/$D$ ratio depends on compute budget and data scale.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+class LayerNorm:
+    def __init__(self, D, eps=1e-5):
+        self.gamma = sg.Tensor(np.ones(D),  requires_grad=True)
+        self.beta  = sg.Tensor(np.zeros(D), requires_grad=True)
+        self.eps   = eps
+
+    def __call__(self, x):
+        mu  = x.mean(axis=-1, keepdims=True)
+        var = ((x - mu) ** 2).mean(axis=-1, keepdims=True)
+        return (x - mu) / (var + self.eps) ** 0.5 * self.gamma + self.beta
+
+class FFN:
+    def __init__(self, D, d_ff=None):
+        d_ff = d_ff or 4 * D
+        s = 0.02
+        self.W1 = sg.Tensor(np.random.randn(D, d_ff) * s, requires_grad=True)
+        self.b1 = sg.Tensor(np.zeros(d_ff),               requires_grad=True)
+        self.W2 = sg.Tensor(np.random.randn(d_ff, D) * s, requires_grad=True)
+        self.b2 = sg.Tensor(np.zeros(D),                  requires_grad=True)
+
+    def __call__(self, x):
+        return (x @ self.W1 + self.b1).gelu() @ self.W2 + self.b2
+
+class TransformerBlock:
+    def __init__(self, D, H):
+        self.ln1 = LayerNorm(D)
+        self.mha = MultiHeadAttention(D, H)   # from previous article
+        self.ln2 = LayerNorm(D)
+        self.ffn = FFN(D)
+
+    def __call__(self, x, causal=True):
+        x = x + self.mha(self.ln1(x), causal=causal)   # attention sub-layer
+        x = x + self.ffn(self.ln2(x))                   # FFN sub-layer
+        return x
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class FFN(nn.Module):
+    def __init__(self, d_model: int, d_ff: int = None):
+        super().__init__()
+        d_ff = d_ff or 4 * d_model
+        self.fc1 = nn.Linear(d_model, d_ff)
+        self.fc2 = nn.Linear(d_ff, d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc2(F.gelu(self.fc1(x)))
+
+class TransformerBlock(nn.Module):
+    def __init__(self, d_model: int, num_heads: int, d_ff: int = None):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(d_model)
+        self.mha = MultiHeadAttention(d_model, num_heads)  # from previous article
+        self.ln2 = nn.LayerNorm(d_model)
+        self.ffn = FFN(d_model, d_ff)
+
+    def forward(self, x: torch.Tensor, causal: bool = True) -> torch.Tensor:
+        x = x + self.mha(self.ln1(x), causal=causal)   # attention sub-layer
+        x = x + self.ffn(self.ln2(x))                   # FFN sub-layer
+        return x
+
+# Stack N blocks
+class TransformerStack(nn.Module):
+    def __init__(self, n_layers: int, d_model: int, num_heads: int):
+        super().__init__()
+        self.blocks = nn.ModuleList([
+            TransformerBlock(d_model, num_heads) for _ in range(n_layers)
+        ])
+
+    def forward(self, x: torch.Tensor, causal: bool = True) -> torch.Tensor:
+        for block in self.blocks:
+            x = block(x, causal=causal)
+        return x
+
+# GPT-2 small dimensions: D=768, H=12, N=12
+model = TransformerStack(n_layers=12, d_model=768, num_heads=12)
+x = torch.randn(2, 64, 768)    # batch=2, seq_len=64, d_model=768
+out = model(x)
+print(out.shape)                # torch.Size([2, 64, 768])
+
+# Count parameters
+total = sum(p.numel() for p in model.parameters())
+print(f"{total:,}")             # ≈ 85,054,464
+```
+
+---
+
+The transformer block is complete: multi-head attention to mix information across positions, a feed-forward network to transform each position independently, and residual connections with layer normalisation to keep gradients flowing and training stable. Stacking $N$ of these blocks produces a powerful sequence encoder or decoder. The next article builds a complete language model from these components: a GPT-2 implementation from scratch.

@@ -2602,6 +2602,132 @@ export function MultiHeadDiagram() {
   );
 }
 
+export function TransformerBlockDiagram() {
+  const svgW = 300, svgH = 310;
+  const mcx = 125; // main-column center x
+  const bw = 155, bh = 28;
+  const bx = mcx - bw / 2;  // = 47.5 → 48; right edge = 203
+  const railX = 248;          // right residual rail x
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx2 = x2 - ux * as, by2 = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx2 - uy * 3).toFixed(1)},${(by2 + ux * 3).toFixed(1)} ${(bx2 + uy * 3).toFixed(1)},${(by2 - ux * 3).toFixed(1)}`;
+  }
+
+  function vArrow(x: number, y1: number, y2: number) {
+    return (
+      <>
+        <line x1={x} y1={y1} x2={x} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon points={ap(x, y1, x, y2)} fill="var(--border-strong)" />
+      </>
+    );
+  }
+
+  function box(y: number, label: string, color: string, small = false) {
+    return (
+      <>
+        <rect x={bx} y={y} width={bw} height={bh} rx={3}
+          fill={color} fillOpacity={0.08} stroke={color} strokeWidth={1.5} />
+        <text x={mcx} y={y + bh / 2 + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={small ? 9 : 10} fill={color}>{label}</text>
+      </>
+    );
+  }
+
+  // Y positions
+  const inputY = 8;   // input box top
+  const ln1Y = 62;  // LayerNorm 1 top
+  const mhaY = 105;  // MHA top
+  const add1Y = 150; // ⊕₁ center
+  const ln2Y = 172; // LayerNorm 2 top
+  const ffnY = 215; // FFN top
+  const add2Y = 260; // ⊕₂ center
+  const outY = 280; // output label
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Dashed block boundary */}
+        <rect x={38} y={56} width={220} height={215} rx={8}
+          fill="none" stroke="var(--border)" strokeWidth={1}
+          strokeDasharray="5 3" />
+        <text x={25} y={50} fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">
+          transformer block
+        </text>
+
+        {/* Input */}
+        {box(inputY, "x  (T × D)", "var(--muted)")}
+
+        {/* ── Attention sub-layer ── */}
+        {box(ln1Y, "LayerNorm", "var(--color-orange)")}
+        {box(mhaY, "Multi-Head Attention", "var(--color-blue)")}
+
+        {/* ⊕₁ */}
+        <circle cx={mcx} cy={add1Y} r={12} fill="var(--color-white)"
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <text x={mcx} y={add1Y + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">+</text>
+
+        {/* ── FFN sub-layer ── */}
+        {box(ln2Y, "LayerNorm", "var(--color-orange)")}
+        {box(ffnY, "Feed-Forward  (d_ff = 4D)", "var(--color-green)", true)}
+
+        {/* ⊕₂ */}
+        <circle cx={mcx} cy={add2Y} r={12} fill="var(--color-white)"
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <text x={mcx} y={add2Y + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">+</text>
+
+        {/* Output */}
+        <text x={mcx} y={outY + 12} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">x'  (T × D)</text>
+
+        {/* Main-path downward arrows */}
+        {vArrow(mcx, inputY + bh, ln1Y)}
+        {vArrow(mcx, ln1Y + bh, mhaY)}
+        {vArrow(mcx, mhaY + bh, add1Y - 12)}
+        {vArrow(mcx, add1Y + 12, ln2Y)}
+        {vArrow(mcx, ln2Y + bh, ffnY)}
+        {vArrow(mcx, ffnY + bh, add2Y - 12)}
+        {vArrow(mcx, add2Y + 12, outY)}
+
+        {/* ── Residual bypass rail (right side) ── */}
+        {/* Arm from input box right edge to rail */}
+        <line x1={bx + bw} y1={inputY + bh / 2} x2={railX} y2={inputY + bh / 2}
+          stroke="var(--muted)" strokeWidth={1.2} />
+        {/* Vertical rail from input to ⊕₂ */}
+        <line x1={railX} y1={inputY + bh / 2} x2={railX} y2={add2Y}
+          stroke="var(--muted)" strokeWidth={1.2} />
+
+        {/* Arm to ⊕₁ (bypass 1) */}
+        <line x1={railX} y1={add1Y} x2={mcx + 12 + 3} y2={add1Y}
+          stroke="var(--muted)" strokeWidth={1.2} />
+        <polygon points={ap(railX, add1Y, mcx + 12, add1Y)} fill="var(--muted)" />
+
+        {/* Arm to ⊕₂ (bypass 2 — carries residual after ⊕₁) */}
+        <line x1={railX} y1={add2Y} x2={mcx + 12 + 3} y2={add2Y}
+          stroke="var(--muted)" strokeWidth={1.2} />
+        <polygon points={ap(railX, add2Y, mcx + 12, add2Y)} fill="var(--muted)" />
+
+        {/* "residual" label on rail */}
+        <text x={railX + 5} y={mcx + 40} textAnchor="start"
+          fontFamily="var(--font-code)" fontSize={8} fill="var(--muted)"
+          transform={`rotate(90, ${railX + 5}, ${mcx + 38})`}
+        >residual</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 2} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >Pre-LN: x = x + SubLayer(LayerNorm(x))</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
