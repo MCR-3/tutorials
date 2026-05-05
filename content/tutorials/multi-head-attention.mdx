@@ -1,0 +1,190 @@
+---
+title: "Multi-Head Attention"
+description: "Running H independent attention heads in parallel so each can specialise in a different type of dependency."
+category: "transformers"
+order: 4
+date: "2026-05-01"
+---
+
+Single-head attention produces one weighted combination of the value vectors. But the previous article showed that attention weights encode a specific pattern — subject-verb dependencies, modifier-noun relationships, pronoun-antecedent coreference — and a single distribution over $T$ positions cannot specialize in all of these simultaneously. When the head focuses on syntax, it may lose track of semantics; when it attends to nearby context, it may miss distant references.
+
+**Multi-head attention** addresses this by running $H$ independent attention computations in parallel, each free to learn a different projection of the input and a different type of dependency.
+
+## H Parallel Heads
+
+Each head $h \in \{1, \ldots, H\}$ has its own set of learned projection matrices:
+
+$$
+\mathbf{W}_Q^h \in \mathbb{R}^{D \times d_k}, \quad \mathbf{W}_K^h \in \mathbb{R}^{D \times d_k}, \quad \mathbf{W}_V^h \in \mathbb{R}^{D \times d_v}
+$$
+
+Given the input $\mathbf{X} \in \mathbb{R}^{T \times D}$, head $h$ computes its own query, key, and value matrices and runs scaled dot-product attention:
+
+$$
+\text{head}_h = \text{Attention}\!\left(\mathbf{X}\mathbf{W}_Q^h,\; \mathbf{X}\mathbf{W}_K^h,\; \mathbf{X}\mathbf{W}_V^h\right) \in \mathbb{R}^{T \times d_v}
+$$
+
+The $H$ head outputs are concatenated along the last dimension:
+
+$$
+\text{Concat}(\text{head}_1, \ldots, \text{head}_H) \in \mathbb{R}^{T \times Hd_v}
+$$
+
+A final learned projection $\mathbf{W}_O \in \mathbb{R}^{Hd_v \times D}$ maps this back to dimension $D$:
+
+$$
+\text{MHA}(\mathbf{X}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_H)\,\mathbf{W}_O \in \mathbb{R}^{T \times D}
+$$
+
+The standard choice $d_k = d_v = D/H$ makes the concatenated output exactly $T \times D$, so the model dimension is preserved.
+
+<MultiHeadDiagram />
+
+## Parameter Count and Efficient Computation
+
+With $d_k = d_v = D/H$, the parameter count is:
+
+| Component | Matrices | Parameters |
+|-----------|---------|-----------|
+| Queries | $H \times \mathbf{W}_Q^h$ | $H \times D \times (D/H) = D^2$ |
+| Keys | $H \times \mathbf{W}_K^h$ | $D^2$ |
+| Values | $H \times \mathbf{W}_V^h$ | $D^2$ |
+| Output | $\mathbf{W}_O$ | $D^2$ |
+| **Total** | | **$4D^2$** |
+
+The total is the same as a single attention head with $d_k = D$ plus an output projection — the model has not become larger, it has redistributed the same budget across $H$ specialized subspaces. For GPT-2 small ($D = 768$, $H = 12$): $4 \times 768^2 \approx 2.36$ million parameters per attention layer.
+
+**Practical implementation.** Computing $H$ separate matrix multiplications would be inefficient. In practice, all heads are computed in a single batched operation: the projection $\mathbf{X}\mathbf{W}_Q$ (where $\mathbf{W}_Q \in \mathbb{R}^{D \times D}$ bundles all $H$ head projections) produces $\mathbf{Q} \in \mathbb{R}^{T \times D}$, which is then reshaped to $(T, H, d_k)$ and transposed to $(H, T, d_k)$. All $H$ sets of attention scores are then computed simultaneously in a single batched matrix multiplication. This keeps the GPU fully utilised.
+
+## What Heads Learn
+
+The projections $\mathbf{W}_Q^h$ and $\mathbf{W}_K^h$ map the input to different $d_k$-dimensional subspaces. Head $h$ computes dot-product similarities in the subspace defined by its projections. Subspaces that are useful for detecting subject-verb agreement look different from those useful for detecting coreference, so different heads can specialize.
+
+Empirical analyses of trained transformers consistently find that heads do develop distinct patterns. Some heads attend locally (a few positions on each side), others look globally across the sequence. Some heads appear to track syntactic structure, others semantic similarity, others copying behaviour (attending to the same token type at a different position). This specialization is not enforced by the architecture — it emerges from training on a language modelling objective.
+
+## An Algebraic View
+
+The final output can be decomposed as a sum over heads:
+
+$$
+\text{MHA}(\mathbf{X}) = \sum_{h=1}^{H} \text{head}_h \cdot \mathbf{W}_O^{(h)}
+$$
+
+where $\mathbf{W}_O^{(h)} \in \mathbb{R}^{d_v \times D}$ is the row slice of $\mathbf{W}_O$ corresponding to head $h$. Each head independently computes an attention-weighted representation, then projects it to the full $D$-dimensional space. The final output is the sum of $H$ such contributions.
+
+This view clarifies what $\mathbf{W}_O$ does: it mixes the heads' individual outputs into a single representation, allowing the model to combine information gathered by different specialised attention patterns.
+
+## Typical Hyperparameters
+
+| Model | $D$ | $H$ | $d_k = D/H$ |
+|-------|-----|-----|------------|
+| Original Transformer (base) | 512 | 8 | 64 |
+| BERT-base | 768 | 12 | 64 |
+| GPT-2 small | 768 | 12 | 64 |
+| GPT-2 medium | 1,024 | 16 | 64 |
+| GPT-2 large | 1,280 | 20 | 64 |
+
+The per-head dimension $d_k = 64$ is remarkably consistent across models of very different scales. The convention $d_k = 64$ (equivalently, one head per 64 dimensions of $D$) has proven robust and is widely adopted. Increasing $H$ while keeping $d_k$ fixed simply increases $D$.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+class MultiHeadAttention:
+    def __init__(self, D, H):
+        assert D % H == 0
+        self.H, self.dk = H, D // H
+        s = 0.02
+        # Stacked projections: D → D (all heads at once)
+        self.WQ = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
+        self.WK = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
+        self.WV = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
+        self.WO = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
+
+    def forward(self, x):
+        T, D = x.shape
+        H, dk = self.H, self.dk
+        # Project once for all heads: (T, D) → (T, D)
+        Q = x @ self.WQ   # then reshape to (T, H, dk) in practice
+        K = x @ self.WK
+        V = x @ self.WV
+        # For illustration: manually split first two heads
+        q1, q2 = Q[:, :dk], Q[:, dk:2*dk]   # head 1 and 2 (simplified)
+        k1, k2 = K[:, :dk], K[:, dk:2*dk]
+        v1, v2 = V[:, :dk], V[:, dk:2*dk]
+        # Single attention per head
+        A1 = (q1 @ k1.T / dk**0.5).softmax()
+        A2 = (q2 @ k2.T / dk**0.5).softmax()
+        h1, h2 = A1 @ v1, A2 @ v2
+        # Concat and project
+        combined = sg.concat([h1, h2], axis=-1)   # (T, 2*dk)
+        return combined @ self.WO[:2*dk]           # (T, D)
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model: int, num_heads: int):
+        super().__init__()
+        assert d_model % num_heads == 0
+        self.H  = num_heads
+        self.dk = d_model // num_heads
+
+        # Single projection for all heads (more efficient than H separate ones)
+        self.W_Q = nn.Linear(d_model, d_model, bias=False)
+        self.W_K = nn.Linear(d_model, d_model, bias=False)
+        self.W_V = nn.Linear(d_model, d_model, bias=False)
+        self.W_O = nn.Linear(d_model, d_model, bias=False)
+
+    def forward(self, x: torch.Tensor, causal: bool = False) -> torch.Tensor:
+        B, T, D = x.shape
+
+        # Project and reshape to (B, H, T, dk)
+        def split_heads(w):
+            return w.view(B, T, self.H, self.dk).transpose(1, 2)
+
+        Q = split_heads(self.W_Q(x))   # (B, H, T, dk)
+        K = split_heads(self.W_K(x))
+        V = split_heads(self.W_V(x))
+
+        # All H heads computed in parallel
+        scores = Q @ K.transpose(-2, -1) / math.sqrt(self.dk)  # (B, H, T, T)
+
+        if causal:
+            mask = torch.triu(torch.ones(T, T, device=x.device), diagonal=1).bool()
+            scores = scores.masked_fill(mask, float('-inf'))
+
+        A   = F.softmax(scores, dim=-1)                         # (B, H, T, T)
+        out = A @ V                                             # (B, H, T, dk)
+
+        # Merge heads: (B, H, T, dk) → (B, T, H·dk) = (B, T, D)
+        out = out.transpose(1, 2).contiguous().view(B, T, D)
+
+        return self.W_O(out)    # (B, T, D)
+
+# Usage
+mha = MultiHeadAttention(d_model=512, num_heads=8)  # dk = 64 per head
+x = torch.randn(2, 10, 512)                          # batch=2, seq_len=10
+z = mha(x, causal=True)
+print(z.shape)   # torch.Size([2, 10, 512])
+
+# Parameter count: 4 × 512² = 1,048,576
+print(sum(p.numel() for p in mha.parameters()))   # 1,048,576
+
+# PyTorch's native implementation (uses Flash Attention on GPU)
+mha_torch = nn.MultiheadAttention(
+    embed_dim=512, num_heads=8, batch_first=True, bias=False
+)
+out, weights = mha_torch(x, x, x, need_weights=False)
+print(out.shape)   # torch.Size([2, 10, 512])
+```
+
+---
+
+Multi-head attention is complete: $H$ parallel heads each compute their own attention-weighted representation, and the concatenated result is projected back to dimension $D$. A full transformer layer wraps this operation in two additional components — layer normalisation to stabilise training and a position-wise feed-forward network to transform the aggregated representations. The next article assembles these into the complete transformer block.

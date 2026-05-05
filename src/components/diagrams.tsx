@@ -2491,6 +2491,117 @@ export function AttentionMapDiagram() {
   );
 }
 
+export function MultiHeadDiagram() {
+  const svgW = 420, svgH = 258;
+  const cx = svgW / 2;   // 210
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3).toFixed(1)},${(by + ux * 3).toFixed(1)} ${(bx + uy * 3).toFixed(1)},${(by - ux * 3).toFixed(1)}`;
+  }
+
+  // Positions of head columns: head₁, head₂, "...", head_H
+  const headCxs = [100, 195, 308] as const;  // centers of head₁, head₂, head_H
+  const headBx = headCxs.map(cx => cx - 40); // box left edges (w=80)
+  const headW = 80, headH = 85;
+  const headY = 55;
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Input X */}
+        <rect x={50} y={12} width={320} height={28} rx={3}
+          fill="var(--muted)" fillOpacity={0.08}
+          stroke="var(--muted)" strokeWidth={1.5} />
+        <text x={210} y={30} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">X  (T × D)</text>
+
+        {/* Arrows from X to each head */}
+        {headCxs.map((hcx, i) => (
+          <g key={`xa-${i}`}>
+            <line x1={hcx} y1={40} x2={hcx} y2={headY - 4}
+              stroke="var(--border-strong)" strokeWidth={1.2} />
+            <polygon points={ap(hcx, 40, hcx, headY - 4)} fill="var(--border-strong)" />
+          </g>
+        ))}
+
+        {/* Head boxes */}
+        {([0, 1, 2] as const).map((i) => (
+          <g key={`head-${i}`}>
+            <rect x={headBx[i]} y={headY} width={headW} height={headH} rx={3}
+              fill="var(--color-blue)" fillOpacity={0.07}
+              stroke="var(--color-blue)" strokeWidth={1.5} />
+            <text x={headCxs[i]} y={headY + 20} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)"
+              fontWeight={600}
+            >{["head₁", "head₂", "head_H"][i]}</text>
+            <text x={headCxs[i]} y={headY + 36} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)"
+            >{["W_Q¹ W_K¹ W_V¹", "W_Q² W_K² W_V²", "W_Q^H W_K^H W_V^H"][i]}</text>
+            <text x={headCxs[i]} y={headY + 52} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">Attn(Q,K,V)</text>
+          </g>
+        ))}
+
+        {/* "..." between head₂ and head_H */}
+        <text x={252} y={headY + headH / 2 + 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={15} fill="var(--muted)">···</text>
+
+        {/* Arrows from heads to concat bar */}
+        {headCxs.map((hcx, i) => (
+          <g key={`ha-${i}`}>
+            <line x1={hcx} y1={headY + headH + 2} x2={hcx} y2={152}
+              stroke="var(--border-strong)" strokeWidth={1.2} />
+            <polygon points={ap(hcx, headY + headH + 2, hcx, 152)}
+              fill="var(--border-strong)" />
+          </g>
+        ))}
+
+        {/* Concat bar */}
+        <rect x={50} y={152} width={320} height={26} rx={3}
+          fill="var(--color-orange)" fillOpacity={0.09}
+          stroke="var(--color-orange)" strokeWidth={1.5} />
+        <text x={210} y={169} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)"
+        >{"Concat(head₁ | head₂ | ··· | head_H)   (T × D)"}</text>
+
+        {/* Arrow to W_O */}
+        <line x1={cx} y1={178} x2={cx} y2={192}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon points={ap(cx, 178, cx, 192)} fill="var(--border-strong)" />
+
+        {/* W_O box */}
+        <rect x={115} y={192} width={190} height={26} rx={3}
+          fill="var(--color-green)" fillOpacity={0.09}
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <text x={cx} y={209} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)"
+        >W_O  (D × D)  output projection</text>
+
+        {/* Arrow to Z */}
+        <line x1={cx} y1={218} x2={cx} y2={230}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon points={ap(cx, 218, cx, 230)} fill="var(--border-strong)" />
+
+        {/* Output Z */}
+        <text x={cx} y={241} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)"
+          fontWeight={600}
+        >Z  (T × D)</text>
+
+        {/* Caption */}
+        <text x={cx} y={svgH - 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >H heads run in parallel; each attends in its own d_k = D/H subspace</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
