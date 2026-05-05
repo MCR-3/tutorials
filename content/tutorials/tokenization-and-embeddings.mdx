@@ -1,0 +1,154 @@
+---
+title: "Tokenization & Embeddings"
+description: "Converting raw text into the numerical vectors that every sequence model requires."
+category: "transformers"
+order: 1
+date: "2026-05-01"
+---
+
+The previous section identified the structural limits of recurrent networks. Addressing them requires a different architecture — one without sequential dependencies, without a single bottleneck, and with direct position-to-position connections. But before any architecture can process text, a more fundamental question must be answered: how does raw text become numbers at all?
+
+This article covers the first two steps of that conversion: **tokenization**, which breaks text into discrete pieces, and **embeddings**, which map each piece to a dense vector.
+
+## The Problem with Raw Text
+
+Neural networks operate on real-valued vectors. A string like "the cat sat" is not a vector — it is a sequence of characters, each of which is itself a discrete symbol. The naive approaches to converting text to numbers each have a significant drawback.
+
+**Character-level.** Treat every character as a unit. A 500-word document becomes roughly 2,500 characters. The model must learn that "t", "h", "e" together spell "the" — a pattern that is learnable but requires long sequences and many layers to capture word-level semantics.
+
+**Word-level.** Treat every word as a unit. A large corpus contains hundreds of thousands of distinct words, so the vocabulary explodes. Any word not seen during training is unknown and cannot be represented. Morphologically rich languages — where "play", "plays", "playing", "played" are all separate words — are handled poorly.
+
+**Subword tokenization** resolves both problems by splitting text into pieces that are neither characters nor full words, but something in between.
+
+## Byte Pair Encoding
+
+The dominant method for subword tokenization is **Byte Pair Encoding** (BPE), used by GPT-2, GPT-3, and most modern language models. The algorithm is straightforward:
+
+1. Start with every character (or byte) in the training corpus as a separate token.
+2. Count the frequency of every adjacent pair of tokens.
+3. Merge the most frequent pair into a single new token.
+4. Repeat steps 2–3 until the vocabulary reaches the target size $V$.
+
+**Example.** A corpus containing "transform", "transformers", and "forming" starts with individual characters. The pairs "f"+"o", "o"+"r", "r"+"m" all appear frequently. After several merges, "form" emerges as a single token. Later, "trans"+"form" merges into "transform". Common words end up as single tokens; rare words are split into recognisable fragments.
+
+The resulting vocabulary contains frequent words as single tokens, common morphemes (prefixes, suffixes) as tokens, and individual characters as a fallback for anything rare. No word is truly "unknown" — any string can be tokenised as a sequence of single bytes if necessary.
+
+## Tokens and Vocabulary
+
+After BPE training, the tokenizer assigns a unique integer ID to each token. The **vocabulary** is the complete set of tokens, typically $V = 32{,}000$–$100{,}000$ entries. A few vocabulary slots are reserved for **special tokens** with defined roles:
+
+- `<|endoftext|>` (or `<eos>`): signals the end of a document.
+- `<pad>`: padding for batches of unequal length.
+- `[CLS]`, `[SEP]`: in BERT-style models, mark the start of the sequence and separate two segments.
+
+Tokenising "transformers are great" produces something like:
+
+<TokenizationDiagram />
+
+Note that the space before " are" and " great" is included in the token — GPT-style tokenizers absorb leading spaces into the token they precede. This is a convention, not a fundamental requirement, but it simplifies handling of word boundaries.
+
+## Embeddings: From IDs to Vectors
+
+A token ID is an integer — say, $4285$. As a raw number, it conveys nothing about meaning: the distance between $4285$ and $4286$ is numerically $1$, but semantically the two tokens might be completely unrelated. Raw integers are the wrong input for a neural network.
+
+The solution is an **embedding table** $\mathbf{E} \in \mathbb{R}^{V \times D}$: a matrix with one row per vocabulary entry and $D$ columns. Each row is a dense vector of real numbers that represents the corresponding token. The **embedding operation** is simply a row lookup:
+
+$$
+\text{embed}(i) = \mathbf{E}[i] \in \mathbb{R}^D
+$$
+
+For a sequence of token IDs $[i_1, i_2, \ldots, i_T]$, embedding produces a sequence of vectors $[\mathbf{e}_1, \mathbf{e}_2, \ldots, \mathbf{e}_T]$ where each $\mathbf{e}_t \in \mathbb{R}^D$.
+
+<EmbeddingLookupDiagram />
+
+The embedding table is a trainable weight matrix. Its rows are initialised randomly and updated by gradient descent alongside every other parameter in the model. During training, the model nudges each row so that tokens with similar roles in similar contexts end up with similar vectors.
+
+**Why dense vectors?** In a one-hot encoding, every token would be represented by a vector of length $V$ with a single $1$ and all other entries $0$. These vectors are sparse, orthogonal, and carry no semantic information. Dense embeddings in $\mathbb{R}^D$ with $D \ll V$ can encode relationships: tokens that behave similarly in similar contexts converge to nearby points in the embedding space. After training, words with related meanings — "king", "queen", "prince" — cluster together; opposites sit on opposite sides; syntactic roles (nouns, verbs) occupy distinct regions.
+
+## Embedding Dimension
+
+The dimension $D$ of the embedding vectors is a hyperparameter that controls the model's representational capacity:
+
+| Model | Vocabulary $V$ | Dimension $D$ | Embedding parameters |
+|-------|-------------|--------------|---------------------|
+| Small (demo) | 10,000 | 64 | 640 K |
+| Original Transformer | 37,000 | 512 | 19 M |
+| BERT-base | 30,522 | 768 | 23 M |
+| GPT-2 (small) | 50,257 | 768 | 38.6 M |
+| GPT-2 (large) | 50,257 | 1,280 | 64.3 M |
+
+The embedding table is often the largest single weight matrix in a small transformer. In large models with $V = 50{,}000$ and $D = 768$, it accounts for tens of millions of parameters before any attention or feed-forward layer.
+
+In many language models the embedding table and the final output projection share the same weights (transposed). The output layer maps a $D$-dimensional hidden state back to logits over $V$ tokens: $\hat{\mathbf{y}} = \mathbf{h} \mathbf{E}^\top \in \mathbb{R}^V$. Tying these weights reduces the parameter count and has been shown to improve perplexity.
+
+## What Embeddings Do Not Yet Represent
+
+The embedding $\mathbf{E}[i]$ depends only on the token ID $i$, not on where the token appears in the sequence or what surrounds it. This means:
+
+- The word "bank" produces the same vector whether it means a financial institution or a riverbank. Context is not yet incorporated.
+- Position 1 and position 50 of the same token produce identical vectors. The model cannot distinguish them.
+- The order of the token sequence is invisible: $[\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3]$ is numerically the same set of vectors as $[\mathbf{e}_2, \mathbf{e}_1, \mathbf{e}_3]$ if the model has no additional mechanism.
+
+The embedding represents token **type** — what the token is — but not token **instance** — where it appears and what it means in this particular context. Both position and context will be added by subsequent steps in the architecture. The next article covers the first of those: positional encoding.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+V, D = 1000, 64  # vocabulary size, embedding dimension
+
+# Embedding table: each row is one token's vector
+E = sg.Tensor(np.random.randn(V, D) * 0.02, requires_grad=True)
+
+# Token lookup: select rows by ID
+token_ids = [4, 42, 7, 15]
+embeddings = sg.Tensor(np.array([E.data[i] for i in token_ids]))
+# embeddings.shape: (4, 64) — one 64-dim vector per token
+
+# During training, gradients update only the rows that were accessed
+loss = embeddings.sum()
+loss.backward()
+# E.grad has non-zero rows only at indices 4, 42, 7, 15
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+# nn.Embedding is exactly a learnable lookup table
+embedding = nn.Embedding(num_embeddings=50257, embedding_dim=768)
+
+# Sequences of token IDs (batch=2, seq_len=6)
+token_ids = torch.tensor([[262, 3797, 4332, 389, 1049, 0],
+                           [8543, 641,  389,  4665, 0,   0]])
+
+# Lookup: integers → dense vectors
+vectors = embedding(token_ids)
+print(vectors.shape)   # torch.Size([2, 6, 768])
+
+# Tied weights: share embedding and output projection
+output_logits = vectors @ embedding.weight.T   # (2, 6, 50257)
+
+# Tokenization with the GPT-2 tokenizer
+from transformers import GPT2Tokenizer
+
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+text = "transformers are great"
+ids  = tokenizer.encode(text)
+print(ids)                       # e.g. [8534, 641, 389, 1049] — actual GPT-2 IDs
+print(tokenizer.decode(ids))     # "transformers are great"
+
+# Roundtrip: decode individual tokens
+for tok_id in ids:
+    print(f"{tok_id:6d}  '{tokenizer.decode([tok_id])}'")
+# 8534  'transform'
+#  641  'ers'
+#  389  ' are'
+# 1049  ' great'
+```
+
+---
+
+Tokenization breaks text into discrete pieces; embeddings map each piece to a point in a continuous vector space. The resulting sequence of vectors $[\mathbf{e}_1, \ldots, \mathbf{e}_T]$ is the common input format for any sequence model. But these vectors carry no positional information — the model sees the same representations regardless of word order. The next article adds that missing dimension.

@@ -2114,6 +2114,183 @@ export function EncoderBottleneckDiagram() {
   );
 }
 
+export function TokenizationDiagram() {
+  const svgW = 370, svgH = 130;
+
+  // Tokens with their display strings, colors, widths, and IDs
+  const tokens = [
+    { text: "transform", color: "var(--color-blue)", w: 82, id: 8534 },
+    { text: "ers", color: "var(--color-orange)", w: 42, id: 641 },
+    { text: " are", color: "var(--color-green)", w: 50, id: 389 },
+    { text: " great", color: "var(--pink)", w: 62, id: 1049 },
+  ] as const;
+
+  const bh = 28, boxY = 48, gap = 6;
+  const totalW = tokens.reduce((s, t) => s + t.w, 0) + (tokens.length - 1) * gap;
+  const startX = (svgW - totalW) / 2;
+
+  let xCursor = startX;
+  const boxes = tokens.map((t) => {
+    const x = xCursor;
+    xCursor += t.w + gap;
+    return { ...t, x };
+  });
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Full text at top */}
+        <text x={svgW / 2} y={18} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)"
+        >{"transformers are great"}</text>
+        {/* Arrow down */}
+        <line x1={svgW / 2} y1={22} x2={svgW / 2} y2={36} stroke="var(--muted)" strokeWidth={1} />
+        <polygon points={`${svgW / 2},38 ${svgW / 2 - 3},33 ${svgW / 2 + 3},33`} fill="var(--muted)" />
+
+        {/* Token boxes */}
+        {boxes.map(({ text, color, w, id, x }) => (
+          <g key={text}>
+            <rect x={x} y={boxY} width={w} height={bh} rx={3}
+              fill={color} fillOpacity={0.10}
+              stroke={color} strokeWidth={1.5} />
+            <text x={x + w / 2} y={boxY + 18} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={11} fill={color}
+            >{text}</text>
+            {/* Token ID below box */}
+            <text x={x + w / 2} y={boxY + bh + 16} textAnchor="middle"
+              fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+            >{id}</text>
+          </g>
+        ))}
+
+        {/* "token IDs" label */}
+        <text x={startX - 8} y={boxY + bh + 16} textAnchor="end"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">id:</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >subword tokens — spaces absorbed into the following token</text>
+      </svg>
+    </div>
+  );
+}
+
+export function EmbeddingLookupDiagram() {
+  const svgW = 420, svgH = 155;
+
+  // Partial embedding table: show 5 rows around the queried ID
+  const queryId = 4285;
+  const rowIds = [4283, 4284, 4285, 4286, 4287];
+  const cw = 28, ch = 20;  // cell width/height
+  const cols = 4;           // visible columns
+  const rowGap = 2;
+  const mX = 155, mY = 30; // matrix top-left
+
+  const tableH = rowIds.length * (ch + rowGap) - rowGap;
+  const tableW = cols * cw;
+  const midY = mY + tableH / 2;
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Labels */}
+        <text x={62} y={20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">token</text>
+        <text x={mX + tableW / 2} y={20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"embedding table  E ∈ ℝ^(V×D)"}</text>
+        <text x={345} y={20} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"vector ∈ ℝ^D"}</text>
+
+        {/* Token box */}
+        <rect x={15} y={midY - 18} width={84} height={36} rx={3}
+          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={57} y={midY - 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">transform</text>
+        <text x={57} y={midY + 10} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">{`id = ${queryId}`}</text>
+
+        {/* Arrow: token → matrix */}
+        <line x1={99} y1={midY} x2={147} y2={midY}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon
+          points={`148,${midY} 142,${midY - 3} 142,${midY + 3}`}
+          fill="var(--border-strong)" />
+
+        {/* Embedding table cells */}
+        {rowIds.map((rid, ri) => {
+          const y = mY + ri * (ch + rowGap);
+          const isActive = rid === queryId;
+          return (
+            <g key={rid}>
+              {/* Row ID label */}
+              <text x={mX - 5} y={y + ch / 2 + 4} textAnchor="end"
+                fontFamily="var(--font-code)" fontSize={8}
+                fill={isActive ? "var(--color-blue)" : "var(--muted)"}
+                fontWeight={isActive ? 700 : 400}
+              >{rid}</text>
+              {/* Cells */}
+              {Array.from({ length: cols }, (_, ci) => (
+                <rect key={ci}
+                  x={mX + ci * cw} y={y} width={cw - 1} height={ch} rx={1}
+                  fill={isActive ? "var(--color-blue)" : "var(--color-white)"}
+                  fillOpacity={isActive ? 0.12 : 1}
+                  stroke={isActive ? "var(--color-blue)" : "var(--border)"}
+                  strokeWidth={isActive ? 1.5 : 0.7}
+                />
+              ))}
+              {/* "..." for non-highlighted rows */}
+              {!isActive && (
+                <text x={mX + tableW / 2} y={y + ch / 2 + 4} textAnchor="middle"
+                  fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">· · · ·</text>
+              )}
+              {/* Actual values for highlighted row */}
+              {isActive && (
+                ["0.12", "−0.30", "0.55", "0.08"].map((v, ci) => (
+                  <text key={ci} x={mX + ci * cw + cw / 2} y={y + ch / 2 + 4}
+                    textAnchor="middle"
+                    fontFamily="var(--font-code)" fontSize={8}
+                    fill="var(--color-blue)" fontWeight={700}
+                  >{v}</text>
+                ))
+              )}
+            </g>
+          );
+        })}
+        {/* "..." below table */}
+        <text x={mX + tableW / 2} y={mY + tableH + 12} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">⋮</text>
+
+        {/* Arrow: matrix → vector */}
+        <line x1={mX + tableW + 3} y1={midY} x2={290} y2={midY}
+          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <polygon
+          points={`292,${midY} 286,${midY - 3} 286,${midY + 3}`}
+          fill="var(--border-strong)" />
+
+        {/* Output vector box */}
+        <rect x={293} y={midY - 18} width={112} height={36} rx={3}
+          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={349} y={midY - 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)"
+        >{"[0.12, −0.30,"}</text>
+        <text x={349} y={midY + 9} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)"
+        >{" 0.55, 0.08, …]"}</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
+        >{"id 4285 selects row 4285 of E — a D-dimensional learned vector"}</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
