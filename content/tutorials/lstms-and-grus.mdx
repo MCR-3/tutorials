@@ -1,0 +1,192 @@
+---
+title: "LSTMs & GRUs"
+description: "Gated cells that selectively retain, update, and expose information across long sequences."
+category: "recurrent-networks"
+order: 3
+date: "2026-05-01"
+---
+
+The previous article showed that vanilla RNNs fail on long sequences because gradients must pass through a product of matrices that either shrinks to zero or blows up. The root cause is the state update rule $\mathbf{h}_t = \tanh(\mathbf{W}_h \mathbf{h}_{t-1} + \ldots)$: every step multiplies the gradient by $\mathbf{W}_h^\top \cdot \operatorname{diag}(\tanh')$, and this factor is almost never close to one for all dimensions simultaneously.
+
+The fix is architectural: replace the overwriting update with an **additive** one, and let the network control which information to carry forward. This idea — choosing what to keep and what to discard at each step — is the gating mechanism behind both LSTMs and GRUs.
+
+## Two States Instead of One
+
+The **Long Short-Term Memory** (LSTM), introduced by Hochreiter and Schmidhuber in 1997, adds a second state to the cell: the **cell state** $\mathbf{c}_t \in \mathbb{R}^D$, which serves as a long-term memory, distinct from the **hidden state** $\mathbf{h}_t$ that is used as the output.
+
+The cell state is updated **additively**, not through a squashing nonlinearity:
+
+$$
+\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \mathbf{g}_t
+$$
+
+Two terms add together: an old piece of memory multiplied by a forget factor $\mathbf{f}_t$, and a new piece of content $\mathbf{g}_t$ multiplied by an input factor $\mathbf{i}_t$. Both $\mathbf{f}_t$ and $\mathbf{i}_t$ are vectors of values in $(0, 1)$ — computed by sigmoid units — and they act as element-wise gates that scale each dimension independently.
+
+The hidden state is then computed from the cell state:
+
+$$
+\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)
+$$
+
+A third gate $\mathbf{o}_t$ controls how much of the cell state is exposed as output. The cell state itself remains bounded inside the network; only the gated version reaches the output.
+
+## The Four Gate Equations
+
+All gates and the candidate update take the same input: the concatenation $[\mathbf{h}_{t-1},\, \mathbf{x}_t]$. Each has its own weight matrix and bias:
+
+$$
+\mathbf{f}_t = \sigma(\mathbf{W}_f [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_f) \qquad \text{(forget gate)}
+$$
+$$
+\mathbf{i}_t = \sigma(\mathbf{W}_i [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_i) \qquad \text{(input gate)}
+$$
+$$
+\mathbf{g}_t = \tanh(\mathbf{W}_g [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_g) \qquad \text{(candidate)}
+$$
+$$
+\mathbf{o}_t = \sigma(\mathbf{W}_o [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_o) \qquad \text{(output gate)}
+$$
+
+The sigmoid function maps each element to $(0,1)$:
+- $\mathbf{f}_t \approx 1$: keep the corresponding dimension of $\mathbf{c}_{t-1}$ unchanged.
+- $\mathbf{f}_t \approx 0$: erase that dimension — forget the information stored there.
+- $\mathbf{i}_t$ controls how much of the candidate $\mathbf{g}_t$ enters the cell.
+- $\mathbf{o}_t$ controls what the hidden state exposes from the cell.
+
+The parameter count is four times the vanilla RNN's per-gate count: $4D(D + I + 1)$ parameters in total.
+
+<LSTMDiagram />
+
+## Why This Solves the Vanishing Gradient
+
+The critical observation is that the cell state gradient propagates additively. When backpropagating through the cell update:
+
+$$
+\frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-1}} = \operatorname{diag}(\mathbf{f}_t)
+$$
+
+The gradient of the loss with respect to $\mathbf{c}_{t-k}$ is:
+
+$$
+\frac{\partial L}{\partial \mathbf{c}_{t-k}} = \frac{\partial L}{\partial \mathbf{c}_t} \odot \mathbf{f}_t \odot \mathbf{f}_{t-1} \odot \cdots \odot \mathbf{f}_{t-k+1}
+$$
+
+This is an element-wise product of forget gates — not a matrix power. When the forget gates are near one (the cell chooses to remember), the product of ones preserves the gradient magnitude exactly. The network can **learn** to hold its forget gates open for dimensions that need to propagate long-range information, effectively creating a direct gradient path over many steps.
+
+This is in sharp contrast to the vanilla RNN, where the gradient factor $\mathbf{W}_h^\top \cdot \operatorname{diag}(\tanh')$ is fixed by the weight matrix and cannot be controlled per-step or per-dimension.
+
+## GRU: A Simpler Alternative
+
+The **Gated Recurrent Unit** (GRU, Cho et al. 2014) achieves similar long-range capability with fewer parameters by eliminating the separate cell state. A single hidden state $\mathbf{h}_t$ serves as both memory and output.
+
+The GRU uses two gates instead of three:
+
+**Reset gate** $\mathbf{r}_t = \sigma(\mathbf{W}_r [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_r)$
+
+Controls how much of the previous hidden state to use when computing the new candidate. When $\mathbf{r}_t \approx 0$, the candidate ignores the past entirely.
+
+**Update gate** $\mathbf{z}_t = \sigma(\mathbf{W}_z [\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_z)$
+
+Controls the balance between keeping the old state and adopting the new candidate.
+
+**Candidate** $\tilde{\mathbf{h}}_t = \tanh(\mathbf{W}_h [\mathbf{r}_t \odot \mathbf{h}_{t-1},\, \mathbf{x}_t] + \mathbf{b}_h)$
+
+**Update:**
+
+$$
+\mathbf{h}_t = (1 - \mathbf{z}_t) \odot \tilde{\mathbf{h}}_t + \mathbf{z}_t \odot \mathbf{h}_{t-1}
+$$
+
+When $\mathbf{z}_t \approx 1$, the new state is mostly the old state — the unit is copying its memory forward. When $\mathbf{z}_t \approx 0$, the new state comes entirely from the candidate. The gradient path when $\mathbf{z}_t \approx 1$ is similarly direct: $\partial \mathbf{h}_t / \partial \mathbf{h}_{t-1} \approx \mathbf{z}_t \approx 1$, preserving gradient magnitude.
+
+The GRU uses $3D(D + I + 1)$ parameters — 25% fewer than the LSTM.
+
+## Comparing LSTM and GRU
+
+| Property | LSTM | GRU |
+|----------|------|-----|
+| States | Two ($\mathbf{c}_t$, $\mathbf{h}_t$) | One ($\mathbf{h}_t$) |
+| Gates | 3 sigmoid + 1 tanh | 2 sigmoid + 1 tanh |
+| Parameters | $4D(D+I+1)$ | $3D(D+I+1)$ |
+| Typical advantage | Very long sequences | Faster training, competitive accuracy |
+| Standard use case | Machine translation, language modelling | Time series, speech, shorter sequences |
+
+Neither consistently outperforms the other across all tasks. The GRU is often a good first choice for its simplicity and speed; the LSTM's separate cell state can give an edge on tasks with very long-range dependencies.
+
+Both handle sequences of hundreds of steps that break vanilla RNNs. The typical threshold where gated architectures clearly outperform vanilla RNNs is around 30–50 steps, though this depends heavily on the task.
+
+## In Code
+
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+class LSTMCell:
+    def __init__(self, input_size, hidden_size):
+        D, I = hidden_size, input_size
+        s = 0.01
+        # Four weight matrices (combined [h,x] input for efficiency)
+        self.W = sg.Tensor(np.random.randn(4*D, D+I) * s, requires_grad=True)
+        self.b = sg.Tensor(np.zeros(4*D),                   requires_grad=True)
+
+    def forward(self, x, h, c):
+        D = h.shape[0]
+        # Compute all four gates at once
+        z = sg.concat([h, x]) @ self.W.T + self.b   # (4D,)
+        f = z[:D].sigmoid()        # forget gate
+        i = z[D:2*D].sigmoid()     # input gate
+        g = z[2*D:3*D].tanh()      # candidate
+        o = z[3*D:4*D].sigmoid()   # output gate
+        # Cell and hidden state updates
+        c_new = f * c + i * g
+        h_new = o * c_new.tanh()
+        return h_new, c_new
+
+D, I = 4, 2
+cell = LSTMCell(I, D)
+x = sg.Tensor([1.0, 0.5])
+h0 = sg.Tensor(np.zeros(D))
+c0 = sg.Tensor(np.zeros(D))
+h1, c1 = cell.forward(x, h0, c0)
+h2, c2 = cell.forward(sg.Tensor([0.2, 0.8]), h1, c1)
+```
+
+```pytorch
+import torch
+import torch.nn as nn
+
+# nn.LSTMCell: processes one step at a time
+lstm_cell = nn.LSTMCell(input_size=2, hidden_size=4)
+
+x = torch.randn(3, 2)   # batch=3, input_size=2
+h = torch.zeros(3, 4)
+c = torch.zeros(3, 4)
+
+for t in range(5):              # process a sequence of 5 steps
+    h, c = lstm_cell(x, (h, c))
+
+print(h.shape)   # torch.Size([3, 4])
+print(c.shape)   # torch.Size([3, 4])
+
+# nn.LSTM: processes entire sequences (more efficient)
+lstm = nn.LSTM(input_size=2, hidden_size=4, batch_first=True)
+x_seq = torch.randn(3, 10, 2)          # batch=3, seq_len=10, input_size=2
+output, (hn, cn) = lstm(x_seq)
+print(output.shape)   # torch.Size([3, 10, 4]) — h_t at every step
+print(hn.shape)       # torch.Size([1, 3, 4])  — h_T only
+
+# GRU
+gru = nn.GRU(input_size=2, hidden_size=4, batch_first=True)
+output_gru, hn_gru = gru(x_seq)
+print(output_gru.shape)   # torch.Size([3, 10, 4])
+
+# Stacked LSTM (2 layers)
+lstm2 = nn.LSTM(input_size=2, hidden_size=4, num_layers=2, batch_first=True,
+                dropout=0.3)   # dropout between layers
+out, (h2, c2) = lstm2(x_seq)
+print(out.shape)   # torch.Size([3, 10, 4])
+```
+
+---
+
+LSTMs and GRUs solve the problem that vanilla RNNs could not: they give the network explicit control over what to remember and what to discard, enabling gradient flow over sequences of hundreds or thousands of steps. The next article examines the remaining limits of even these gated architectures — and why those limits motivated a completely different design.

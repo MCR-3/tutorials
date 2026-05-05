@@ -1830,6 +1830,102 @@ export function GradientFlowDiagram() {
   );
 }
 
+export function LSTMDiagram() {
+  const svgW = 460, svgH = 188;
+  const cY = 52;  // cell state lane y
+  const hY = 148; // h output y
+
+  function ap(x1: number, y1: number, x2: number, y2: number, as = 7): string {
+    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len, uy = dy / len;
+    const bx = x2 - ux * as, by = y2 - uy * as;
+    return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
+  }
+
+  const forgX = 125, addX = 250;
+  const tanhX = 355, outX = 390;
+
+  return (
+    <div className="my-8">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+
+        {/* Cell state highway: c_{t-1} → ⊙_f → + → c_t */}
+        <line x1={47} y1={cY} x2={108} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <polygon points={ap(47, cY, 110, cY)} fill="var(--color-green)" />
+        <line x1={140} y1={cY} x2={234} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <polygon points={ap(140, cY, 236, cY)} fill="var(--color-green)" />
+        <line x1={264} y1={cY} x2={432} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <polygon points={ap(264, cY, 434, cY)} fill="var(--color-green)" />
+
+        {/* Branch from cell lane down to tanh → ⊙_o → h_t */}
+        <line x1={tanhX} y1={cY} x2={tanhX} y2={105}
+          stroke="var(--color-green)" strokeWidth={1.5} />
+        <rect x={tanhX - 24} y={105} width={48} height={26}
+          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} rx={3} />
+        <text x={tanhX} y={122} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">tanh</text>
+        <line x1={tanhX} y1={131} x2={tanhX} y2={hY - 7}
+          stroke="var(--border-strong)" strokeWidth={1.5} />
+        <polygon points={ap(tanhX, 131, tanhX, hY)} fill="var(--border-strong)" />
+        <line x1={47} y1={hY} x2={425} y2={hY}
+          stroke="var(--color-green)" strokeWidth={2} />
+        <polygon points={ap(tanhX + 14, hY, 427, hY)} fill="var(--color-green)" />
+
+        {/* Gate input arrows (dashed blue, from the [h,x] band at y=93) */}
+        <line x1={forgX} y1={93} x2={forgX} y2={cY + 15}
+          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
+        <polygon points={ap(forgX, 93, forgX, cY + 15)} fill="var(--color-blue)" />
+        <line x1={addX} y1={93} x2={addX} y2={cY + 15}
+          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
+        <polygon points={ap(addX, 93, addX, cY + 15)} fill="var(--color-blue)" />
+        <line x1={outX} y1={93} x2={outX} y2={hY - 15}
+          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
+        <polygon points={ap(outX, 93, outX, hY - 15)} fill="var(--color-blue)" />
+
+        {/* [h,x] band label and dashed guideline */}
+        <text x={14} y={97} fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">[h, x]</text>
+        <line x1={50} y1={93} x2={410} y2={93}
+          stroke="var(--muted)" strokeWidth={0.7} strokeDasharray="2 3" />
+
+        {/* Gate labels above the dashed arrows */}
+        <text x={forgX} y={84} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">f_t</text>
+        <text x={addX} y={84} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">i_t ⊙ g_t</text>
+        <text x={outX} y={84} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">o_t</text>
+
+        {/* Text labels */}
+        <text x={0} y={cY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">{"c_{t-1}"}</text>
+        <text x={437} y={cY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">c_t</text>
+        <text x={437} y={hY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h_t</text>
+        <text x={0} y={hY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">{"h_{t-1}"}</text>
+
+        {/* ⊙_f (forget multiply) */}
+        <circle cx={forgX} cy={cY} r={15} fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={forgX} y={cY + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">×f</text>
+
+        {/* + (add new content) */}
+        <circle cx={addX} cy={cY} r={14} fill="var(--color-white)" stroke="var(--muted)" strokeWidth={1.5} />
+        <text x={addX} y={cY + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">+</text>
+
+        {/* ⊙_o (output gate multiply) */}
+        <circle cx={outX} cy={hY} r={14} fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
+        <text x={outX} y={hY + 4} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">×o</text>
+
+        {/* Caption */}
+        <text x={svgW / 2} y={svgH - 6} textAnchor="middle"
+          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+        >cell c (green): additive highway;  h_t = o_t ⊙ tanh(c_t)</text>
+      </svg>
+    </div>
+  );
+}
+
 export function BatchMatrixDiagram() {
   const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
   const X = [[1, 0], [0, 1], [1, 1]];
