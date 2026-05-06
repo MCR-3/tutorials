@@ -111,31 +111,64 @@ These techniques are not mutually exclusive. A typical deep network uses weight 
 
 ```simplegrad
 import simplegrad as sg
-import random
 
-# Inverted dropout
-def dropout(x: sg.Tensor, p: float = 0.5, training: bool = True) -> sg.Tensor:
-    if not training or p == 0.0:
-        return x
-    scale = 1.0 / (1.0 - p)
-    mask = sg.Tensor([scale if random.random() > p else 0.0
-                      for _ in range(len(x.data))])
-    return x * mask
+# ── sg.nn.Dropout: train vs eval mode ───────────────────────────────────────
 
+dropout = sg.nn.Dropout(p=0.4)
 x = sg.Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
-print(dropout(x, p=0.4, training=True).data)   # ~[1.67, 0, 5.0, 6.67, 0]  (random)
-print(dropout(x, p=0.4, training=False).data)  # [1.0, 2.0, 3.0, 4.0, 5.0]
 
-# Batch normalization (single feature, batch of 4)
-def batch_norm(x: sg.Tensor, eps: float = 1e-5):
-    n = len(x.data)
-    mu    = sum(x.data) / n
-    var   = sum((v - mu) ** 2 for v in x.data) / n
-    x_hat = sg.Tensor([(v - mu) / (var + eps) ** 0.5 for v in x.data])
-    return x_hat   # with gamma=1, beta=0
+# Training mode (default): zeroes each element independently with probability p
+dropout.set_train_mode()
+print(dropout(x).values)   # e.g. [1.  0.  3.  0.  5.]  — random each call
 
-x_batch = sg.Tensor([1.0, 3.0, 5.0, 7.0])
-print(batch_norm(x_batch).data)   # [-1.342, -0.447, 0.447, 1.342]
+# Eval mode: input passes through unchanged — no masking, deterministic
+dropout.set_eval_mode()
+print(dropout(x).values)   # [1.  2.  3.  4.  5.]
+
+# ── MLP with dropout: Linear → ReLU → Dropout → Linear ─────────────────────
+# Dropout sits between the two linear layers and randomly silences hidden
+# neurons during training, forcing each neuron to learn independently.
+
+model = sg.nn.Sequential(
+    sg.nn.Linear(4, 8),
+    sg.nn.ReLU(),
+    sg.nn.Dropout(p=0.3),   # drop 30% of hidden activations during training
+    sg.nn.Linear(8, 3),
+)
+criterion = sg.nn.CELoss()
+optimizer = sg.opt.Adam(model, lr=1e-2)
+
+X = sg.Tensor([
+    [ 1.0,  0.5, -0.2,  0.8],
+    [-0.5,  1.2,  0.3, -0.1],
+    [ 0.2, -0.8,  1.0,  0.4],
+    [-0.3,  0.1, -0.7,  1.1],
+])
+Y = sg.Tensor([
+    [1., 0., 0.],
+    [0., 1., 0.],
+    [0., 0., 1.],
+    [1., 0., 0.],
+])
+
+# Training — set_train_mode() activates dropout across the whole model
+model.set_train_mode()
+for step in range(20):
+    optimizer.zero_grad()
+    logits = model(X)
+    loss   = criterion(logits, Y)
+    loss.backward()
+    optimizer.step()
+
+    if step % 5 == 0:
+        print(f"step {step:2d}  loss={float(loss.values):.4f}")
+
+# Validation — set_eval_mode() disables dropout: output is deterministic
+model.set_eval_mode()
+with sg.no_grad():
+    val_logits = model(X)
+    val_loss   = criterion(val_logits, Y)
+    print(f"val  loss={float(val_loss.values):.4f}")
 ```
 
 ```pytorch

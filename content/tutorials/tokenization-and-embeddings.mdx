@@ -99,18 +99,19 @@ import numpy as np
 
 V, D = 1000, 64  # vocabulary size, embedding dimension
 
-# Embedding table: each row is one token's vector
-E = sg.Tensor(np.random.randn(V, D) * 0.02, requires_grad=True)
+# Embedding layer: learnable lookup table, initialized N(0, 1)
+emb = sg.nn.Embedding(V, D)
+# emb.weight.shape: (V, D) — one row per vocabulary entry
 
-# Token lookup: select rows by ID
-token_ids = [4, 42, 7, 15]
-embeddings = sg.Tensor(np.array([E.data[i] for i in token_ids]))
-# embeddings.shape: (4, 64) — one 64-dim vector per token
+# Token lookup: pass an integer Tensor of IDs
+# dtype="int32" is required — the embedding uses these values as numpy indices
+token_ids = sg.Tensor(np.array([4, 42, 7, 15]), dtype="int32")
+embeddings = emb(token_ids)   # (4, 64) — gradients flow to emb.weight
 
-# During training, gradients update only the rows that were accessed
-loss = embeddings.sum()
+# During training, only the accessed rows receive gradient signal
+loss = sg.sum(embeddings)
 loss.backward()
-# E.grad has non-zero rows only at indices 4, 42, 7, 15
+# emb.weight.grad has non-zero rows only at indices 4, 42, 7, 15
 ```
 
 ```pytorch

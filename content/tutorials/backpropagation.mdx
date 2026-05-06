@@ -81,8 +81,8 @@ The same computation we walked through by hand:
 ```simplegrad
 import simplegrad as sg
 
-x = sg.Tensor([2.0], requires_grad=True)
-y = sg.Tensor([3.0], requires_grad=True)
+x = sg.Tensor([2.0], comp_grad=True)
+y = sg.Tensor([3.0], comp_grad=True)
 
 a = x ** 2      # forward: a = 4, stores ∂a/∂x = 2x
 b = x * y       # forward: b = 6, stores ∂b/∂x = y, ∂b/∂y = x
@@ -90,8 +90,8 @@ z = a + b       # forward: z = 10, stores ∂z/∂a = 1, ∂z/∂b = 1
 
 z.backward()    # backward pass: traverses in reverse, accumulates
 
-print(x.grad)   # [7.0]  —  4 (from a) + 3 (from b)
-print(y.grad)   # [2.0]  —  2 (from b only)
+print(x.grad)   # [7.]  —  4 (from a) + 3 (from b)
+print(y.grad)   # [2.]  —  2 (from b only)
 ```
 
 ```pytorch

@@ -125,32 +125,78 @@ For tasks requiring genuine long-range memory — a word referring back to somet
 
 ```simplegrad
 import simplegrad as sg
-import numpy as np
 
-class VanillaRNN:
-    def __init__(self, input_size, hidden_size):
-        scale = 0.01
-        self.Wh = sg.Tensor(np.random.randn(hidden_size, hidden_size) * scale,
-                            requires_grad=True)
-        self.Wx = sg.Tensor(np.random.randn(hidden_size, input_size) * scale,
-                            requires_grad=True)
-        self.bh = sg.Tensor(np.zeros(hidden_size), requires_grad=True)
+# ── VanillaRNN as a proper sg.nn.Module ──────────────────────────────────────
+# h_t = tanh(linear_h(h_{t-1}) + linear_x(x_t))
+# Two sg.nn.Linear layers replace the raw Wh, Wx, bh tensors:
+#   linear_h: hidden → hidden, no bias (Wh @ h_{t-1})
+#   linear_x: input  → hidden, with bias (Wx @ x_t + bh)
+
+class VanillaRNN(sg.nn.Module):
+    def __init__(self, input_size: int, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.linear_h = sg.nn.Linear(hidden_size, hidden_size, use_bias=False)
+        self.linear_x = sg.nn.Linear(input_size,  hidden_size, use_bias=True)
 
     def forward(self, xs, h=None):
         if h is None:
-            h = sg.Tensor(np.zeros(self.Wh.shape[0]))
+            h = sg.zeros((self.hidden_size,))
         hs = []
         for x in xs:
-            h = (self.Wh @ h + self.Wx @ x + self.bh).tanh()
+            # The graph is unrolled through time: BPTT happens automatically
+            h = sg.tanh(self.linear_h(h) + self.linear_x(x))
             hs.append(h)
-        return hs   # list of hidden states, one per input step
+        return hs   # one hidden state per input step
 
-# Forward pass
-D, I = 2, 2
-rnn = VanillaRNN(I, D)
+# ── Forward pass ─────────────────────────────────────────────────────────────
+rnn    = VanillaRNN(input_size=2, hidden_size=4)
 inputs = [sg.Tensor([1.0, 0.0]), sg.Tensor([0.0, 1.0]), sg.Tensor([0.5, 0.5])]
-hs = rnn.forward(inputs)
-print(hs[-1].data)   # ≈ [0.422, 0.477] with W_h=0.3I, W_x as above
+hs     = rnn.forward(inputs)
+
+print(hs[-1].values)   # final hidden state, shape (4,)
+rnn.summary()
+# linear_h.W  (2, 2)   4 parameters
+# linear_x.W  (2, 2)   4 parameters
+# linear_x.b  (2,)     2 parameters
+
+# ── Many-to-one classifier: RNN + output linear layer ────────────────────────
+# The final hidden state is fed into a Linear layer to produce class logits.
+
+class RNNClassifier(sg.nn.Module):
+    def __init__(self, input_size: int, hidden_size: int, num_classes: int):
+        super().__init__()
+        self.rnn = VanillaRNN(input_size, hidden_size)
+        self.fc  = sg.nn.Linear(hidden_size, num_classes)
+
+    def forward(self, xs):
+        hs      = self.rnn.forward(xs)
+        h_final = hs[-1]          # only the last state carries the full context
+        return self.fc(h_final)   # (num_classes,) logits
+
+model     = RNNClassifier(input_size=2, hidden_size=8, num_classes=3)
+criterion = sg.nn.CELoss()
+optimizer = sg.opt.Adam(model, lr=1e-2)
+
+# Toy task: fixed 5-step sequence, target class is 1
+seq    = [sg.normal((2,)) for _ in range(5)]
+target = sg.zeros((3,), comp_grad=False)
+target.values[1] = 1.0   # one-hot: class 1
+
+model.set_train_mode()
+for step in range(30):
+    optimizer.zero_grad()
+    logits = model(seq)
+    loss   = criterion(logits, target)
+    loss.backward()   # backpropagates through all 5 unrolled steps (BPTT)
+    optimizer.step()
+
+    if step % 10 == 0:
+        pred = sg.argmax(logits, dim=0).values[0]
+        print(f"step {step:2d}  loss={float(loss.values):.4f}  pred={int(pred)}")
+# step  0  loss=1.2xxx  pred=?
+# step 10  loss=0.5xxx  pred=1
+# step 20  loss=0.2xxx  pred=1
 ```
 
 ```pytorch

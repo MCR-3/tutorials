@@ -100,32 +100,32 @@ Channel depth grows at each stage (32 → 64 → 128 is typical), compensating f
 ## In Code
 
 ```simplegrad
-# Manual 2×2 max pool with stride 2
-def max_pool2d(x, k=2, s=2):
-    H, W = len(x), len(x[0])
-    H_out = (H - k) // s + 1
-    W_out = (W - k) // s + 1
-    return [
-        [max(x[i*s+r][j*s+c] for r in range(k) for c in range(k))
-         for j in range(W_out)]
-        for i in range(H_out)
-    ]
+import simplegrad as sg
+import numpy as np
 
-inp = [[1,3,2,4],[5,6,7,8],[3,2,1,6],[4,1,5,3]]
-print(max_pool2d(inp))   # [[6, 8], [4, 6]]
+x = sg.Tensor(np.array([[[[1., 3., 2., 4.],
+                           [5., 6., 7., 8.],
+                           [3., 2., 1., 6.],
+                           [4., 1., 5., 3.]]]]))   # (1, 1, 4, 4)
 
-# Average pool
-def avg_pool2d(x, k=2, s=2):
-    H, W = len(x), len(x[0])
-    H_out = (H - k) // s + 1
-    W_out = (W - k) // s + 1
-    return [
-        [sum(x[i*s+r][j*s+c] for r in range(k) for c in range(k)) / k**2
-         for j in range(W_out)]
-        for i in range(H_out)
-    ]
+# ── Step 1: conv2d at stride=1 — feature extraction, spatial size unchanged ─
+kernel = sg.normal((1, 1, 3, 3), comp_grad=True)
+features = sg.conv2d(x, kernel, pad_width=1)   # same padding: (1, 1, 4, 4)
+print(features.shape)   # (1, 1, 4, 4)
 
-print(avg_pool2d(inp))   # [[3.75, 5.25], [2.5, 3.75]]
+# ── Step 2: max_pool2d — explicit downsampling as a separate operation ───────
+# kernel_size=2, stride=2 (default when stride is None): halves H and W
+out_pool = sg.max_pool2d(features, kernel_size=2)
+print(out_pool.shape)    # (1, 1, 2, 2) — spatial dims halved
+print(out_pool.values)
+# [[[[max of top-left 2×2, max of top-right 2×2],
+#    [max of bot-left 2×2, max of bot-right 2×2]]]]
+
+# ── Alternative: conv2d with stride=2 — downsampling fused into the conv ────
+# A single strided conv replaces the conv + pool pair.
+# The kernel learns what to preserve when downsampling (unlike max pool).
+out_strided = sg.conv2d(x, kernel, stride=2, pad_width=1)
+print(out_strided.shape)   # (1, 1, 2, 2) — same output size, one fewer op
 ```
 
 ```pytorch

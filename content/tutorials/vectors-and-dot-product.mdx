@@ -162,15 +162,15 @@ import simplegrad as sg
 a = sg.Tensor([1.0, 2.0, 3.0])
 b = sg.Tensor([4.0, 0.0, -1.0])
 
-dot = (a * b).sum()
-print(dot)  # 1.0
+dot = sg.sum(a * b)
+print(dot.values)  # [1.0]
 
-norm_a = (a * a).sum() ** 0.5
-norm_b = (b * b).sum() ** 0.5
-print(norm_a)  # 3.7416...
+norm_a = sg.sum(a * a) ** 0.5
+norm_b = sg.sum(b * b) ** 0.5
+print(norm_a.values)  # [3.7416...]
 
 cosine_sim = dot / (norm_a * norm_b)
-print(cosine_sim)  # 0.0712...
+print(cosine_sim.values)  # [0.0712...]
 ```
 
 ```pytorch

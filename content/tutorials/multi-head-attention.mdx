@@ -92,35 +92,94 @@ The per-head dimension $d_k = 64$ is remarkably consistent across models of very
 import simplegrad as sg
 import numpy as np
 
-class MultiHeadAttention:
-    def __init__(self, D, H):
+# ── MultiHeadAttention as a sg.nn.Module ─────────────────────────────────────
+# Each head has its own WQ, WK, WV (D → dk) and WO (dk → D).
+# The output is the SUM of per-head contributions — algebraically equivalent
+# to concat(heads) @ W_O, and fully differentiable end to end.
+
+class MultiHeadAttention(sg.nn.Module):
+    def __init__(self, D: int, H: int):
         assert D % H == 0
-        self.H, self.dk = H, D // H
-        s = 0.02
-        # Stacked projections: D → D (all heads at once)
-        self.WQ = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
-        self.WK = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
-        self.WV = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
-        self.WO = sg.Tensor(np.random.randn(D, D) * s, requires_grad=True)
+        super().__init__()
+        self.H  = H
+        self.dk = D // H
+        # sg.nn.Module discovers lists of Modules in parameters()
+        self.WQ = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WK = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WV = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WO = [sg.nn.Linear(self.dk, D, use_bias=False) for _ in range(H)]
+
+    def forward(self, x, causal=False):
+        # x: (T, D)
+        T, dk = x.shape[0], self.dk
+        output = None
+        for h in range(self.H):
+            Q = self.WQ[h](x)   # (T, dk)
+            K = self.WK[h](x)
+            V = self.WV[h](x)
+
+            scores = Q @ K.T / dk ** 0.5   # (T, T)
+            if causal:
+                mask_np = np.triu(np.ones((T, T), dtype="float32"), k=1) * -1e9
+                scores  = scores + sg.Tensor(mask_np, comp_grad=False)
+
+            A        = sg.softmax(scores, dim=-1)   # (T, T)
+            head_out = A @ V                         # (T, dk)
+
+            # Each head contributes to the output through its own WO projection:
+            # sum_h (head_h @ WO_h)  ≡  concat(heads) @ W_O  (algebraic identity)
+            contrib = self.WO[h](head_out)           # (T, D)
+            output  = contrib if output is None else output + contrib
+
+        return output   # (T, D) — fully differentiable through all H heads
+
+# ── Forward pass ─────────────────────────────────────────────────────────────
+D, H = 8, 2   # dk = 4 per head
+mha  = MultiHeadAttention(D, H)
+x    = sg.normal((6, D))       # T=6 tokens, d_model=8
+
+z = mha(x, causal=True)
+print(z.shape)   # (6, 8) — same shape as input
+
+# Parameter count: 4 × H × D × dk = 4 × 2 × 8 × 4 = 256 = 4D²
+mha.summary()
+
+# Gradients flow through all projections of all heads
+loss = sg.sum(z)
+loss.backward()
+print(mha.WQ[0].weight.grad.shape)   # (8, 4) — ∂L/∂WQ for head 0
+print(mha.WO[1].weight.grad.shape)   # (4, 8) — ∂L/∂WO for head 1
+
+# ── Training: MHA as part of a simple sequence model ─────────────────────────
+class SimpleSeqModel(sg.nn.Module):
+    def __init__(self, D, H, num_classes):
+        super().__init__()
+        self.mha = MultiHeadAttention(D, H)
+        self.fc  = sg.nn.Linear(D, num_classes)
 
     def forward(self, x):
-        T, D = x.shape
-        H, dk = self.H, self.dk
-        # Project once for all heads: (T, D) → (T, D)
-        Q = x @ self.WQ   # then reshape to (T, H, dk) in practice
-        K = x @ self.WK
-        V = x @ self.WV
-        # For illustration: manually split first two heads
-        q1, q2 = Q[:, :dk], Q[:, dk:2*dk]   # head 1 and 2 (simplified)
-        k1, k2 = K[:, :dk], K[:, dk:2*dk]
-        v1, v2 = V[:, :dk], V[:, dk:2*dk]
-        # Single attention per head
-        A1 = (q1 @ k1.T / dk**0.5).softmax()
-        A2 = (q2 @ k2.T / dk**0.5).softmax()
-        h1, h2 = A1 @ v1, A2 @ v2
-        # Concat and project
-        combined = sg.concat([h1, h2], axis=-1)   # (T, 2*dk)
-        return combined @ self.WO[:2*dk]           # (T, D)
+        h = self.mha(x, causal=True)   # (T, D)
+        return self.fc(h[-1])           # classify from last position: (num_classes,)
+
+model     = SimpleSeqModel(D=8, H=2, num_classes=3)
+criterion = sg.nn.CELoss()
+optimizer = sg.opt.Adam(model, lr=1e-2)
+
+seq    = sg.normal((5, 8))              # T=5 tokens, d_model=8
+target = sg.zeros((3,), comp_grad=False)
+target.values[2] = 1.0                  # one-hot: class 2
+
+model.set_train_mode()
+for step in range(20):
+    optimizer.zero_grad()
+    logits = model(seq)
+    loss   = criterion(logits, target)
+    loss.backward()
+    optimizer.step()
+
+    if step % 5 == 0:
+        pred = sg.argmax(logits, dim=0).values[0]
+        print(f"step {step:2d}  loss={float(loss.values):.4f}  pred={int(pred)}")
 ```
 
 ```pytorch

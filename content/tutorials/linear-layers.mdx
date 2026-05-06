@@ -115,33 +115,92 @@ The gradient with respect to $\mathbf{W}$ has the same shape as $\mathbf{W}$ and
 ```simplegrad
 import simplegrad as sg
 
-# Single linear layer: 3 inputs → 2 outputs
+# ── Numerical example: explicit weights matching the article text ───────────
+
 W1 = sg.Tensor([[0.5, 0.3, 0.1],
-                [0.2, 0.8, 0.4]], requires_grad=True)   # (2, 3)
-b1 = sg.Tensor([0.1, -0.2],       requires_grad=True)   # (2,)
+                [0.2, 0.8, 0.4]], comp_grad=True)   # (2, 3)
+b1 = sg.Tensor([0.1, -0.2],       comp_grad=True)   # (2,)
 
 x = sg.Tensor([1.0, 2.0, 3.0])
 
-z1 = x @ W1.T + b1   # (3,) @ (3,2) + (2,) → (2,)
-h1 = z1.relu()
+z1 = x @ W1.T + b1   # (3,) @ (3, 2) + (2,) → (2,)
+h1 = sg.relu(z1)
 
-print(z1.data)  # [1.5, 2.8]
-print(h1.data)  # [1.5, 2.8]
+print(z1.values)   # [1.5  2.8]
+print(h1.values)   # [1.5  2.8]
 
-# Second layer: 2 inputs → 1 output
-W2 = sg.Tensor([[0.3, 0.7]], requires_grad=True)   # (1, 2)
-b2 = sg.Tensor([0.5],         requires_grad=True)   # (1,)
+W2 = sg.Tensor([[0.3, 0.7]], comp_grad=True)   # (1, 2)
+b2 = sg.Tensor([0.5],         comp_grad=True)   # (1,)
 
 y_hat = h1 @ W2.T + b2
-print(y_hat.data)   # [2.91]
+print(y_hat.values)   # [2.91]
 
-# Backward pass
 target = sg.Tensor([3.0])
-loss = ((y_hat - target) ** 2).mean()
+loss = sg.mse_loss(y_hat, target)
 loss.backward()
 
-print(W1.grad)   # gradients for the first layer weights
-print(W2.grad)   # gradients for the second layer weights
+print(W1.grad)   # (2, 3) — ∂L/∂W1
+print(W2.grad)   # (1, 2) — ∂L/∂W2
+
+# ── Clean approach: sg.nn.Linear ────────────────────────────────────────────
+# Linear(in, out) initialises weights U(−1/√in, 1/√in) and wraps x @ W + b.
+# Weight shape is (in_features, out_features); no manual .T needed.
+
+layer1 = sg.nn.Linear(3, 2)   # 3 inputs → 2 outputs
+layer2 = sg.nn.Linear(2, 1)   # 2 inputs → 1 output
+
+print(layer1.weight.shape)   # (3, 2)
+print(layer1.bias.shape)     # (2,)
+
+x = sg.Tensor([1.0, 2.0, 3.0])
+h = sg.relu(layer1(x))   # layer1(x) computes x @ W + b
+y_hat = layer2(h)
+
+target = sg.Tensor([0.0])
+loss = sg.mse_loss(y_hat, target)
+loss.backward()
+
+print(layer1.weight.grad)   # (3, 2) — gradient flows to W1 automatically
+print(layer2.weight.grad)   # (2, 1) — gradient flows to W2 automatically
+
+# ── MLP: Sequential + CELoss + Adam ─────────────────────────────────────────
+# 3-class classification: 4 input features → 8 hidden → 3 output logits.
+# sg.nn.Sequential stacks layers and exposes all their parameters as one model,
+# so sg.opt.Adam(model, ...) discovers every weight and bias automatically.
+
+model     = sg.nn.Sequential(
+    sg.nn.Linear(4, 8),
+    sg.nn.ReLU(),
+    sg.nn.Linear(8, 3),
+)
+criterion = sg.nn.CELoss()          # wraps ce_loss: applies softmax then −log
+optimizer = sg.opt.Adam(model, lr=1e-2)
+
+# Four training examples (batch), one-hot class targets
+X = sg.Tensor([
+    [ 1.0,  0.5, -0.2,  0.8],   # class 0
+    [-0.5,  1.2,  0.3, -0.1],   # class 1
+    [ 0.2, -0.8,  1.0,  0.4],   # class 2
+    [-0.3,  0.1, -0.7,  1.1],   # class 0
+])
+Y = sg.Tensor([
+    [1., 0., 0.],
+    [0., 1., 0.],
+    [0., 0., 1.],
+    [1., 0., 0.],
+])
+
+for step in range(20):
+    optimizer.zero_grad()
+    logits = model(X)              # (4, 4) → (4, 3) through the two linear layers
+    loss   = criterion(logits, Y)  # scalar: mean CE over the 4 examples
+    loss.backward()
+    optimizer.step()
+
+    if step % 5 == 0:
+        print(f"step {step:2d}  loss={float(loss.values):.4f}")
+
+# loss decreases from ~1.1 (near random) toward 0 as the model fits the batch
 ```
 
 ```pytorch

@@ -141,13 +141,13 @@ W = sg.Tensor([[1.0, 2.0, 3.0],
 x = sg.Tensor([1.0, 0.0, -1.0])
 
 y = W @ x
-print(y)  # [-2.0, -2.0]
+print(y.values)  # [-2.  -2.]
 
 X = sg.Tensor([[1.0, 0.0, -1.0],
                [2.0, 1.0,  0.0]])
 
 Y = X @ W.T
-print(Y)  # 2x2 matrix, one row per example
+print(Y.values)  # 2x2 matrix, one row per example
 ```
 
 ```pytorch

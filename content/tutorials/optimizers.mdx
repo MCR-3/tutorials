@@ -144,59 +144,30 @@ For a new project, AdamW with $\lambda = 0.01$ and $\eta = 10^{-3}$ is a reliabl
 ```simplegrad
 import simplegrad as sg
 
-# SGD with momentum — manual implementation
-w = sg.Tensor([4.0], requires_grad=True)
-m = 0.0          # velocity accumulator
-beta, eta = 0.9, 0.3
+# SGD with momentum
+w = sg.Tensor([4.0], comp_grad=True)
+optimizer = sg.opt.SGD(lr=0.3, momentum=0.9, param_groups=[{"params": {"w": w}}])
 
 for step in range(5):
-    loss = (w - 2) ** 2
+    loss = sg.mse_loss(w, sg.Tensor([2.0]))
     loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()
 
-    g = float(w.grad)
-    m = beta * m + (1 - beta) * g    # update velocity
-    w.data -= eta * m                # apply momentum update
-    w.grad = None
+    print(f"step {step+1}: w={w.values[0]:.4f}")
 
-    print(f"step {step+1}: w={w.data[0]:.4f}")
+# Adam
+w = sg.Tensor([4.0], comp_grad=True)
+optimizer = sg.opt.Adam(lr=1e-2, param_groups=[{"params": {"w": w}}])
 
-# Adam — manual implementation
-w = sg.Tensor([4.0], requires_grad=True)
-m, v = 0.0, 0.0
-b1, b2, eps, lr = 0.9, 0.999, 1e-8, 1e-2
-
-for t in range(1, 201):
-    loss = (w - 2) ** 2
+for step in range(200):
+    loss = sg.mse_loss(w, sg.Tensor([2.0]))
     loss.backward()
-
-    g = float(w.grad)
-    m = b1 * m + (1 - b1) * g           # first moment
-    v = b2 * v + (1 - b2) * g * g       # second moment
-    m_hat = m / (1 - b1 ** t)           # bias correction
-    v_hat = v / (1 - b2 ** t)
-    w.data -= lr * m_hat / (v_hat ** 0.5 + eps)
-    w.grad = None
+    optimizer.step()
+    optimizer.zero_grad()
 
 # After ~200 steps: w ≈ 2.000
-
-# AdamW — add decoupled weight decay
-w = sg.Tensor([0.8], requires_grad=True)   # start away from zero
-target = 0.0                               # true optimum at 0
-b1, b2, eps, lr, wd = 0.9, 0.999, 1e-8, 1e-2, 0.1
-m, v = 0.0, 0.0
-
-for t in range(1, 201):
-    loss = (w - target) ** 2
-    loss.backward()
-
-    g = float(w.grad)
-    m = b1 * m + (1 - b1) * g
-    v = b2 * v + (1 - b2) * g * g
-    m_hat = m / (1 - b1 ** t)
-    v_hat = v / (1 - b2 ** t)
-    w.data -= lr * m_hat / (v_hat ** 0.5 + eps)   # Adam gradient step
-    w.data -= lr * wd * w.data                     # decoupled weight decay
-    w.grad = None
+print(f"w={w.values[0]:.4f}")
 ```
 
 ```pytorch

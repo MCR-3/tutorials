@@ -119,40 +119,126 @@ Deeper networks (more $N$) have more capacity to learn hierarchical abstractions
 import simplegrad as sg
 import numpy as np
 
-class LayerNorm:
+# MultiHeadAttention from the previous article (included for self-containment)
+class MultiHeadAttention(sg.nn.Module):
+    def __init__(self, D, H):
+        assert D % H == 0
+        super().__init__()
+        self.H, self.dk = H, D // H
+        self.WQ = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WK = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WV = [sg.nn.Linear(D, self.dk, use_bias=False) for _ in range(H)]
+        self.WO = [sg.nn.Linear(self.dk, D, use_bias=False) for _ in range(H)]
+
+    def forward(self, x, causal=True):
+        T, dk, output = x.shape[0], self.dk, None
+        for h in range(self.H):
+            Q, K, V = self.WQ[h](x), self.WK[h](x), self.WV[h](x)
+            scores  = Q @ K.T / dk ** 0.5
+            if causal:
+                mask_np = np.triu(np.ones((T, T), dtype="float32"), k=1) * -1e9
+                scores  = scores + sg.Tensor(mask_np, comp_grad=False)
+            contrib = self.WO[h](sg.softmax(scores, dim=-1) @ V)
+            output  = contrib if output is None else output + contrib
+        return output
+
+# ── LayerNorm as a sg.nn.Module ───────────────────────────────────────────────
+# gamma and beta are plain Tensor attributes — Module.parameters() finds them.
+
+class LayerNorm(sg.nn.Module):
     def __init__(self, D, eps=1e-5):
-        self.gamma = sg.Tensor(np.ones(D),  requires_grad=True)
-        self.beta  = sg.Tensor(np.zeros(D), requires_grad=True)
+        super().__init__()
+        self.gamma = sg.ones((D,),  comp_grad=True)
+        self.beta  = sg.zeros((D,), comp_grad=True)
         self.eps   = eps
 
-    def __call__(self, x):
-        mu  = x.mean(axis=-1, keepdims=True)
-        var = ((x - mu) ** 2).mean(axis=-1, keepdims=True)
+    def forward(self, x):
+        mu  = sg.mean(x, dim=-1)                # (T, 1) keepdims — mean over D
+        var = sg.mean((x - mu) ** 2, dim=-1)    # (T, 1)
         return (x - mu) / (var + self.eps) ** 0.5 * self.gamma + self.beta
 
-class FFN:
+# ── FFN as a sg.nn.Module ─────────────────────────────────────────────────────
+# Two sg.nn.Linear layers with GELU in between (4× expansion, then back to D).
+
+class FFN(sg.nn.Module):
     def __init__(self, D, d_ff=None):
-        d_ff = d_ff or 4 * D
-        s = 0.02
-        self.W1 = sg.Tensor(np.random.randn(D, d_ff) * s, requires_grad=True)
-        self.b1 = sg.Tensor(np.zeros(d_ff),               requires_grad=True)
-        self.W2 = sg.Tensor(np.random.randn(d_ff, D) * s, requires_grad=True)
-        self.b2 = sg.Tensor(np.zeros(D),                  requires_grad=True)
+        super().__init__()
+        d_ff     = d_ff or 4 * D
+        self.fc1 = sg.nn.Linear(D, d_ff)
+        self.fc2 = sg.nn.Linear(d_ff, D)
 
-    def __call__(self, x):
-        return (x @ self.W1 + self.b1).gelu() @ self.W2 + self.b2
+    def forward(self, x):
+        return self.fc2(sg.gelu(self.fc1(x)))
 
-class TransformerBlock:
+# ── TransformerBlock: Pre-LN residuals around MHA and FFN ────────────────────
+
+class TransformerBlock(sg.nn.Module):
     def __init__(self, D, H):
+        super().__init__()
         self.ln1 = LayerNorm(D)
-        self.mha = MultiHeadAttention(D, H)   # from previous article
+        self.mha = MultiHeadAttention(D, H)
         self.ln2 = LayerNorm(D)
         self.ffn = FFN(D)
 
-    def __call__(self, x, causal=True):
+    def forward(self, x, causal=True):
         x = x + self.mha(self.ln1(x), causal=causal)   # attention sub-layer
         x = x + self.ffn(self.ln2(x))                   # FFN sub-layer
+        return x                                          # shape preserved: (T, D)
+
+# ── Stack N identical blocks ──────────────────────────────────────────────────
+
+class TransformerStack(sg.nn.Module):
+    def __init__(self, D, H, N):
+        super().__init__()
+        self.blocks = [TransformerBlock(D, H) for _ in range(N)]
+
+    def forward(self, x, causal=True):
+        for block in self.blocks:
+            x = block(x, causal=causal)
         return x
+
+# ── Forward pass ──────────────────────────────────────────────────────────────
+D, H, N = 8, 2, 2
+model   = TransformerStack(D, H, N)
+
+x   = sg.normal((6, D))   # T=6 tokens, d_model=8
+out = model(x)
+print(out.shape)           # (6, 8) — shape preserved through all N blocks
+model.summary()            # lists every weight in every block
+
+# ── Sequence classifier built on a TransformerStack ──────────────────────────
+
+class TransformerClassifier(sg.nn.Module):
+    def __init__(self, D, H, N, num_classes):
+        super().__init__()
+        self.stack = TransformerStack(D, H, N)
+        self.ln    = LayerNorm(D)
+        self.head  = sg.nn.Linear(D, num_classes)
+
+    def forward(self, x):
+        x = self.stack(x, causal=True)
+        x = self.ln(x)
+        return self.head(x[-1])   # classify from the last position
+
+clf       = TransformerClassifier(D=8, H=2, N=2, num_classes=3)
+criterion = sg.nn.CELoss()
+optimizer = sg.opt.Adam(clf, lr=1e-2)
+
+seq    = sg.normal((6, 8))
+target = sg.zeros((3,), comp_grad=False)
+target.values[0] = 1.0   # one-hot: class 0
+
+clf.set_train_mode()
+for step in range(20):
+    optimizer.zero_grad()
+    logits = clf(seq)
+    loss   = criterion(logits, target)
+    loss.backward()
+    optimizer.step()
+
+    if step % 5 == 0:
+        pred = sg.argmax(logits, dim=0).values[0]
+        print(f"step {step:2d}  loss={float(loss.values):.4f}  pred={int(pred)}")
 ```
 
 ```pytorch

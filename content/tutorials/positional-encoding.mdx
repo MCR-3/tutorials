@@ -98,26 +98,51 @@ In practice, the difference between the two is usually small for tasks where seq
 import simplegrad as sg
 import numpy as np
 
+# ── Sinusoidal positional encoding (fixed, not trainable) ────────────────────
 def sinusoidal_pe(T: int, D: int) -> sg.Tensor:
-    PE = np.zeros((T, D))
+    PE = sg.zeros((T, D), comp_grad=False)   # comp_grad=False: not a parameter
     for pos in range(T):
         for i in range(D // 2):
             freq = 10000 ** (2 * i / D)
-            PE[pos, 2*i]   = np.sin(pos / freq)
-            PE[pos, 2*i+1] = np.cos(pos / freq)
-    return sg.Tensor(PE)   # shape (T, D) — no requires_grad: not trainable
+            PE.values[pos, 2*i]   = np.sin(pos / freq)
+            PE.values[pos, 2*i+1] = np.cos(pos / freq)
+    return PE
 
-# Combine with token embeddings
 T, D = 6, 8
 token_ids = [4285, 641, 389, 1049, 0, 0]
-E   = sg.Tensor(np.random.randn(10000, D) * 0.02, requires_grad=True)
-PE  = sinusoidal_pe(T, D)   # fixed, no gradient
 
-tok_emb = sg.Tensor(np.array([E.data[i] for i in token_ids]))  # (T, D)
-x = tok_emb + PE                                                 # (T, D)
+E  = sg.nn.Embedding(10000, D)   # learnable token embeddings
+PE = sinusoidal_pe(T, D)          # fixed sinusoidal encoding
 
-print(PE.data[0])   # [0., 1., 0., 1., 0., 1., 0., 1.]     — position 0
-print(PE.data[1])   # [0.841, 0.540, 0.177, 0.984, ...]    — position 1
+# dtype="int32" required: Embedding uses these as numpy integer indices
+ids_t   = sg.Tensor(np.array(token_ids), dtype="int32")
+tok_emb = E(ids_t)     # (T, D) — gradients flow to E.weight
+x       = tok_emb + PE  # (T, D) — each position: what it is + where it is
+
+print(PE.values[0])   # [0.  1.  0.  1.  0.  1.  0.  1.]   — position 0
+print(PE.values[1])   # [0.841  0.540  0.177  0.984  ...]   — position 1
+
+# ── Learned positional embeddings (GPT-2 style) ──────────────────────────────
+# Both token IDs and position indices use sg.nn.Embedding — the position table
+# is just a second lookup table whose rows are learned during training.
+
+token_emb = sg.nn.Embedding(50257, D)
+pos_emb   = sg.nn.Embedding(1024,  D)
+
+token_ids_t = sg.Tensor(np.array([4285, 641, 389, 1049]), dtype="int32")
+positions   = sg.Tensor(np.arange(4),                     dtype="int32")
+
+x = token_emb(token_ids_t) + pos_emb(positions)   # (4, D)
+print(x.shape)   # (4, 8)
+
+# ── Verification: position breaks the symmetry between identical tokens ───────
+t_same   = sg.Tensor(np.array([389, 389]), dtype="int32")
+same_tok = token_emb(t_same)                               # (2, D)
+print(np.allclose(same_tok.values[0], same_tok.values[1])) # True  — same token ID
+
+pos_01   = sg.Tensor(np.array([0, 1]), dtype="int32")
+combined = same_tok + pos_emb(pos_01)                      # (2, D)
+print(np.allclose(combined.values[0], combined.values[1])) # False — different positions
 ```
 
 ```pytorch

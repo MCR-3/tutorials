@@ -153,33 +153,45 @@ The default for any new hidden layer is ReLU unless there is a specific reason t
 ```simplegrad
 import simplegrad as sg
 
-x = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], requires_grad=True)
+x = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], comp_grad=True)
 
-# Sigmoid — max gradient 0.25 at x=0
-x1 = sg.Tensor([-2.0, 0.0, 2.0], requires_grad=True)
-y1 = x1.sigmoid()
-y1.backward(sg.Tensor([1.0, 1.0, 1.0]))
-print(y1.data)   # [0.119, 0.500, 0.880]
-print(x1.grad)   # [0.105, 0.250, 0.105]
+# Sigmoid — maps to (0, 1), max gradient 0.25 at x=0
+x1 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], comp_grad=True)
+y1 = sg.sigmoid(x1)
+sg.sum(y1).backward()
+print(y1.values)   # [0.119  0.269  0.500  0.731  0.880]
+print(x1.grad)     # [0.105  0.197  0.250  0.197  0.105]  — peaks at 0.25
 
-# Tanh — max gradient 1.0 at x=0, zero-centered
-x2 = sg.Tensor([-2.0, 0.0, 2.0], requires_grad=True)
-y2 = x2.tanh()
-y2.backward(sg.Tensor([1.0, 1.0, 1.0]))
-print(y2.data)   # [-0.964,  0.000,  0.964]
-print(x2.grad)   # [ 0.071,  1.000,  0.071]
+# Tanh — maps to (-1, 1), zero-centered, max gradient 1.0 at x=0
+x2 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], comp_grad=True)
+y2 = sg.tanh(x2)
+sg.sum(y2).backward()
+print(y2.values)   # [-0.964 -0.762  0.000  0.762  0.964]
+print(x2.grad)     # [ 0.071  0.420  1.000  0.420  0.071]  — peaks at 1.0
 
-# ReLU — gradient exactly 1 for positive inputs
-x3 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], requires_grad=True)
-y3 = x3.relu()
-y3.backward(sg.Tensor([1.0, 1.0, 1.0, 1.0, 1.0]))
-print(y3.data)   # [0.0, 0.0, 0.0, 1.0, 2.0]
-print(x3.grad)   # [0.0, 0.0, 0.0, 1.0, 1.0]
+# ReLU — gradient 1 for positive inputs, 0 for negative (dying ReLU risk)
+x3 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], comp_grad=True)
+y3 = sg.relu(x3)
+sg.sum(y3).backward()
+print(y3.values)   # [0.  0.  0.  1.  2.]
+print(x3.grad)     # [0.  0.  0.  1.  1.]  — zero for all negative inputs
 
-# GELU — smooth, no dead neurons
-x4 = sg.Tensor([-2.0, 0.0, 2.0], requires_grad=True)
-y4 = x4.gelu()
-print(y4.data)   # [-0.046,  0.000,  1.954]
+# ELU — smooth negative region, gradient always positive (no dead neurons)
+x4 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0], comp_grad=True)
+y4 = sg.elu(x4, alpha=1.0)   # elu(x) = x if x>0, alpha*(exp(x)-1) if x<=0
+sg.sum(y4).backward()
+print(y4.values)   # [-0.865 -0.632  0.000  1.000  2.000]
+print(x4.grad)     # [ 0.135  0.368  1.000  1.000  1.000]  — continuous at 0
+
+# GELU — exact erf formula: x·Φ(x), non-monotone for x<0
+x5 = sg.Tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+print(sg.gelu(x5).values)              # [-0.046 -0.159  0.000  0.841  1.954]
+print(sg.gelu(x5, mode="tanh").values) # ≈ same — fast tanh approximation
+
+# Softmax — normalizes a vector of logits to a probability distribution
+logits = sg.Tensor([1.0, 2.0, 3.0])
+probs  = sg.softmax(logits, dim=0)
+print(probs.values)   # [0.090  0.245  0.665]  — sums to 1.0
 ```
 
 ```pytorch

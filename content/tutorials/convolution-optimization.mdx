@@ -188,11 +188,12 @@ In practice, cuDNN benchmarks several candidate algorithms (im2col, Winograd, di
 ## In Code
 
 ```simplegrad
+import simplegrad as sg
 import numpy as np
 
-# ── Naive implementation ───────────────────────────────────────────────────
-def conv2d_naive(x, weight, bias=None, stride=1):
-    """x: (C_in, H, W)  weight: (K, C_in, k, k)"""
+# ── Naive implementation (pure numpy reference) ───────────────────────────
+def conv2d_naive(x, weight, stride=1):
+    """x: (C_in, H, W)  weight: (K, C_in, k, k) — both numpy arrays"""
     K, C_in, kH, kW = weight.shape
     H_out = (x.shape[1] - kH) // stride + 1
     W_out = (x.shape[2] - kW) // stride + 1
@@ -207,13 +208,12 @@ def conv2d_naive(x, weight, bias=None, stride=1):
                                 weight[k_out, c, r, cc]
                                 * x[c, i*stride+r, j*stride+cc]
                             )
-        if bias is not None:
-            out[k_out] += bias[k_out]
     return out
 
-# ── im2col implementation ─────────────────────────────────────────────────
-# im2col: extract all k×k patches as rows
+# ── im2col: the key idea ──────────────────────────────────────────────────
+# Extract all k×k patches as rows, then the convolution becomes one matmul
 def im2col(x, k, stride=1):
+    """x: 2D list — returns matrix with one row per patch position"""
     H, W = len(x), len(x[0])
     H_out = (H - k) // stride + 1
     W_out = (W - k) // stride + 1
@@ -224,8 +224,8 @@ def im2col(x, k, stride=1):
         for j in range(W_out)
     ]
 
-x = [[1,2,3],[4,5,6],[7,8,9]]
-X_col = np.array(im2col(x, k=2))   # shape (4, 4)
+x_list = [[1,2,3],[4,5,6],[7,8,9]]
+X_col = np.array(im2col(x_list, k=2))   # shape (4, 4)
 print(X_col)
 # [[ 1  2  4  5]
 #  [ 2  3  5  6]
@@ -234,13 +234,33 @@ print(X_col)
 
 # One filter: [[1,0],[0,1]] → flattened = [1,0,0,1]
 W_col = np.array([[1., 0., 0., 1.]])   # shape (1, 4)
-
-Y_flat = X_col @ W_col.T              # (4, 1)
+Y_flat = X_col @ W_col.T              # (4, 1) — convolution as GEMM
 print(Y_flat.reshape(2, 2))
 # [[ 6.  8.]
 #  [12. 14.]]
 
-# Verification: direct conv at (0,0): 1×1 + 2×0 + 4×0 + 5×1 = 6  ✓
+# ── sg.conv2d: im2col is built in — no separate call needed ──────────────────
+#
+# im2col is not an optional step you choose to enable:
+# it is the internal implementation of sg.conv2d.
+# Every convolution unconditionally goes through the im2col transformation
+# followed by a single matmul (GEMM), fully leveraging the hardware's
+# optimised BLAS routines.
+#
+# There is no "naive" API in simplegrad: calling sg.conv2d always
+# gives you this optimisation automatically.
+
+x = sg.Tensor(np.array([[[[1.,2.,3.],[4.,5.,6.],[7.,8.,9.]]]], dtype="float32"))
+w = sg.Tensor(np.array([[[[1.,0.],[0.,1.]]]], dtype="float32"), comp_grad=True)
+
+# Single call — im2col + GEMM executed internally, gradients available
+out = sg.conv2d(x, w)
+print(out.values)
+# [[[[6.  8.]
+#    [12. 14.]]]]   — identical results to the im2col above (naive one)
+
+sg.sum(out).backward()
+print(w.grad)   # (1, 1, 2, 2) — gradient calculated using the same im2col structure
 ```
 
 ```pytorch

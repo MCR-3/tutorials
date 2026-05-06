@@ -85,8 +85,8 @@ Marking inputs as trackable causes the framework to build the graph during every
 ```simplegrad
 import simplegrad as sg
 
-x = sg.Tensor([2.0], requires_grad=True)
-y = sg.Tensor([3.0], requires_grad=True)
+x = sg.Tensor([2.0], comp_grad=True)
+y = sg.Tensor([3.0], comp_grad=True)
 
 a = x ** 2      # node: x², records backward fn for squaring
 b = x * y       # node: x·y, records backward fn for multiply
@@ -94,8 +94,8 @@ z = a + b       # node: z = 10, records backward fn for addition
 
 z.backward()    # traverses the graph in reverse
 
-print(x.grad)   # [7.0]  —  ∂z/∂x = 2x + y = 4 + 3
-print(y.grad)   # [2.0]  —  ∂z/∂y = x = 2
+print(x.grad)   # [7.]  —  ∂z/∂x = 2x + y = 4 + 3
+print(y.grad)   # [2.]  —  ∂z/∂y = x = 2
 ```
 
 ```pytorch

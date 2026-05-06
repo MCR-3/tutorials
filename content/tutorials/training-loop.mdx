@@ -86,33 +86,36 @@ This structure is the same whether training a small network or a large one. The 
 
 ```simplegrad
 import simplegrad as sg
+import numpy as np
 
 # Toy dataset: y = 2x (6 training, 2 validation)
-X_train = sg.Tensor([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]])
-y_train = sg.Tensor([[2.0], [4.0], [6.0], [8.0], [10.0], [12.0]])
-X_val   = sg.Tensor([[7.0], [8.0]])
-y_val   = sg.Tensor([[14.0], [16.0]])
+X_train = np.array([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]])
+y_train = np.array([[2.0], [4.0], [6.0], [8.0], [10.0], [12.0]])
+X_val   = np.array([[7.0], [8.0]])
+y_val   = np.array([[14.0], [16.0]])
 
-W = sg.Tensor([[0.5]], requires_grad=True)
-lr, batch_size, n = 0.05, 2, 6
+W = sg.Tensor([[0.5]], comp_grad=True)
+optimizer = sg.opt.SGD(lr=0.05, param_groups=[{"params": {"W": W}}])
+batch_size, n = 2, 6
 
 for epoch in range(20):
     train_loss = 0.0
 
     for start in range(0, n, batch_size):
-        Xb = X_train[start : start + batch_size]
-        yb = y_train[start : start + batch_size]
+        Xb = sg.Tensor(X_train[start : start + batch_size])
+        yb = sg.Tensor(y_train[start : start + batch_size])
 
-        W.grad = None                             # 1. zero gradients
-        pred = Xb @ W                             # 2. forward pass
-        loss = ((pred - yb) ** 2).mean()          # 3. compute loss
-        loss.backward()                           # 4. backward pass
-        W.data -= lr * W.grad                     # 5. optimizer step (SGD)
-        train_loss += float(loss)
+        optimizer.zero_grad()                  # 1. zero gradients
+        pred = Xb @ W                          # 2. forward pass
+        loss = sg.mse_loss(pred, yb)           # 3. compute loss
+        loss.backward()                        # 4. backward pass
+        optimizer.step()                       # 5. optimizer step
+        train_loss += float(loss.values)
 
     # Validation — no gradient computation
-    val_pred = X_val @ W
-    val_loss = float(((val_pred - y_val) ** 2).mean())
+    with sg.no_grad():
+        val_pred = sg.Tensor(X_val) @ W
+        val_loss = float(sg.mse_loss(val_pred, sg.Tensor(y_val)).values)
 
     if epoch % 5 == 0:
         print(f"epoch {epoch:2d}  train={train_loss/3:.4f}  val={val_loss:.4f}")

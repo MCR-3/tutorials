@@ -109,36 +109,72 @@ The $O(T^2)$ cost is also the direct answer to the bottleneck problem: there is 
 
 ## In Code
 
-```python
+```simplegrad
+import simplegrad as sg
 import numpy as np
 
-def softmax(x):
-    e = np.exp(x - x.max(axis=-1, keepdims=True))
-    return e / e.sum(axis=-1, keepdims=True)
+# ── Scaled dot-product attention ──────────────────────────────────────────────
+# All operations are simplegrad tensors: gradients flow through softmax and matmuls.
+# The causal mask is added as a constant tensor (comp_grad=False) so that
+# positions j > i receive weight ≈ 0 after softmax without breaking autograd.
 
-def attention(Q, K, V, mask=None):
-    d_k = Q.shape[-1]
-    scores = Q @ K.T / np.sqrt(d_k)    # (T, T)
-    if mask is not None:
-        scores[mask] = -1e9             # set masked positions to -∞
-    A = softmax(scores)                 # (T, T), rows sum to 1
-    return A @ V                        # (T, d_v)
+def scaled_dot_product_attention(Q, K, V, causal=False):
+    """Q, K, V: (T, d_k) sg.Tensors."""
+    d_k    = Q.shape[-1]
+    scores = Q @ K.T / d_k ** 0.5          # (T, T)
 
-# Simple example: T=3, d_k=d_v=2, identity projections
-X = np.array([[1., 0.], [0., 1.], [1., 1.]])
-Z = attention(Q=X, K=X, V=X)
-print(Z.round(3))
-# [[0.802, 0.599],
-#  [0.599, 0.802],
-#  [0.752, 0.752]]
-# Each output is a weighted average of the input rows.
+    if causal:
+        T       = Q.shape[0]
+        mask_np = np.triu(np.ones((T, T), dtype="float32"), k=1) * -1e9
+        scores  = scores + sg.Tensor(mask_np, comp_grad=False)
 
-# Causal mask for T=3: block upper triangle
-mask = np.triu(np.ones((3, 3), dtype=bool), k=1)
-# [[False, True,  True ],
-#  [False, False, True ],
-#  [False, False, False]]
-Z_causal = attention(Q=X, K=X, V=X, mask=mask)
+    A = sg.softmax(scores, dim=-1)          # (T, T) — rows sum to 1
+    return A @ V                            # (T, d_k)
+
+# Simple example: T=3, d_k=2, identity projections (Q = K = V = X)
+X = sg.Tensor([[1., 0.], [0., 1.], [1., 1.]])
+Z = scaled_dot_product_attention(X, X, X)
+print(Z.values.round(3))
+# [[0.802 0.599]
+#  [0.599 0.802]
+#  [0.752 0.752]]
+# Each output row is a weighted average of all input rows.
+
+# Causal mask: position i attends only to positions 0..i
+Z_causal = scaled_dot_product_attention(X, X, X, causal=True)
+print(Z_causal.values.round(3))
+# [[1.    0.   ]   — position 0 sees only itself
+#  [0.330 0.670]   — position 1 blends rows 0 and 1
+#  [0.752 0.752]]  — position 2 sees all three (last row, no future to mask)
+
+# ── SingleHeadAttention as a sg.nn.Module ─────────────────────────────────────
+
+class SingleHeadAttention(sg.nn.Module):
+    def __init__(self, d_model: int, d_k: int):
+        super().__init__()
+        self.d_k = d_k
+        self.W_Q = sg.nn.Linear(d_model, d_k, use_bias=False)
+        self.W_K = sg.nn.Linear(d_model, d_k, use_bias=False)
+        self.W_V = sg.nn.Linear(d_model, d_k, use_bias=False)
+
+    def forward(self, x, causal=False):
+        # x: (T, d_model)
+        Q = self.W_Q(x)   # (T, d_k)
+        K = self.W_K(x)
+        V = self.W_V(x)
+        return scaled_dot_product_attention(Q, K, V, causal=causal)
+
+attn = SingleHeadAttention(d_model=8, d_k=4)
+x    = sg.normal((6, 8))        # T=6 tokens, d_model=8
+z    = attn(x, causal=True)
+print(z.shape)                  # (6, 4)
+
+# Gradients flow back through softmax and matmuls to all three projection weights
+loss = sg.sum(z)
+loss.backward()
+print(attn.W_Q.weight.grad.shape)   # (8, 4) — ∂L/∂W_Q
+print(attn.W_K.weight.grad.shape)   # (8, 4) — ∂L/∂W_K
+print(attn.W_V.weight.grad.shape)   # (8, 4) — ∂L/∂W_V
 ```
 
 ```pytorch

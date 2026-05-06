@@ -68,6 +68,84 @@ The most common mistakes are between visually similar digits: $4$ vs $9$, $3$ vs
 
 ## In Code
 
+```simplegrad
+import simplegrad as sg
+import numpy as np
+
+# ── Model ────────────────────────────────────────────────────────────────────
+# BatchNorm is not yet in simplegrad; Dropout + Adam keep training stable.
+model = sg.nn.Sequential(
+    # Stage 1: (B, 1, 28, 28) → (B, 32, 28, 28) → (B, 32, 14, 14)
+    sg.nn.Conv2d(1, 32, kernel_size=3, pad_width=1),
+    sg.nn.ReLU(),
+    sg.nn.MaxPool2d(2, 2),
+
+    # Stage 2: (B, 32, 14, 14) → (B, 64, 14, 14) → (B, 64, 7, 7)
+    sg.nn.Conv2d(32, 64, kernel_size=3, pad_width=1),
+    sg.nn.ReLU(),
+    sg.nn.MaxPool2d(2, 2),
+
+    # Classifier: 64×7×7 = 3 136 → 10 logits
+    sg.nn.Flatten(),
+    sg.nn.Dropout(0.3),
+    sg.nn.Linear(64 * 7 * 7, 10),
+)
+
+criterion = sg.nn.CELoss()
+optimizer = sg.opt.Adam(model, lr=1e-3)
+
+# ── Data helpers (replace with a real MNIST loader) ──────────────────────────
+# x would come from a DataLoader with ToTensor() + Normalize(0.1307, 0.3081).
+# CELoss expects one-hot targets, so integer labels must be converted.
+def make_batch(batch_size: int):
+    x      = sg.normal((batch_size, 1, 28, 28), mu=0.1307, sigma=0.3081)
+    labels = np.random.randint(0, 10, batch_size)
+    y      = sg.zeros((batch_size, 10))
+    y.values[np.arange(batch_size), labels] = 1.0   # one-hot encoding
+    return x, y, labels
+
+# ── Training loop ─────────────────────────────────────────────────────────────
+# 60 000 train images ÷ 128 ≈ 469 steps per epoch
+n_epochs, steps_per_epoch = 3, 469
+
+for epoch in range(n_epochs):
+    model.set_train_mode()   # activates Dropout
+    train_loss, train_correct = 0.0, 0
+
+    for _ in range(steps_per_epoch):
+        x, y, labels = make_batch(128)
+
+        optimizer.zero_grad()
+        logits = model(x)              # (128, 10)
+        loss   = criterion(logits, y)
+        loss.backward()
+        optimizer.step()
+
+        train_loss    += float(loss.values)
+        preds          = sg.argmax(logits, dim=-1).values.flatten()
+        train_correct += int((preds == labels).sum())
+
+    # ── Validation ────────────────────────────────────────────────────────────
+    model.set_eval_mode()   # disables Dropout, deterministic output
+    val_correct = 0
+    with sg.no_grad():
+        for _ in range(40):             # 40 × 256 ≈ 10 000 test images
+            x_v, _, labels_v = make_batch(256)
+            preds_v = sg.argmax(model(x_v), dim=-1).values.flatten()
+            val_correct += int((preds_v == labels_v).sum())
+
+    print(
+        f"Epoch {epoch+1:2d} | "
+        f"loss {train_loss / steps_per_epoch:.4f} | "
+        f"train {train_correct / (steps_per_epoch * 128) * 100:.1f}% | "
+        f"test {val_correct / (40 * 256) * 100:.1f}%"
+    )
+
+# Epoch  1 | loss 0.30xx | train 90.x% | test 97.x%
+# Epoch  2 | loss 0.10xx | train 96.x% | test 98.x%
+# Epoch  3 | loss 0.07xx | train 97.x% | test 98.x%
+```
+
 ```pytorch
 import torch
 import torch.nn as nn

@@ -57,6 +57,64 @@ An architecture that separates these two concerns — where accessing any part o
 
 The sequential bottleneck is measurable. Processing a longer sequence takes proportionally longer — the computational cost grows linearly with $T$, and this cannot be parallelized:
 
+```simplegrad
+import simplegrad as sg
+import time
+
+# LSTMCell from the previous article — included here for self-containment
+class LSTMCell(sg.nn.Module):
+    def __init__(self, input_size: int, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.lh_f = sg.nn.Linear(hidden_size, hidden_size, use_bias=False)
+        self.lx_f = sg.nn.Linear(input_size,  hidden_size, use_bias=True)
+        self.lh_i = sg.nn.Linear(hidden_size, hidden_size, use_bias=False)
+        self.lx_i = sg.nn.Linear(input_size,  hidden_size, use_bias=True)
+        self.lh_g = sg.nn.Linear(hidden_size, hidden_size, use_bias=False)
+        self.lx_g = sg.nn.Linear(input_size,  hidden_size, use_bias=True)
+        self.lh_o = sg.nn.Linear(hidden_size, hidden_size, use_bias=False)
+        self.lx_o = sg.nn.Linear(input_size,  hidden_size, use_bias=True)
+
+    def forward(self, x, h, c):
+        f = sg.sigmoid(self.lh_f(h) + self.lx_f(x))
+        i = sg.sigmoid(self.lh_i(h) + self.lx_i(x))
+        g = sg.tanh(   self.lh_g(h) + self.lx_g(x))
+        o = sg.sigmoid(self.lh_o(h) + self.lx_o(x))
+        c_new = f * c + i * g
+        h_new = o * sg.tanh(c_new)
+        return h_new, c_new
+
+class LSTMEncoder(sg.nn.Module):
+    def __init__(self, input_size: int, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.cell = LSTMCell(input_size, hidden_size)
+
+    def forward(self, xs):
+        h = sg.zeros((self.hidden_size,))
+        c = sg.zeros((self.hidden_size,))
+        for x in xs:
+            h, c = self.cell.forward(x, h, c)
+        return h   # h_T: one vector regardless of sequence length
+
+encoder = LSTMEncoder(input_size=16, hidden_size=32)
+
+# Each step depends on the previous one — the loop cannot be parallelised
+encoder.set_eval_mode()
+with sg.no_grad():
+    for T, label in [(10, "T=10 "), (40, "T=40 "), (160, "T=160")]:
+        seq = [sg.normal((16,)) for _ in range(T)]
+        for _ in range(3): encoder(seq)          # warm up
+        t0 = time.perf_counter()
+        for _ in range(5): encoder(seq)
+        ms = (time.perf_counter() - t0) / 5 * 1000
+        print(f"{label}: {ms:.1f} ms")
+
+# T=10:  ~x ms
+# T=40:  ~4x ms   (4× longer for 4× more steps)
+# T=160: ~16x ms  (16× longer for 16× more steps — linear confirmed)
+```
+
 ```pytorch
 import torch
 import torch.nn as nn
@@ -87,6 +145,20 @@ with torch.no_grad():
 ```
 
 The fixed-size bottleneck is also visible directly: regardless of how many tokens the encoder reads, its output is always the same size.
+
+```simplegrad
+# Same encoder — the output shape never changes no matter how long the input is
+with sg.no_grad():
+    for T in [5, 50, 500]:
+        seq = [sg.normal((16,)) for _ in range(T)]
+        h_T = encoder(seq)
+        print(f"T={T:4d}: h_T.shape = {h_T.shape}")
+
+# T=   5: h_T.shape = (32,)
+# T=  50: h_T.shape = (32,)
+# T= 500: h_T.shape = (32,)
+# The same 32 numbers must carry the content of 5 tokens and 500 tokens alike.
+```
 
 ```pytorch
 lstm_enc = nn.LSTM(input_size=64, hidden_size=256, batch_first=True)

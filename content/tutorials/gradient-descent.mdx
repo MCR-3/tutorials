@@ -97,18 +97,19 @@ Each iteration of this cycle is one gradient descent step. Running many iteratio
 ```simplegrad
 import simplegrad as sg
 
-w = sg.Tensor([4.0], requires_grad=True)
+w = sg.Tensor([4.0], comp_grad=True)
 target = 2.0
 eta = 0.3
 
 for step in range(3):
-    loss = (w - target) ** 2    # forward pass
-    loss.backward()             # backward pass: compute ∂L/∂w
+    loss = sg.mse_loss(w, sg.Tensor([target]))   # forward pass
+    loss.backward()                               # backward pass: compute ∂L/∂w
 
-    w.data -= eta * w.grad      # update step
-    w.grad = None               # reset gradient before next step
+    w.values -= eta * w.grad     # update step
+    w.zero_grad()                # reset gradient before next step
 
-    print(f"step {step+1}: w={w.data[0]:.4f}  loss={float(loss):.4f}")
+    new_loss = (w.values[0] - target) ** 2
+    print(f"step {step+1}: w={w.values[0]:.4f}  loss={new_loss:.4f}")
 
 # step 1: w=2.8000  loss=0.6400
 # step 2: w=2.3200  loss=0.1024
