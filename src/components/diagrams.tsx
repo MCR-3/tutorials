@@ -36,10 +36,24 @@ export function VectorDiagram() {
           weight={1.5}
         />
         <Vector tip={[3, 2]} color="var(--color-green)" weight={2.5} />
-        <MafsText x={1.5} y={2} attach="n" attachDistance={10} size={15} color="var(--color-green)">
+        <MafsText
+          x={1.5}
+          y={2}
+          attach="n"
+          attachDistance={10}
+          size={15}
+          color="var(--color-green)"
+        >
           3
         </MafsText>
-        <MafsText x={3} y={1} attach="e" attachDistance={10} size={15} color="var(--color-green)">
+        <MafsText
+          x={3}
+          y={1}
+          attach="e"
+          attachDistance={10}
+          size={15}
+          color="var(--color-green)"
+        >
           2
         </MafsText>
         <MafsText x={3.15} y={2.2} size={17} color="var(--color-green)">
@@ -60,8 +74,18 @@ export function VectorAdditionDiagram() {
         zoom={false}
       >
         <Vector tip={[2, 1]} color="var(--color-blue)" weight={2.5} />
-        <Vector tail={[2, 1]} tip={[3, 3]} color="var(--color-orange)" weight={2.5} />
-        <Vector tip={[3, 3]} color="var(--color-green)" style="dashed" weight={2} />
+        <Vector
+          tail={[2, 1]}
+          tip={[3, 3]}
+          color="var(--color-orange)"
+          weight={2.5}
+        />
+        <Vector
+          tip={[3, 3]}
+          color="var(--color-green)"
+          style="dashed"
+          weight={2}
+        />
         <MafsText x={0.85} y={0.42} size={15} color="var(--color-blue)">
           a
         </MafsText>
@@ -111,7 +135,12 @@ export function NormalizationDiagram() {
   );
 }
 
-function bracketPath(x: number, y: number, h: number, side: "left" | "right"): string {
+function bracketPath(
+  x: number,
+  y: number,
+  h: number,
+  side: "left" | "right"
+): string {
   const bw = 5;
   return side === "left"
     ? `M ${x + bw},${y} L ${x},${y} L ${x},${y + h} L ${x + bw},${y + h}`
@@ -125,33 +154,58 @@ function svgMatrix(
   cW: number,
   cH: number,
   hlFn: (i: number, j: number) => [boolean, string],
-  fontSize = 15,
+  fontSize = 15
 ) {
-  const rows = data.length, cols = data[0].length;
+  const rows = data.length,
+    cols = data[0].length;
   return (
     <>
       {data.map((row, i) =>
         row.map((val, j) => {
-          const cx = startX + j * cW, cy = startY + i * cH;
+          const cx = startX + j * cW,
+            cy = startY + i * cH;
           const [isHl, color] = hlFn(i, j);
           return (
             <g key={`${startX}-${i}-${j}`}>
-              <rect x={cx} y={cy} width={cW} height={cH}
-                fill={color} fillOpacity={isHl ? 0.14 : 0}
-                stroke="var(--border)" strokeWidth={1} />
-              <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
+              <rect
+                x={cx}
+                y={cy}
+                width={cW}
+                height={cH}
+                fill={color}
+                fillOpacity={isHl ? 0.14 : 0}
+                stroke="var(--border)"
+                strokeWidth={1}
+              />
+              <text
+                x={cx + cW / 2}
+                y={cy + cH / 2 + 5}
+                textAnchor="middle"
                 fill={isHl ? color : "var(--color-fg)"}
-                fontSize={fontSize} fontWeight={isHl ? 600 : 400} fontFamily="var(--font-code)">
+                fontSize={fontSize}
+                fontWeight={isHl ? 600 : 400}
+                fontFamily="var(--font-code)"
+              >
                 {val}
               </text>
             </g>
           );
         })
       )}
-      <path d={bracketPath(startX, startY, rows * cH, "left")}
-        fill="none" stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
-      <path d={bracketPath(startX + cols * cW, startY, rows * cH, "right")}
-        fill="none" stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+      <path
+        d={bracketPath(startX, startY, rows * cH, "left")}
+        fill="none"
+        stroke="var(--color-fg)"
+        strokeWidth={2}
+        strokeLinecap="square"
+      />
+      <path
+        d={bracketPath(startX + cols * cW, startY, rows * cH, "right")}
+        fill="none"
+        stroke="var(--color-fg)"
+        strokeWidth={2}
+        strokeLinecap="square"
+      />
     </>
   );
 }
@@ -204,51 +258,104 @@ export function DotProductDiagram() {
 }
 
 export function MatrixDiagram() {
-  const cW = 52, cH = 46, bw = 5, padL = 24, padT = 44;
-  const data = [[1, 2, 3], [4, 5, 6]];
-  const rows = data.length, cols = data[0].length;
-  const mW = cols * cW, mH = rows * cH;
+  const cW = 52,
+    cH = 46,
+    bw = 5,
+    padL = 24,
+    padT = 44;
+  const data = [
+    [1, 2, 3],
+    [4, 5, 6],
+  ];
+  const rows = data.length,
+    cols = data[0].length;
+  const mW = cols * cW,
+    mH = rows * cH;
   const caption = "2 × 3 matrix — aᵢⱼ is in row i, column j";
   const naturalW = padL + bw + mW + bw + padL;
   const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
   const svgH = padT + mH + 28;
-  const mX = padL + bw + (svgW - naturalW) / 2, mY = padT;
-  const hlRow = 0, hlCol = 1;
+  const mX = padL + bw + (svgW - naturalW) / 2,
+    mY = padT;
+  const hlRow = 0,
+    hlCol = 1;
 
   return (
     <div className="my-8 flex justify-center overflow-x-auto">
       <svg width={svgW} height={svgH}>
-        <text x={mX + hlCol * cW + cW / 2} y={mY - 24} textAnchor="middle"
-          fill="var(--color-green)" fontSize={13} fontFamily="var(--font-code)">
+        <text
+          x={mX + hlCol * cW + cW / 2}
+          y={mY - 24}
+          textAnchor="middle"
+          fill="var(--color-green)"
+          fontSize={13}
+          fontFamily="var(--font-code)"
+        >
           a₁₂
         </text>
         <line
-          x1={mX + hlCol * cW + cW / 2} y1={mY - 20}
-          x2={mX + hlCol * cW + cW / 2} y2={mY}
-          stroke="var(--color-green)" strokeWidth={1} strokeDasharray="3 2"
+          x1={mX + hlCol * cW + cW / 2}
+          y1={mY - 20}
+          x2={mX + hlCol * cW + cW / 2}
+          y2={mY}
+          stroke="var(--color-green)"
+          strokeWidth={1}
+          strokeDasharray="3 2"
         />
-        {data.map((row, i) => row.map((val, j) => {
-          const cx = mX + j * cW, cy = mY + i * cH;
-          const hl = i === hlRow && j === hlCol;
-          return (
-            <g key={`${i}-${j}`}>
-              <rect x={cx} y={cy} width={cW} height={cH}
-                fill="var(--color-green)" fillOpacity={hl ? 0.12 : 0}
-                stroke="var(--border)" strokeWidth={1} />
-              <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
-                fill={hl ? "var(--color-green)" : "var(--color-fg)"}
-                fontSize={16} fontWeight={hl ? 600 : 400} fontFamily="var(--font-code)">
-                {val}
-              </text>
-            </g>
-          );
-        }))}
-        <path d={bracketPath(mX, mY, mH, "left")} fill="none"
-          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
-        <path d={bracketPath(mX + mW, mY, mH, "right")} fill="none"
-          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+        {data.map((row, i) =>
+          row.map((val, j) => {
+            const cx = mX + j * cW,
+              cy = mY + i * cH;
+            const hl = i === hlRow && j === hlCol;
+            return (
+              <g key={`${i}-${j}`}>
+                <rect
+                  x={cx}
+                  y={cy}
+                  width={cW}
+                  height={cH}
+                  fill="var(--color-green)"
+                  fillOpacity={hl ? 0.12 : 0}
+                  stroke="var(--border)"
+                  strokeWidth={1}
+                />
+                <text
+                  x={cx + cW / 2}
+                  y={cy + cH / 2 + 5}
+                  textAnchor="middle"
+                  fill={hl ? "var(--color-green)" : "var(--color-fg)"}
+                  fontSize={16}
+                  fontWeight={hl ? 600 : 400}
+                  fontFamily="var(--font-code)"
+                >
+                  {val}
+                </text>
+              </g>
+            );
+          })
+        )}
+        <path
+          d={bracketPath(mX, mY, mH, "left")}
+          fill="none"
+          stroke="var(--color-fg)"
+          strokeWidth={2}
+          strokeLinecap="square"
+        />
+        <path
+          d={bracketPath(mX + mW, mY, mH, "right")}
+          fill="none"
+          stroke="var(--color-fg)"
+          strokeWidth={2}
+          strokeLinecap="square"
+        />
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={12}
+          fontFamily="var(--font-code)"
+        >
           {caption}
         </text>
       </svg>
@@ -257,12 +364,28 @@ export function MatrixDiagram() {
 }
 
 export function MatrixMultiplicationDiagram() {
-  const cW = 44, cH = 44, bw = 5, gap = 36, padL = 16, padT = 24;
-  const A = [[1, 2], [3, 4]];
-  const B = [[5, 6], [7, 8]];
-  const C = [[19, 22], [43, 50]];
-  const mW = 2 * cW, mH = 2 * cH;
-  const caption = "C₁₁ = 1·5 + 2·7 = 19 — each entry is a dot product (row · column)";
+  const cW = 44,
+    cH = 44,
+    bw = 5,
+    gap = 36,
+    padL = 16,
+    padT = 24;
+  const A = [
+    [1, 2],
+    [3, 4],
+  ];
+  const B = [
+    [5, 6],
+    [7, 8],
+  ];
+  const C = [
+    [19, 22],
+    [43, 50],
+  ];
+  const mW = 2 * cW,
+    mH = 2 * cH;
+  const caption =
+    "C₁₁ = 1·5 + 2·7 = 19 — each entry is a dot product (row · column)";
   const naturalAX = padL + bw;
   const naturalBX = naturalAX + mW + bw + gap + bw;
   const naturalCX = naturalBX + mW + bw + gap + bw;
@@ -278,40 +401,68 @@ export function MatrixMultiplicationDiagram() {
   function renderCells(
     data: number[][],
     startX: number,
-    hlType: "row" | "col" | "entry",
+    hlType: "row" | "col" | "entry"
   ) {
     const hlColor =
-      hlType === "row" ? "var(--color-blue)"
-        : hlType === "col" ? "var(--color-orange)"
+      hlType === "row"
+        ? "var(--color-blue)"
+        : hlType === "col"
+          ? "var(--color-orange)"
           : "var(--color-green)";
-    return data.map((row, i) => row.map((val, j) => {
-      const cx = startX + j * cW, cy = mY + i * cH;
-      const isHl =
-        (hlType === "row" && i === 0) ||
-        (hlType === "col" && j === 0) ||
-        (hlType === "entry" && i === 0 && j === 0);
-      return (
-        <g key={`${startX}-${i}-${j}`}>
-          <rect x={cx} y={cy} width={cW} height={cH}
-            fill={hlColor} fillOpacity={isHl ? 0.14 : 0}
-            stroke="var(--border)" strokeWidth={1} />
-          <text x={cx + cW / 2} y={cy + cH / 2 + 5} textAnchor="middle"
-            fill={isHl ? hlColor : "var(--color-fg)"}
-            fontSize={15} fontWeight={isHl ? 600 : 400} fontFamily="var(--font-code)">
-            {val}
-          </text>
-        </g>
-      );
-    }));
+    return data.map((row, i) =>
+      row.map((val, j) => {
+        const cx = startX + j * cW,
+          cy = mY + i * cH;
+        const isHl =
+          (hlType === "row" && i === 0) ||
+          (hlType === "col" && j === 0) ||
+          (hlType === "entry" && i === 0 && j === 0);
+        return (
+          <g key={`${startX}-${i}-${j}`}>
+            <rect
+              x={cx}
+              y={cy}
+              width={cW}
+              height={cH}
+              fill={hlColor}
+              fillOpacity={isHl ? 0.14 : 0}
+              stroke="var(--border)"
+              strokeWidth={1}
+            />
+            <text
+              x={cx + cW / 2}
+              y={cy + cH / 2 + 5}
+              textAnchor="middle"
+              fill={isHl ? hlColor : "var(--color-fg)"}
+              fontSize={15}
+              fontWeight={isHl ? 600 : 400}
+              fontFamily="var(--font-code)"
+            >
+              {val}
+            </text>
+          </g>
+        );
+      })
+    );
   }
 
   function renderBrackets(startX: number) {
     return (
       <>
-        <path d={bracketPath(startX, mY, mH, "left")} fill="none"
-          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
-        <path d={bracketPath(startX + mW, mY, mH, "right")} fill="none"
-          stroke="var(--color-fg)" strokeWidth={2} strokeLinecap="square" />
+        <path
+          d={bracketPath(startX, mY, mH, "left")}
+          fill="none"
+          stroke="var(--color-fg)"
+          strokeWidth={2}
+          strokeLinecap="square"
+        />
+        <path
+          d={bracketPath(startX + mW, mY, mH, "right")}
+          fill="none"
+          stroke="var(--color-fg)"
+          strokeWidth={2}
+          strokeLinecap="square"
+        />
       </>
     );
   }
@@ -321,19 +472,42 @@ export function MatrixMultiplicationDiagram() {
       <svg width={svgW} height={svgH}>
         {renderCells(A, aX, "row")}
         {renderBrackets(aX)}
-        <text x={aX + mW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+        <text
+          x={aX + mW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          ×
+        </text>
 
         {renderCells(B, bX, "col")}
         {renderBrackets(bX)}
-        <text x={bX + mW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+        <text
+          x={bX + mW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          =
+        </text>
 
         {renderCells(C, cX, "entry")}
         {renderBrackets(cX)}
 
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)" overflow={"auto"}>
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={12}
+          fontFamily="var(--font-code)"
+          overflow={"auto"}
+        >
           {caption}
         </text>
       </svg>
@@ -342,15 +516,26 @@ export function MatrixMultiplicationDiagram() {
 }
 
 export function MatrixVectorDiagram() {
-  const cW = 46, cH = 46, bw = 5, gap = 32, padL = 16, padT = 28;
-  const W = [[2, 1], [0, 3]];
+  const cW = 46,
+    cH = 46,
+    bw = 5,
+    gap = 32,
+    padL = 16,
+    padT = 28;
+  const W = [
+    [2, 1],
+    [0, 3],
+  ];
   const xV = [[1], [2]];
   const yV = [[4], [6]];
-  const mW = 2 * cW, vW = cW, mH = 2 * cH;
+  const mW = 2 * cW,
+    vW = cW,
+    mH = 2 * cH;
   const mY = padT;
   const caption = "y₁ = 2·1 + 1·2 = 4 — each output is one row dotted with x";
   const naturalWX = padL + bw;
-  const naturalW = naturalWX + mW + bw + gap + bw + vW + bw + gap + bw + vW + bw + padL;
+  const naturalW =
+    naturalWX + mW + bw + gap + bw + vW + bw + gap + bw + vW + bw + padL;
   const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
   const wX = naturalWX + (svgW - naturalW) / 2;
   const xX = wX + mW + bw + gap + bw;
@@ -362,17 +547,39 @@ export function MatrixVectorDiagram() {
     <div className="my-8 flex justify-center overflow-x-auto">
       <svg width={svgW} height={svgH}>
         {svgMatrix(W, wX, mY, cW, cH, (i) => [i === 0, "var(--color-blue)"])}
-        <text x={wX + mW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+        <text
+          x={wX + mW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          ×
+        </text>
 
         {svgMatrix(xV, xX, mY, cW, cH, () => [true, "var(--color-orange)"])}
-        <text x={xX + vW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+        <text
+          x={xX + vW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          =
+        </text>
 
         {svgMatrix(yV, yX, mY, cW, cH, (i) => [i === 0, "var(--color-green)"])}
 
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={12}
+          fontFamily="var(--font-code)"
+        >
           {caption}
         </text>
       </svg>
@@ -430,18 +637,56 @@ export function GradientDiagram() {
       >
         <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
         {/* Level curves of f(x,y) = x² + y² */}
-        <Circle center={[0, 0]} radius={1} color="lightgray" fillOpacity={0} weight={1} />
-        <Circle center={[0, 0]} radius={Math.SQRT2} color="lightgray" fillOpacity={0} weight={1} />
-        <Circle center={[0, 0]} radius={2} color="lightgray" fillOpacity={0} weight={1} />
+        <Circle
+          center={[0, 0]}
+          radius={1}
+          color="lightgray"
+          fillOpacity={0}
+          weight={1}
+        />
+        <Circle
+          center={[0, 0]}
+          radius={Math.SQRT2}
+          color="lightgray"
+          fillOpacity={0}
+          weight={1}
+        />
+        <Circle
+          center={[0, 0]}
+          radius={2}
+          color="lightgray"
+          fillOpacity={0}
+          weight={1}
+        />
         <Point x={1} y={1} color="var(--color-fg)" />
         {/* ∇f: steepest increase */}
-        <Vector tail={[1, 1]} tip={gradTip} color="var(--color-orange)" weight={2.5} />
+        <Vector
+          tail={[1, 1]}
+          tip={gradTip}
+          color="var(--color-orange)"
+          weight={2.5}
+        />
         {/* −∇f: steepest decrease */}
-        <Vector tail={[1, 1]} tip={negTip} color="var(--color-green)" weight={2.5} />
-        <MafsText x={gradTip[0] + 0.12} y={gradTip[1]} size={14} color="var(--color-orange)">
+        <Vector
+          tail={[1, 1]}
+          tip={negTip}
+          color="var(--color-green)"
+          weight={2.5}
+        />
+        <MafsText
+          x={gradTip[0] + 0.12}
+          y={gradTip[1]}
+          size={14}
+          color="var(--color-orange)"
+        >
           ∇f
         </MafsText>
-        <MafsText x={negTip[0] - 0.58} y={negTip[1]} size={14} color="var(--color-green)">
+        <MafsText
+          x={negTip[0] - 0.58}
+          y={negTip[1]}
+          size={14}
+          color="var(--color-green)"
+        >
           −∇f
         </MafsText>
         <MafsText x={2.0} y={-1.9} size={12} color="lightgray">
@@ -471,16 +716,25 @@ export function GradientDescentDiagram() {
         <Plot.OfX y={loss} color="var(--color-blue)" weight={2} />
         {/* Dashed verticals */}
         <MafsLine.Segment
-          point1={[w0, 0]} point2={[w0, loss(w0)]}
-          style="dashed" color="var(--color-yellow)" weight={1}
+          point1={[w0, 0]}
+          point2={[w0, loss(w0)]}
+          style="dashed"
+          color="var(--color-yellow)"
+          weight={1}
         />
         <MafsLine.Segment
-          point1={[w1, 0]} point2={[w1, loss(w1)]}
-          style="dashed" color="var(--color-yellow)" weight={1}
+          point1={[w1, 0]}
+          point2={[w1, loss(w1)]}
+          style="dashed"
+          color="var(--color-yellow)"
+          weight={1}
         />
         <MafsLine.Segment
-          point1={[w2, 0]} point2={[w2, loss(w2)]}
-          style="dashed" color="var(--color-yellow)" weight={1}
+          point1={[w2, 0]}
+          point2={[w2, loss(w2)]}
+          style="dashed"
+          color="var(--color-yellow)"
+          weight={1}
         />
         {/* Points on curve */}
         <Point x={w0} y={loss(w0)} color="var(--color-orange)" />
@@ -488,19 +742,44 @@ export function GradientDescentDiagram() {
         <Point x={w2} y={loss(w2)} color="var(--color-orange)" />
         <Point x={2} y={0} color="var(--color-green)" />
         {/* Descent arrows on w-axis */}
-        <Vector tail={[w0, loss(w0)]} tip={[w1, loss(w1)]} color="var(--color-orange)" weight={2} />
-        <Vector tail={[w1, loss(w1)]} tip={[w2, loss(w2)]} color="var(--color-orange)" weight={2} />
+        <Vector
+          tail={[w0, loss(w0)]}
+          tip={[w1, loss(w1)]}
+          color="var(--color-orange)"
+          weight={2}
+        />
+        <Vector
+          tail={[w1, loss(w1)]}
+          tip={[w2, loss(w2)]}
+          color="var(--color-orange)"
+          weight={2}
+        />
         {/* Labels */}
         <MafsText x={0.4} y={4.3} size={14} color="var(--color-blue)">
           L(w)
         </MafsText>
-        <MafsText x={w0 + 0.5} y={loss(w0)} size={13} color="var(--color-orange)">
+        <MafsText
+          x={w0 + 0.5}
+          y={loss(w0)}
+          size={13}
+          color="var(--color-orange)"
+        >
           w₀
         </MafsText>
-        <MafsText x={w1 + 0.5} y={loss(w1)} size={13} color="var(--color-orange)">
+        <MafsText
+          x={w1 + 0.5}
+          y={loss(w1)}
+          size={13}
+          color="var(--color-orange)"
+        >
           w₁
         </MafsText>
-        <MafsText x={w2 + 0.5} y={loss(w2)} size={13} color="var(--color-orange)">
+        <MafsText
+          x={w2 + 0.5}
+          y={loss(w2)}
+          size={13}
+          color="var(--color-orange)"
+        >
           w₂
         </MafsText>
         <MafsText x={2.08} y={-0.38} size={12} color="var(--color-green)">
@@ -512,19 +791,35 @@ export function GradientDescentDiagram() {
 }
 
 export function MomentumDiagram() {
-  const svgW = 460, svgH = 260;
-  const cx = 230, cy = 130;
+  const svgW = 460,
+    svgH = 260;
+  const cx = 230,
+    cy = 130;
 
   // SGD path: oscillates in y (narrow axis of the ravine) while slowly advancing in x
   const sgd = [
-    [60, 90], [76, 194], [96, 70], [119, 188], [144, 79],
-    [168, 181], [192, 93], [212, 168], [223, 108], [228, 153],
-    [230, 129], [230, 130],
+    [60, 90],
+    [76, 194],
+    [96, 70],
+    [119, 188],
+    [144, 79],
+    [168, 181],
+    [192, 93],
+    [212, 168],
+    [223, 108],
+    [228, 153],
+    [230, 129],
+    [230, 130],
   ];
   // Momentum path: smooth curve following the valley floor
   const mom = [
-    [60, 90], [96, 104], [142, 116], [184, 125], [216, 130],
-    [228, 130], [230, 130],
+    [60, 90],
+    [96, 104],
+    [142, 116],
+    [184, 125],
+    [216, 130],
+    [228, 130],
+    [230, 130],
   ];
   const pts = (arr: number[][]) => arr.map(([x, y]) => `${x},${y}`).join(" ");
 
@@ -536,10 +831,19 @@ export function MomentumDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Elliptical contour lines of the ravine loss landscape */}
-        {([[160, 80], [105, 52], [50, 25]] as [number, number][]).map(([rx, ry], i) => (
+        {(
+          [
+            [160, 80],
+            [105, 52],
+            [50, 25],
+          ] as [number, number][]
+        ).map(([rx, ry], i) => (
           <ellipse
             key={i}
-            cx={cx} cy={cy} rx={rx} ry={ry}
+            cx={cx}
+            cy={cy}
+            rx={rx}
+            ry={ry}
             fill="none"
             stroke="var(--border-strong)"
             strokeWidth={1}
@@ -547,21 +851,66 @@ export function MomentumDiagram() {
           />
         ))}
         {/* SGD path */}
-        <polyline points={pts(sgd)} fill="none" stroke="var(--color-orange)" strokeWidth={1.5} />
+        <polyline
+          points={pts(sgd)}
+          fill="none"
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
         {/* Momentum path */}
-        <polyline points={pts(mom)} fill="none" stroke="var(--color-green)" strokeWidth={2.5} />
+        <polyline
+          points={pts(mom)}
+          fill="none"
+          stroke="var(--color-green)"
+          strokeWidth={2.5}
+        />
         {/* Shared start marker */}
-        <circle cx={60} cy={90} r={4} fill="none" stroke="var(--muted)" strokeWidth={1.5} />
+        <circle
+          cx={60}
+          cy={90}
+          r={4}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+        />
         {/* Minimum */}
         <circle cx={cx} cy={cy} r={5} fill="var(--color-green)" />
         {/* Legend */}
-        <text x={310} y={50} fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">— SGD</text>
-        <text x={310} y={68} fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">— Momentum</text>
-        <text x={cx + 8} y={cy + 5} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">min</text>
+        <text
+          x={310}
+          y={50}
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-orange)"
+        >
+          — SGD
+        </text>
+        <text
+          x={310}
+          y={68}
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-green)"
+        >
+          — Momentum
+        </text>
+        <text
+          x={cx + 8}
+          y={cy + 5}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          min
+        </text>
         {/* Caption */}
         <text
-          x={svgW / 2} y={svgH - 10}
-          textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
+          x={svgW / 2}
+          y={svgH - 10}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
         >
           SGD oscillates across the ravine; momentum follows the valley floor
         </text>
@@ -571,14 +920,18 @@ export function MomentumDiagram() {
 }
 
 export function AdamDiagram() {
-  const svgW = 480, svgH = 252;
+  const svgW = 480,
+    svgH = 252;
 
   function drawArrow(x1: number, y1: number, x2: number, y2: number) {
     const as = 7;
-    const dx = x2 - x1, dy = y2 - y1;
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     const ahPts = [
       `${x2.toFixed(1)},${y2.toFixed(1)}`,
       `${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)}`,
@@ -586,31 +939,62 @@ export function AdamDiagram() {
     ].join(" ");
     return (
       <>
-        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--border-strong)" strokeWidth={1.5} />
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
         <polygon points={ahPts} fill="var(--border-strong)" />
       </>
     );
   }
 
-  function drawBox(cx: number, cy: number, w: number, h: number, label: string, color: string) {
+  function drawBox(
+    cx: number,
+    cy: number,
+    w: number,
+    h: number,
+    label: string,
+    color: string
+  ) {
     return (
       <>
         <rect
-          x={cx - w / 2} y={cy - h / 2} width={w} height={h}
-          fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={4}
+          x={cx - w / 2}
+          y={cy - h / 2}
+          width={w}
+          height={h}
+          fill="var(--color-white)"
+          stroke={color}
+          strokeWidth={1.5}
+          rx={4}
         />
-        <text x={cx} y={cy + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill={color}
-        >{label}</text>
+        <text
+          x={cx}
+          y={cy + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill={color}
+        >
+          {label}
+        </text>
       </>
     );
   }
 
   // Node positions
-  const gx = 240, gy = 36;
-  const mx = 90, my = 130;
-  const vx = 390, vy = 130;
-  const ux = 240, uy = 215;
+  const gx = 240,
+    gy = 36;
+  const mx = 90,
+    my = 130;
+  const vx = 390,
+    vy = 130;
+  const ux = 240,
+    uy = 215;
 
   return (
     <div className="my-8">
@@ -626,12 +1010,26 @@ export function AdamDiagram() {
         {drawArrow(vx, 144, 295, 201)}
 
         {/* Arrow labels */}
-        <text x={155} y={82} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)"
-        >β₁m + (1-β₁)g</text>
-        <text x={325} y={82} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)"
-        >β₂v + (1-β₂)g²</text>
+        <text
+          x={155}
+          y={82}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          β₁m + (1-β₁)g
+        </text>
+        <text
+          x={325}
+          y={82}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          β₂v + (1-β₂)g²
+        </text>
 
         {/* Boxes drawn after arrows so they sit on top */}
         {drawBox(gx, gy, 80, 28, "g_t", "var(--color-fg)")}
@@ -640,39 +1038,96 @@ export function AdamDiagram() {
         {drawBox(ux, uy, 180, 28, "weight update  Δw", "var(--color-green)")}
 
         {/* Update formula below the Δw box */}
-        <text x={ux} y={uy + 35} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >Δw = η · m̂ / (√v̂ + ε)</text>
+        <text
+          x={ux}
+          y={uy + 35}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          Δw = η · m̂ / (√v̂ + ε)
+        </text>
       </svg>
     </div>
   );
 }
 
 export function TrainingLoopDiagram() {
-  const svgW = 400, svgH = 320;
+  const svgW = 400,
+    svgH = 320;
 
   // Pentagon layout — five training-step nodes arranged clockwise from top
   const nodes = [
-    { label: "zero_grad", cx: 200, cy: 52, hw: 48, hh: 13, color: "var(--color-fg)" },
-    { label: "forward", cx: 288, cy: 115, hw: 40, hh: 13, color: "var(--color-blue)" },
-    { label: "loss", cx: 254, cy: 216, hw: 33, hh: 13, color: "var(--color-yellow)" },
-    { label: "backward", cx: 146, cy: 216, hw: 44, hh: 13, color: "var(--color-orange)" },
-    { label: "update", cx: 112, cy: 115, hw: 40, hh: 13, color: "var(--color-green)" },
+    {
+      label: "zero_grad",
+      cx: 200,
+      cy: 52,
+      hw: 48,
+      hh: 13,
+      color: "var(--color-fg)",
+    },
+    {
+      label: "forward",
+      cx: 288,
+      cy: 115,
+      hw: 40,
+      hh: 13,
+      color: "var(--color-blue)",
+    },
+    {
+      label: "loss",
+      cx: 254,
+      cy: 216,
+      hw: 33,
+      hh: 13,
+      color: "var(--color-yellow)",
+    },
+    {
+      label: "backward",
+      cx: 146,
+      cy: 216,
+      hw: 44,
+      hh: 13,
+      color: "var(--color-orange)",
+    },
+    {
+      label: "update",
+      cx: 112,
+      cy: 115,
+      hw: 40,
+      hh: 13,
+      color: "var(--color-green)",
+    },
   ] as const;
 
   // Compute the point on a rectangle's border in direction (dx, dy)
-  function rectEdge(cx: number, cy: number, hw: number, hh: number, dx: number, dy: number): [number, number] {
-    const ax = Math.abs(dx), ay = Math.abs(dy);
-    const t = Math.min(ax > 0 ? hw / ax : Infinity, ay > 0 ? hh / ay : Infinity);
+  function rectEdge(
+    cx: number,
+    cy: number,
+    hw: number,
+    hh: number,
+    dx: number,
+    dy: number
+  ): [number, number] {
+    const ax = Math.abs(dx),
+      ay = Math.abs(dy);
+    const t = Math.min(
+      ax > 0 ? hw / ax : Infinity,
+      ay > 0 ? hh / ay : Infinity
+    );
     return [cx + dx * t, cy + dy * t];
   }
 
   function arrowPts(x1: number, y1: number, x2: number, y2: number): string {
     const as = 7;
-    const dx = x2 - x1, dy = y2 - y1;
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return [
       `${x2.toFixed(1)},${y2.toFixed(1)}`,
       `${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)}`,
@@ -690,14 +1145,24 @@ export function TrainingLoopDiagram() {
         {/* Pentagon arrows */}
         {nodes.map((a, i) => {
           const b = nodes[(i + 1) % nodes.length];
-          const dx = b.cx - a.cx, dy = b.cy - a.cy;
+          const dx = b.cx - a.cx,
+            dy = b.cy - a.cy;
           const [x1, y1] = rectEdge(a.cx, a.cy, a.hw, a.hh, dx, dy);
           const [x2, y2] = rectEdge(b.cx, b.cy, b.hw, b.hh, -dx, -dy);
           return (
             <g key={i}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke="var(--border-strong)" strokeWidth={1.5} />
-              <polygon points={arrowPts(x1, y1, x2, y2)} fill="var(--border-strong)" />
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="var(--border-strong)"
+                strokeWidth={1.5}
+              />
+              <polygon
+                points={arrowPts(x1, y1, x2, y2)}
+                fill="var(--border-strong)"
+              />
             </g>
           );
         })}
@@ -706,40 +1171,96 @@ export function TrainingLoopDiagram() {
         {nodes.map(({ label, cx, cy, hw, hh, color }) => (
           <g key={label}>
             <rect
-              x={cx - hw} y={cy - hh} width={hw * 2} height={hh * 2}
-              fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={4}
+              x={cx - hw}
+              y={cy - hh}
+              width={hw * 2}
+              height={hh * 2}
+              fill="var(--color-white)"
+              stroke={color}
+              strokeWidth={1.5}
+              rx={4}
             />
-            <text x={cx} y={cy + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={11} fill={color}
-            >{label}</text>
+            <text
+              x={cx}
+              y={cy + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={11}
+              fill={color}
+            >
+              {label}
+            </text>
           </g>
         ))}
 
         {/* Center label */}
-        <text x={200} y={148} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >per batch</text>
+        <text
+          x={200}
+          y={148}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          per batch
+        </text>
 
         {/* Validation box below the pentagon */}
-        <line x1={200} y1={229} x2={200} y2={256}
-          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="4 3" />
+        <line
+          x1={200}
+          y1={229}
+          x2={200}
+          y2={256}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+        />
         <polygon
           points={`200,270 196,263 204,263`}
           fill="var(--border-strong)"
         />
-        <rect x={160} y={270} width={80} height={26}
-          fill="var(--color-white)" stroke="var(--border-strong)" strokeWidth={1.5}
-          strokeDasharray="4 3" rx={4}
+        <rect
+          x={160}
+          y={270}
+          width={80}
+          height={26}
+          fill="var(--color-white)"
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          rx={4}
         />
-        <text x={200} y={287} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
-        >validate</text>
-        <text x={214} y={247} fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">each epoch</text>
+        <text
+          x={200}
+          y={287}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-fg)"
+        >
+          validate
+        </text>
+        <text
+          x={214}
+          y={247}
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          each epoch
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >four-step per-batch loop; validation runs once per epoch</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          four-step per-batch loop; validation runs once per epoch
+        </text>
       </svg>
     </div>
   );
@@ -781,12 +1302,24 @@ export function LossCurveDiagram() {
           color="var(--color-green)"
           weight={1}
         />
-        <Point x={bestEpoch} y={valLoss(bestEpoch)} color="var(--color-green)" />
+        <Point
+          x={bestEpoch}
+          y={valLoss(bestEpoch)}
+          color="var(--color-green)"
+        />
         {/* Labels */}
-        <MafsText x={13.0} y={0.30} size={12} color="var(--color-blue)">training</MafsText>
-        <MafsText x={13.0} y={0.72} size={12} color="var(--color-orange)">validation</MafsText>
-        <MafsText x={8} y={0.70} size={11} color="var(--color-green)">best</MafsText>
-        <MafsText x={16.5} y={-0.2} size={11} color="var(--color-white)">epoch</MafsText>
+        <MafsText x={13.0} y={0.3} size={12} color="var(--color-blue)">
+          training
+        </MafsText>
+        <MafsText x={13.0} y={0.72} size={12} color="var(--color-orange)">
+          validation
+        </MafsText>
+        <MafsText x={8} y={0.7} size={11} color="var(--color-green)">
+          best
+        </MafsText>
+        <MafsText x={16.5} y={-0.2} size={11} color="var(--color-white)">
+          epoch
+        </MafsText>
       </Mafs>
     </div>
   );
@@ -803,18 +1336,31 @@ export function ReLUDiagram() {
       >
         <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 1 }} />
         {/* ReLU function */}
-        <Plot.OfX y={(x) => Math.max(0, x)} color="var(--color-blue)" weight={2.5} />
+        <Plot.OfX
+          y={(x) => Math.max(0, x)}
+          color="var(--color-blue)"
+          weight={2.5}
+        />
         {/* Gradient = 1 for x > 0: dashed line at y = 1 */}
         <MafsLine.Segment
-          point1={[0.08, 1]} point2={[3.8, 1]}
-          color="var(--color-orange)" weight={1.5} style="dashed"
+          point1={[0.08, 1]}
+          point2={[3.8, 1]}
+          color="var(--color-orange)"
+          weight={1.5}
+          style="dashed"
         />
         {/* Kink point */}
         <Point x={0} y={0} color="var(--color-green)" />
         {/* Labels */}
-        <MafsText x={2.2} y={3.2} size={14} color="var(--color-blue)">ReLU(x)</MafsText>
-        <MafsText x={1.6} y={1.28} size={12} color="var(--color-orange)">gradient = 1</MafsText>
-        <MafsText x={-3} y={-0.5} size={12} color="var(--color-white)">gradient = 0</MafsText>
+        <MafsText x={2.2} y={3.2} size={14} color="var(--color-blue)">
+          ReLU(x)
+        </MafsText>
+        <MafsText x={1.6} y={1.28} size={12} color="var(--color-orange)">
+          gradient = 1
+        </MafsText>
+        <MafsText x={-3} y={-0.5} size={12} color="var(--color-white)">
+          gradient = 0
+        </MafsText>
       </Mafs>
     </div>
   );
@@ -831,43 +1377,83 @@ export function SigmoidTanhDiagram() {
       >
         <Coordinates.Cartesian xAxis={{ lines: 2 }} yAxis={{ lines: 0.5 }} />
         {/* Sigmoid: range (0, 1) */}
-        <Plot.OfX y={(x) => 1 / (1 + Math.exp(-x))} color="var(--color-orange)" weight={2} />
+        <Plot.OfX
+          y={(x) => 1 / (1 + Math.exp(-x))}
+          color="var(--color-orange)"
+          weight={2}
+        />
         {/* Tanh: range (−1, 1) */}
-        <Plot.OfX y={(x) => Math.tanh(x)} color="var(--color-green)" weight={2} />
+        <Plot.OfX
+          y={(x) => Math.tanh(x)}
+          color="var(--color-green)"
+          weight={2}
+        />
         {/* Labels — placed in the left region where curves are well-separated */}
-        <MafsText x={-2.2} y={0.38} size={13} color="var(--color-orange)">σ(x)</MafsText>
-        <MafsText x={-2.8} y={-0.55} size={13} color="var(--color-green)">tanh(x)</MafsText>
+        <MafsText x={-2.2} y={0.38} size={13} color="var(--color-orange)">
+          σ(x)
+        </MafsText>
+        <MafsText x={-2.8} y={-0.55} size={13} color="var(--color-green)">
+          tanh(x)
+        </MafsText>
         {/* Asymptote markers at the right edge */}
-        <MafsText x={4.4} y={1.12} size={11} color="var(--color-white)">1</MafsText>
-        <MafsText x={4.4} y={0.12} size={11} color="var(--color-white)">½</MafsText>
-        <MafsText x={4.4} y={-0.88} size={11} color="var(--color-white)">-1</MafsText>
+        <MafsText x={4.4} y={1.12} size={11} color="var(--color-white)">
+          1
+        </MafsText>
+        <MafsText x={4.4} y={0.12} size={11} color="var(--color-white)">
+          ½
+        </MafsText>
+        <MafsText x={4.4} y={-0.88} size={11} color="var(--color-white)">
+          -1
+        </MafsText>
       </Mafs>
     </div>
   );
 }
 
 export function NeuronDiagram() {
-  const svgW = 420, svgH = 200;
+  const svgW = 420,
+    svgH = 200;
   const ir = 16; // input circle radius
   const nr = 28; // neuron circle radius
-  const inputs: [number, number][] = [[55, 52], [55, 100], [55, 148]];
+  const inputs: [number, number][] = [
+    [55, 52],
+    [55, 100],
+    [55, 148],
+  ];
   const neuron: [number, number] = [225, 100];
   const weights = ["w₁", "w₂", "w₃"];
   const inputLabels = ["x₁", "x₂", "x₃"];
 
-  function edgePt(fx: number, fy: number, tx: number, ty: number, r: number): [number, number] {
-    const dx = tx - fx, dy = ty - fy;
+  function edgePt(
+    fx: number,
+    fy: number,
+    tx: number,
+    ty: number,
+    r: number
+  ): [number, number] {
+    const dx = tx - fx,
+      dy = ty - fy;
     const len = Math.sqrt(dx * dx + dy * dy);
     return [fx + (dx / len) * r, fy + (dy / len) * r];
   }
 
-  function arrowPts(x1: number, y1: number, x2: number, y2: number, r: number): string {
-    const dx = x2 - x1, dy = y2 - y1;
+  function arrowPts(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    r: number
+  ): string {
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
+    const ux = dx / len,
+      uy = dy / len;
     const as = 7;
-    const tipX = x2 - ux * r, tipY = y2 - uy * r;
-    const bx = tipX - ux * as, by = tipY - uy * as;
+    const tipX = x2 - ux * r,
+      tipY = y2 - uy * r;
+    const bx = tipX - ux * as,
+      by = tipY - uy * as;
     return `${tipX.toFixed(1)},${tipY.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
   }
 
@@ -883,10 +1469,24 @@ export function NeuronDiagram() {
           const [x1, y1] = edgePt(ix, iy, neuron[0], neuron[1], ir);
           return (
             <g key={i}>
-              <line x1={x1} y1={y1}
-                x2={neuron[0] - (neuron[0] - ix) / Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2) * nr}
-                y2={neuron[1] - (neuron[1] - iy) / Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2) * nr}
-                stroke="var(--border-strong)" strokeWidth={1.5} />
+              <line
+                x1={x1}
+                y1={y1}
+                x2={
+                  neuron[0] -
+                  ((neuron[0] - ix) /
+                    Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2)) *
+                    nr
+                }
+                y2={
+                  neuron[1] -
+                  ((neuron[1] - iy) /
+                    Math.sqrt((neuron[0] - ix) ** 2 + (neuron[1] - iy) ** 2)) *
+                    nr
+                }
+                stroke="var(--border-strong)"
+                strokeWidth={1.5}
+              />
               <polygon
                 points={arrowPts(ix, iy, neuron[0], neuron[1], nr)}
                 fill="var(--border-strong)"
@@ -896,76 +1496,176 @@ export function NeuronDiagram() {
         })}
 
         {/* Arrow from neuron to output */}
-        <line x1={neuron[0] + nr} y1={neuron[1]} x2={345} y2={neuron[1]}
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <polygon points={`350,${neuron[1]} 343,${neuron[1] - 3.5} 343,${neuron[1] + 3.5}`}
-          fill="var(--border-strong)" />
+        <line
+          x1={neuron[0] + nr}
+          y1={neuron[1]}
+          x2={345}
+          y2={neuron[1]}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={`350,${neuron[1]} 343,${neuron[1] - 3.5} 343,${neuron[1] + 3.5}`}
+          fill="var(--border-strong)"
+        />
 
         {/* Input circles (drawn over connections) */}
         {inputs.map(([ix, iy], i) => (
           <g key={i}>
-            <circle cx={ix} cy={iy} r={ir}
-              fill="var(--color-white)" stroke="var(--muted)" strokeWidth={1.5} />
-            <text x={ix} y={iy + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)"
-            >{inputLabels[i]}</text>
+            <circle
+              cx={ix}
+              cy={iy}
+              r={ir}
+              fill="var(--color-white)"
+              stroke="var(--muted)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={ix}
+              y={iy + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={12}
+              fill="var(--muted)"
+            >
+              {inputLabels[i]}
+            </text>
           </g>
         ))}
 
         {/* Neuron circle */}
-        <circle cx={neuron[0]} cy={neuron[1]} r={nr}
-          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={2} />
-        <text x={neuron[0]} y={neuron[1] + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={15} fill="var(--color-blue)"
-        >z</text>
+        <circle
+          cx={neuron[0]}
+          cy={neuron[1]}
+          r={nr}
+          fill="var(--color-white)"
+          stroke="var(--color-blue)"
+          strokeWidth={2}
+        />
+        <text
+          x={neuron[0]}
+          y={neuron[1] + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={15}
+          fill="var(--color-blue)"
+        >
+          z
+        </text>
 
         {/* Weight labels on connections */}
         {inputs.map(([ix, iy], i) => {
           const mx = (ix + neuron[0]) / 2 - 2;
           const my = (iy + neuron[1]) / 2 - 9;
           return (
-            <text key={i} x={mx} y={my} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
-            >{weights[i]}</text>
+            <text
+              key={i}
+              x={mx}
+              y={my}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={11}
+              fill="var(--color-fg)"
+            >
+              {weights[i]}
+            </text>
           );
         })}
 
         {/* Bias label */}
-        <text x={neuron[0]} y={neuron[1] + nr + 18} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)"
-        >+ b</text>
+        <text
+          x={neuron[0]}
+          y={neuron[1] + nr + 18}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--muted)"
+        >
+          + b
+        </text>
 
         {/* Output label */}
-        <text x={357} y={neuron[1] + 5} textAnchor="start"
-          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-green)"
-        >σ(z)</text>
+        <text
+          x={357}
+          y={neuron[1] + 5}
+          textAnchor="start"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill="var(--color-green)"
+        >
+          σ(z)
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >z = w₁x₁ + w₂x₂ + w₃x₃ + b,  output y = σ(z)</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          z = w₁x₁ + w₂x₂ + w₃x₃ + b, output y = σ(z)
+        </text>
       </svg>
     </div>
   );
 }
 
 export function MLPDiagram() {
-  const svgW = 460, svgH = 310;
+  const svgW = 460,
+    svgH = 310;
   const r = 18;
 
-  const inputNodes: [number, number][] = [[80, 100], [80, 165], [80, 230]];
-  const hiddenNodes: [number, number][] = [[250, 83], [250, 138], [250, 193], [250, 248]];
-  const outputNodes: [number, number][] = [[400, 130], [400, 200]];
+  const inputNodes: [number, number][] = [
+    [80, 100],
+    [80, 165],
+    [80, 230],
+  ];
+  const hiddenNodes: [number, number][] = [
+    [250, 83],
+    [250, 138],
+    [250, 193],
+    [250, 248],
+  ];
+  const outputNodes: [number, number][] = [
+    [400, 130],
+    [400, 200],
+  ];
 
   const layerGroups = [
     { nodes: inputNodes, color: "var(--muted)", label: "input", sublabel: "" },
-    { nodes: hiddenNodes, color: "var(--color-blue)", label: "hidden", sublabel: "σ(Wx + b)" },
-    { nodes: outputNodes, color: "var(--color-green)", label: "output", sublabel: "" },
+    {
+      nodes: hiddenNodes,
+      color: "var(--color-blue)",
+      label: "hidden",
+      sublabel: "σ(Wx + b)",
+    },
+    {
+      nodes: outputNodes,
+      color: "var(--color-green)",
+      label: "output",
+      sublabel: "",
+    },
   ];
 
   const allEdges: [number, number, number, number][] = [
-    ...inputNodes.flatMap(([x1, y1]) => hiddenNodes.map(([x2, y2]): [number, number, number, number] => [x1, y1, x2, y2])),
-    ...hiddenNodes.flatMap(([x1, y1]) => outputNodes.map(([x2, y2]): [number, number, number, number] => [x1, y1, x2, y2])),
+    ...inputNodes.flatMap(([x1, y1]) =>
+      hiddenNodes.map(([x2, y2]): [number, number, number, number] => [
+        x1,
+        y1,
+        x2,
+        y2,
+      ])
+    ),
+    ...hiddenNodes.flatMap(([x1, y1]) =>
+      outputNodes.map(([x2, y2]): [number, number, number, number] => [
+        x1,
+        y1,
+        x2,
+        y2,
+      ])
+    ),
   ];
 
   return (
@@ -977,15 +1677,29 @@ export function MLPDiagram() {
       >
         {/* Connection lines drawn first */}
         {allEdges.map(([x1, y1, x2, y2], i) => (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="var(--border)" strokeWidth={1} />
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="var(--border)"
+            strokeWidth={1}
+          />
         ))}
 
         {/* Node circles drawn over connections */}
         {layerGroups.map(({ nodes, color }, gi) =>
           nodes.map(([cx, cy], ni) => (
-            <circle key={`${gi}-${ni}`} cx={cx} cy={cy} r={r}
-              fill="var(--color-white)" stroke={color} strokeWidth={1.5} />
+            <circle
+              key={`${gi}-${ni}`}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="var(--color-white)"
+              stroke={color}
+              strokeWidth={1.5}
+            />
           ))
         )}
 
@@ -994,29 +1708,51 @@ export function MLPDiagram() {
           const x = nodes[0][0];
           return (
             <g key={label}>
-              <text x={x} y={22} textAnchor="middle"
-                fontFamily="var(--font-code)" fontSize={12} fill={color}
-              >{label}</text>
+              <text
+                x={x}
+                y={22}
+                textAnchor="middle"
+                fontFamily="var(--font-code)"
+                fontSize={12}
+                fill={color}
+              >
+                {label}
+              </text>
               {sublabel && (
-                <text x={x} y={37} textAnchor="middle"
-                  fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-                >{sublabel}</text>
+                <text
+                  x={x}
+                  y={37}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={10}
+                  fill="var(--muted)"
+                >
+                  {sublabel}
+                </text>
               )}
             </g>
           );
         })}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >3 → 4 → 2 fully connected network  (16 + 10 = 26 parameters)</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          3 → 4 → 2 fully connected network (16 + 10 = 26 parameters)
+        </text>
       </svg>
     </div>
   );
 }
 
 export function DropoutDiagram() {
-  const svgW = 400, svgH = 250;
+  const svgW = 400,
+    svgH = 250;
   const r = 18;
   const nodeYs = [45, 83, 121, 159, 197];
   const droppedIdxs = new Set([1, 3]); // 2 of 5 neurons dropped
@@ -1029,32 +1765,63 @@ export function DropoutDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Vertical divider */}
-        <line x1={200} y1={8} x2={200} y2={215}
-          stroke="var(--border)" strokeWidth={1} strokeDasharray="4 3" />
+        <line
+          x1={200}
+          y1={8}
+          x2={200}
+          y2={215}
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="4 3"
+        />
 
         {/* Section labels */}
-        <text x={100} y={20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >training  (p = 0.4)</text>
-        <text x={300} y={20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >inference</text>
+        <text
+          x={100}
+          y={20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          training (p = 0.4)
+        </text>
+        <text
+          x={300}
+          y={20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          inference
+        </text>
 
         {/* Training nodes */}
         {nodeYs.map((y, i) => {
           const dropped = droppedIdxs.has(i);
           return (
             <g key={`t-${i}`}>
-              <circle cx={100} cy={y} r={r}
+              <circle
+                cx={100}
+                cy={y}
+                r={r}
                 fill={dropped ? "var(--surface-hover)" : "var(--color-white)"}
                 stroke={dropped ? "var(--muted)" : "var(--color-blue)"}
                 strokeWidth={dropped ? 1 : 1.5}
                 strokeDasharray={dropped ? "3 2" : "none"}
               />
               {dropped && (
-                <text x={100} y={y + 5} textAnchor="middle"
-                  fontFamily="var(--font-code)" fontSize={13} fill="var(--muted)"
-                >x</text>
+                <text
+                  x={100}
+                  y={y + 5}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={13}
+                  fill="var(--muted)"
+                >
+                  x
+                </text>
               )}
             </g>
           );
@@ -1062,17 +1829,38 @@ export function DropoutDiagram() {
 
         {/* Inference nodes — all active */}
         {nodeYs.map((y, i) => (
-          <circle key={`i-${i}`} cx={300} cy={y} r={r}
-            fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
+          <circle
+            key={`i-${i}`}
+            cx={300}
+            cy={y}
+            r={r}
+            fill="var(--color-white)"
+            stroke="var(--color-green)"
+            strokeWidth={1.5}
+          />
         ))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 14} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >2 of 5 neurons randomly zeroed during training; </text>
-        <text x={svgW / 2} y={svgH} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >all active at inference</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 14}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          2 of 5 neurons randomly zeroed during training;{" "}
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          all active at inference
+        </text>
       </svg>
     </div>
   );
@@ -1092,32 +1880,51 @@ export function BatchNormDiagram() {
       >
         <Coordinates.Cartesian xAxis={{ lines: 1 }} yAxis={{ lines: 0.25 }} />
         {/* Before BatchNorm: offset mean, higher variance */}
-        <Plot.OfX y={(x) => gauss(x, 2.0, 1.5)} color="var(--color-orange)" weight={2} />
+        <Plot.OfX
+          y={(x) => gauss(x, 2.0, 1.5)}
+          color="var(--color-orange)"
+          weight={2}
+        />
         {/* After BatchNorm: zero mean, unit variance */}
-        <Plot.OfX y={(x) => gauss(x, 0.0, 1.0)} color="var(--color-green)" weight={2} />
+        <Plot.OfX
+          y={(x) => gauss(x, 0.0, 1.0)}
+          color="var(--color-green)"
+          weight={2}
+        />
         {/* Zero-mean reference line */}
         <MafsLine.Segment
-          point1={[0, 0]} point2={[0, 0.42]}
-          color="var(--color-yellow)" weight={1} style="dashed"
+          point1={[0, 0]}
+          point2={[0, 0.42]}
+          color="var(--color-yellow)"
+          weight={1}
+          style="dashed"
         />
         {/* Labels */}
-        <MafsText x={3.8} y={0.17} size={12} color="var(--color-orange)">before</MafsText>
-        <MafsText x={-0.7} y={0.44} size={12} color="var(--color-green)">after</MafsText>
-        <MafsText x={0} y={0.6} size={16} color="var(--color-blue)">μ = 0</MafsText>
+        <MafsText x={3.8} y={0.17} size={12} color="var(--color-orange)">
+          before
+        </MafsText>
+        <MafsText x={-0.7} y={0.44} size={12} color="var(--color-green)">
+          after
+        </MafsText>
+        <MafsText x={0} y={0.6} size={16} color="var(--color-blue)">
+          μ = 0
+        </MafsText>
       </Mafs>
     </div>
   );
 }
 
 export function ConvolutionDiagram() {
-  const svgW = 370, svgH = 212;
+  const svgW = 370,
+    svgH = 212;
 
   // Cell renderer for a grid — no brackets, just cells
   function grid(
     data: number[][],
-    gx: number, gy: number,
+    gx: number,
+    gy: number,
     cs: number,
-    hlFn: (r: number, c: number) => { lit: boolean; color: string },
+    hlFn: (r: number, c: number) => { lit: boolean; color: string }
   ) {
     return data.flatMap((row, r) =>
       row.map((val, c) => {
@@ -1125,8 +1932,10 @@ export function ConvolutionDiagram() {
         return (
           <g key={`${gx}-${r}-${c}`}>
             <rect
-              x={gx + c * cs} y={gy + r * cs}
-              width={cs} height={cs}
+              x={gx + c * cs}
+              y={gy + r * cs}
+              width={cs}
+              height={cs}
               fill={lit ? color : "var(--color-white)"}
               fillOpacity={lit ? 0.12 : 1}
               stroke={lit ? color : "var(--border-strong)"}
@@ -1140,22 +1949,42 @@ export function ConvolutionDiagram() {
               fontSize={10}
               fill={lit ? color : "var(--color-fg)"}
               fontWeight={lit ? 600 : 400}
-            >{val}</text>
+            >
+              {val}
+            </text>
           </g>
         );
       })
     );
   }
 
-  const input = [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [3, 4, 5, 6, 7], [4, 5, 6, 7, 8], [5, 6, 7, 8, 9]];
-  const kernel = [[0, 1, 0], [1, 0, 1], [0, 1, 0]];
-  const output = [[12, 16, 20], [16, 20, 24], [20, 24, 28]];
+  const input = [
+    [1, 2, 3, 4, 5],
+    [2, 3, 4, 5, 6],
+    [3, 4, 5, 6, 7],
+    [4, 5, 6, 7, 8],
+    [5, 6, 7, 8, 9],
+  ];
+  const kernel = [
+    [0, 1, 0],
+    [1, 0, 1],
+    [0, 1, 0],
+  ];
+  const output = [
+    [12, 16, 20],
+    [16, 20, 24],
+    [20, 24, 28],
+  ];
 
   // Layout: input (5×5, cs=22) | × | kernel (3×3, cs=26) | = | output (3×3, cs=22)
-  const cs = 22, ck = 26;
-  const xi = 12, yi = 38;
-  const xk = xi + 5 * cs + 24, yk = yi;           // kernel top-aligned with input
-  const xo = xk + 3 * ck + 24, yo = yi;           // output top-aligned with kernel
+  const cs = 22,
+    ck = 26;
+  const xi = 12,
+    yi = 38;
+  const xk = xi + 5 * cs + 24,
+    yk = yi; // kernel top-aligned with input
+  const xo = xk + 3 * ck + 24,
+    yo = yi; // output top-aligned with kernel
 
   // vertical center of the 5-row input grid, for symbol placement
   const symY = yi + (5 * cs) / 2 + 4;
@@ -1168,9 +1997,36 @@ export function ConvolutionDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Grid labels */}
-        <text x={xi + 5 * cs / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  5×5</text>
-        <text x={xk + 3 * ck / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">kernel  3×3</text>
-        <text x={xo + 3 * cs / 2} y={24} textAnchor="middle" fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">output  3×3</text>
+        <text
+          x={xi + (5 * cs) / 2}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          input 5×5
+        </text>
+        <text
+          x={xk + (3 * ck) / 2}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          kernel 3×3
+        </text>
+        <text
+          x={xo + (3 * cs) / 2}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          output 3×3
+        </text>
 
         {/* Input grid — blue highlight on top-left 3×3 (current kernel position) */}
         {grid(input, xi, yi, cs, (r, c) => ({
@@ -1179,15 +2035,34 @@ export function ConvolutionDiagram() {
         }))}
 
         {/* "×" operator */}
-        <text x={xk - 12} y={symY} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">×</text>
+        <text
+          x={xk - 12}
+          y={symY}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={14}
+          fill="var(--muted)"
+        >
+          ×
+        </text>
 
         {/* Kernel grid — all cells highlighted blue */}
-        {grid(kernel, xk, yk, ck, () => ({ lit: true, color: "var(--color-blue)" }))}
+        {grid(kernel, xk, yk, ck, () => ({
+          lit: true,
+          color: "var(--color-blue)",
+        }))}
 
         {/* "=" operator (vertically centred with the kernel) */}
-        <text x={xo - 12} y={yk + 3 * ck / 2 + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">=</text>
+        <text
+          x={xo - 12}
+          y={yk + (3 * ck) / 2 + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={14}
+          fill="var(--muted)"
+        >
+          =
+        </text>
 
         {/* Output grid — green highlight on output[0,0] */}
         {grid(output, xo, yo, cs, (r, c) => ({
@@ -1196,16 +2071,24 @@ export function ConvolutionDiagram() {
         }))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >highlighted region × kernel = output[0,0] = 12</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          highlighted region × kernel = output[0,0] = 12
+        </text>
       </svg>
     </div>
   );
 }
 
 export function MaxPoolDiagram() {
-  const svgW = 285, svgH = 200;
+  const svgW = 285,
+    svgH = 200;
   const cs = 28; // input cell size
   const co = 42; // output cell size
 
@@ -1215,7 +2098,10 @@ export function MaxPoolDiagram() {
     [3, 2, 1, 6],
     [4, 1, 5, 3],
   ];
-  const output = [[6, 8], [4, 6]];
+  const output = [
+    [6, 8],
+    [4, 6],
+  ];
 
   const quadColor = (r: number, c: number): string => {
     if (r < 2 && c < 2) return "var(--color-blue)";
@@ -1230,10 +2116,11 @@ export function MaxPoolDiagram() {
     return "var(--color-yellow)";
   };
 
-  const xi = 15, yi = 38;
+  const xi = 15,
+    yi = 38;
   // Center the 2×2 output vertically with the 4×4 input
   const xo = xi + 4 * cs + 32;
-  const yo = yi + (4 * cs - 2 * co) / 2;  // = 38 + (112-84)/2 = 52
+  const yo = yi + (4 * cs - 2 * co) / 2; // = 38 + (112-84)/2 = 52
 
   return (
     <div className="my-8">
@@ -1243,48 +2130,105 @@ export function MaxPoolDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Labels */}
-        <text x={xi + 2 * cs} y={24} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  4×4</text>
-        <text x={xo + co} y={24} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">output  2×2</text>
+        <text
+          x={xi + 2 * cs}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          input 4×4
+        </text>
+        <text
+          x={xo + co}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          output 2×2
+        </text>
 
         {/* Dashed quadrant dividers */}
-        <line x1={xi + 2 * cs} y1={yi} x2={xi + 2 * cs} y2={yi + 4 * cs}
-          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="3 2" />
-        <line x1={xi} y1={yi + 2 * cs} x2={xi + 4 * cs} y2={yi + 2 * cs}
-          stroke="var(--border-strong)" strokeWidth={1.5} strokeDasharray="3 2" />
+        <line
+          x1={xi + 2 * cs}
+          y1={yi}
+          x2={xi + 2 * cs}
+          y2={yi + 4 * cs}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={xi}
+          y1={yi + 2 * cs}
+          x2={xi + 4 * cs}
+          y2={yi + 2 * cs}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+        />
 
         {/* Input cells */}
         {input.flatMap((row, r) =>
           row.map((val, c) => {
             const color = quadColor(r, c);
-            const qr = r < 2 ? 0 : 1, qc = c < 2 ? 0 : 1;
+            const qr = r < 2 ? 0 : 1,
+              qc = c < 2 ? 0 : 1;
             const isMax = val === output[qr][qc];
             return (
               <g key={`in-${r}-${c}`}>
-                <rect x={xi + c * cs} y={yi + r * cs} width={cs} height={cs}
-                  fill={color} fillOpacity={0.10}
+                <rect
+                  x={xi + c * cs}
+                  y={yi + r * cs}
+                  width={cs}
+                  height={cs}
+                  fill={color}
+                  fillOpacity={0.1}
                   stroke={isMax ? color : "var(--border)"}
-                  strokeWidth={isMax ? 2 : 0.8} />
-                <text x={xi + c * cs + cs / 2} y={yi + r * cs + cs / 2 + 4}
-                  textAnchor="middle" fontFamily="var(--font-code)"
-                  fontSize={11} fill={isMax ? color : "var(--color-fg)"}
+                  strokeWidth={isMax ? 2 : 0.8}
+                />
+                <text
+                  x={xi + c * cs + cs / 2}
+                  y={yi + r * cs + cs / 2 + 4}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={11}
+                  fill={isMax ? color : "var(--color-fg)"}
                   fontWeight={isMax ? 700 : 400}
-                >{val}</text>
+                >
+                  {val}
+                </text>
               </g>
             );
           })
         )}
 
         {/* Arrow + "max" label */}
-        <text x={xo - 16} y={yi + 2 * cs - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">max</text>
-        <line x1={xi + 4 * cs + 5} y1={yi + 2 * cs}
-          x2={xo - 5} y2={yi + 2 * cs}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <text
+          x={xo - 16}
+          y={yi + 2 * cs - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          max
+        </text>
+        <line
+          x1={xi + 4 * cs + 5}
+          y1={yi + 2 * cs}
+          x2={xo - 5}
+          y2={yi + 2 * cs}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon
           points={`${xo - 5},${yi + 2 * cs} ${xo - 11},${yi + 2 * cs - 3} ${xo - 11},${yi + 2 * cs + 3}`}
-          fill="var(--border-strong)" />
+          fill="var(--border-strong)"
+        />
 
         {/* Output cells */}
         {output.flatMap((row, r) =>
@@ -1292,48 +2236,83 @@ export function MaxPoolDiagram() {
             const color = outColor(r, c);
             return (
               <g key={`out-${r}-${c}`}>
-                <rect x={xo + c * co} y={yo + r * co} width={co} height={co}
-                  fill={color} fillOpacity={0.15}
-                  stroke={color} strokeWidth={1.5} />
-                <text x={xo + c * co + co / 2} y={yo + r * co + co / 2 + 5}
-                  textAnchor="middle" fontFamily="var(--font-code)"
-                  fontSize={15} fill={color} fontWeight={700}
-                >{val}</text>
+                <rect
+                  x={xo + c * co}
+                  y={yo + r * co}
+                  width={co}
+                  height={co}
+                  fill={color}
+                  fillOpacity={0.15}
+                  stroke={color}
+                  strokeWidth={1.5}
+                />
+                <text
+                  x={xo + c * co + co / 2}
+                  y={yo + r * co + co / 2 + 5}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={15}
+                  fill={color}
+                  fontWeight={700}
+                >
+                  {val}
+                </text>
               </g>
             );
           })
         )}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >2×2 max pool (stride 2):</text>
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >each quadrant's maximum survives</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          2×2 max pool (stride 2):
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          each quadrant's maximum survives
+        </text>
       </svg>
     </div>
   );
 }
 
 export function Im2colDiagram() {
-  const svgW = 300, svgH = 185;
-  const csIn = 33;  // input cell size
-  const csIm = 25;  // im2col cell size
+  const svgW = 300,
+    svgH = 185;
+  const csIn = 33; // input cell size
+  const csIm = 25; // im2col cell size
 
-  const input = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+  const input = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+  ];
   // im2col for 2×2 kernel, stride 1: 4 output positions
   const im2col = [
-    [1, 2, 4, 5],  // patch at (0,0)
-    [2, 3, 5, 6],  // patch at (0,1)
-    [4, 5, 7, 8],  // patch at (1,0)
-    [5, 6, 8, 9],  // patch at (1,1)
+    [1, 2, 4, 5], // patch at (0,0)
+    [2, 3, 5, 6], // patch at (0,1)
+    [4, 5, 7, 8], // patch at (1,0)
+    [5, 6, 8, 9], // patch at (1,1)
   ];
   const rowLabels = ["(0,0)", "(0,1)", "(1,0)", "(1,1)"];
 
-  const xi = 12, yi = 38;
-  const xm = xi + 3 * csIn + 42, ym = yi;
-  const arY = yi + 3 * csIn / 2;   // vertical center of input grid
+  const xi = 12,
+    yi = 38;
+  const xm = xi + 3 * csIn + 42,
+    ym = yi;
+  const arY = yi + (3 * csIn) / 2; // vertical center of input grid
 
   return (
     <div className="my-8">
@@ -1343,10 +2322,26 @@ export function Im2colDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Panel labels */}
-        <text x={xi + 3 * csIn / 2} y={24} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">input  3×3</text>
-        <text x={xm + 4 * csIm / 2} y={24} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">im2col  4×4</text>
+        <text
+          x={xi + (3 * csIn) / 2}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          input 3×3
+        </text>
+        <text
+          x={xm + (4 * csIm) / 2}
+          y={24}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          im2col 4×4
+        </text>
 
         {/* Input cells — blue highlight on top-left 2×2 patch */}
         {input.flatMap((row, r) =>
@@ -1355,32 +2350,56 @@ export function Im2colDiagram() {
             return (
               <g key={`in-${r}-${c}`}>
                 <rect
-                  x={xi + c * csIn} y={yi + r * csIn}
-                  width={csIn} height={csIn}
+                  x={xi + c * csIn}
+                  y={yi + r * csIn}
+                  width={csIn}
+                  height={csIn}
                   fill={inPatch ? "var(--color-blue)" : "var(--color-white)"}
                   fillOpacity={inPatch ? 0.11 : 1}
-                  stroke={inPatch ? "var(--color-blue)" : "var(--border-strong)"}
+                  stroke={
+                    inPatch ? "var(--color-blue)" : "var(--border-strong)"
+                  }
                   strokeWidth={inPatch ? 1.5 : 0.8}
                 />
                 <text
-                  x={xi + c * csIn + csIn / 2} y={yi + r * csIn + csIn / 2 + 5}
-                  textAnchor="middle" fontFamily="var(--font-code)"
-                  fontSize={13} fontWeight={inPatch ? 700 : 400}
+                  x={xi + c * csIn + csIn / 2}
+                  y={yi + r * csIn + csIn / 2 + 5}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={13}
+                  fontWeight={inPatch ? 700 : 400}
                   fill={inPatch ? "var(--color-blue)" : "var(--color-fg)"}
-                >{val}</text>
+                >
+                  {val}
+                </text>
               </g>
             );
           })
         )}
 
         {/* Arrow with "im2col" label */}
-        <text x={(xi + 3 * csIn + xm) / 2} y={arY - 7} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">im2col</text>
-        <line x1={xi + 3 * csIn + 5} y1={arY} x2={xm - 5} y2={arY}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <text
+          x={(xi + 3 * csIn + xm) / 2}
+          y={arY - 7}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          im2col
+        </text>
+        <line
+          x1={xi + 3 * csIn + 5}
+          y1={arY}
+          x2={xm - 5}
+          y2={arY}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon
           points={`${xm - 5},${arY} ${xm - 11},${arY - 3} ${xm - 11},${arY + 3}`}
-          fill="var(--border-strong)" />
+          fill="var(--border-strong)"
+        />
 
         {/* im2col matrix — row 0 highlighted blue, others muted */}
         {im2col.flatMap((row, r) =>
@@ -1389,19 +2408,26 @@ export function Im2colDiagram() {
             return (
               <g key={`im-${r}-${c}`}>
                 <rect
-                  x={xm + c * csIm} y={ym + r * csIm}
-                  width={csIm} height={csIm}
+                  x={xm + c * csIm}
+                  y={ym + r * csIm}
+                  width={csIm}
+                  height={csIm}
                   fill={isFirst ? "var(--color-blue)" : "var(--color-white)"}
                   fillOpacity={isFirst ? 0.11 : 1}
                   stroke={isFirst ? "var(--color-blue)" : "var(--border)"}
                   strokeWidth={isFirst ? 1.5 : 0.6}
                 />
                 <text
-                  x={xm + c * csIm + csIm / 2} y={ym + r * csIm + csIm / 2 + 4}
-                  textAnchor="middle" fontFamily="var(--font-code)"
-                  fontSize={10} fontWeight={isFirst ? 700 : 400}
+                  x={xm + c * csIm + csIm / 2}
+                  y={ym + r * csIm + csIm / 2 + 4}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={10}
+                  fontWeight={isFirst ? 700 : 400}
                   fill={isFirst ? "var(--color-blue)" : "var(--muted)"}
-                >{val}</text>
+                >
+                  {val}
+                </text>
               </g>
             );
           })
@@ -1409,17 +2435,29 @@ export function Im2colDiagram() {
 
         {/* Row position labels */}
         {rowLabels.map((lbl, r) => (
-          <text key={`lbl-${r}`}
-            x={xm + 4 * csIm + 5} y={ym + r * csIm + csIm / 2 + 4}
-            fontFamily="var(--font-code)" fontSize={9}
+          <text
+            key={`lbl-${r}`}
+            x={xm + 4 * csIm + 5}
+            y={ym + r * csIm + csIm / 2 + 4}
+            fontFamily="var(--font-code)"
+            fontSize={9}
             fill={r === 0 ? "var(--color-blue)" : "var(--muted)"}
-          >{lbl}</text>
+          >
+            {lbl}
+          </text>
         ))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >blue patch → row 0;  Y = X_col × W^T</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          blue patch → row 0; Y = X_col × W^T
+        </text>
       </svg>
     </div>
   );
@@ -1427,22 +2465,50 @@ export function Im2colDiagram() {
 
 export function DigitClassifierDiagram() {
   const svgW = 340;
-  const bw = 280, bh = 32, gap = 12;
-  const bx = (svgW - bw) / 2;  // = 30
-  const marginT = 15, marginB = 10;
+  const bw = 280,
+    bh = 32,
+    gap = 12;
+  const bx = (svgW - bw) / 2; // = 30
+  const marginT = 15,
+    marginB = 10;
   const cx = svgW / 2;
 
   const layers = [
     { label: "input", shape: "1 × 28 × 28", color: "var(--muted)" },
-    { label: "Conv(1→32) + BN + ReLU", shape: "32 × 28 × 28", color: "var(--color-blue)" },
-    { label: "MaxPool(2×2)", shape: "32 × 14 × 14", color: "var(--color-orange)" },
-    { label: "Conv(32→64) + BN + ReLU", shape: "64 × 14 × 14", color: "var(--color-blue)" },
-    { label: "MaxPool(2×2)", shape: "64 × 7 × 7", color: "var(--color-orange)" },
-    { label: "Flatten  +  Dropout(0.3)", shape: "3 136", color: "var(--muted)" },
-    { label: "Linear(3136 → 10)", shape: "10 classes", color: "var(--color-green)" },
+    {
+      label: "Conv(1→32) + BN + ReLU",
+      shape: "32 × 28 × 28",
+      color: "var(--color-blue)",
+    },
+    {
+      label: "MaxPool(2×2)",
+      shape: "32 × 14 × 14",
+      color: "var(--color-orange)",
+    },
+    {
+      label: "Conv(32→64) + BN + ReLU",
+      shape: "64 × 14 × 14",
+      color: "var(--color-blue)",
+    },
+    {
+      label: "MaxPool(2×2)",
+      shape: "64 × 7 × 7",
+      color: "var(--color-orange)",
+    },
+    {
+      label: "Flatten  +  Dropout(0.3)",
+      shape: "3 136",
+      color: "var(--muted)",
+    },
+    {
+      label: "Linear(3136 → 10)",
+      shape: "10 classes",
+      color: "var(--color-green)",
+    },
   ] as const;
 
-  const svgH = marginT + layers.length * bh + (layers.length - 1) * gap + marginB;
+  const svgH =
+    marginT + layers.length * bh + (layers.length - 1) * gap + marginB;
 
   return (
     <div className="my-8">
@@ -1458,8 +2524,14 @@ export function DigitClassifierDiagram() {
               {/* Downward arrow to next layer */}
               {i < layers.length - 1 && (
                 <>
-                  <line x1={cx} y1={y + bh} x2={cx} y2={y + bh + gap - 4}
-                    stroke="var(--border-strong)" strokeWidth={1.2} />
+                  <line
+                    x1={cx}
+                    y1={y + bh}
+                    x2={cx}
+                    y2={y + bh + gap - 4}
+                    stroke="var(--border-strong)"
+                    strokeWidth={1.2}
+                  />
                   <polygon
                     points={`${cx},${y + bh + gap - 4} ${cx - 3.5},${y + bh + gap - 10} ${cx + 3.5},${y + bh + gap - 10}`}
                     fill="var(--border-strong)"
@@ -1467,16 +2539,38 @@ export function DigitClassifierDiagram() {
                 </>
               )}
               {/* Layer box */}
-              <rect x={bx} y={y} width={bw} height={bh}
-                fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={3} />
+              <rect
+                x={bx}
+                y={y}
+                width={bw}
+                height={bh}
+                fill="var(--color-white)"
+                stroke={color}
+                strokeWidth={1.5}
+                rx={3}
+              />
               {/* Operation label (left-aligned) */}
-              <text x={bx + 10} y={y + bh / 2 + 4} textAnchor="start"
-                fontFamily="var(--font-code)" fontSize={10} fill={color}
-              >{label}</text>
+              <text
+                x={bx + 10}
+                y={y + bh / 2 + 4}
+                textAnchor="start"
+                fontFamily="var(--font-code)"
+                fontSize={10}
+                fill={color}
+              >
+                {label}
+              </text>
               {/* Shape annotation (right-aligned, muted) */}
-              <text x={bx + bw - 8} y={y + bh / 2 + 4} textAnchor="end"
-                fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-              >{shape}</text>
+              <text
+                x={bx + bw - 8}
+                y={y + bh / 2 + 4}
+                textAnchor="end"
+                fontFamily="var(--font-code)"
+                fontSize={10}
+                fill="var(--muted)"
+              >
+                {shape}
+              </text>
             </g>
           );
         })}
@@ -1486,15 +2580,22 @@ export function DigitClassifierDiagram() {
 }
 
 export function SequenceMemoryDiagram() {
-  const svgW = 440, svgH = 200;
-  const stepY = 65, bw = 52, bh = 30;
+  const svgW = 440,
+    svgH = 200;
+  const stepY = 65,
+    bw = 52,
+    bh = 30;
   const steps = [88, 210, 332] as const;
 
   function arrowPts(x1: number, y1: number, x2: number, y2: number): string {
-    const as = 7, dx = x2 - x1, dy = y2 - y1;
+    const as = 7,
+      dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
   }
 
@@ -1524,11 +2625,20 @@ export function SequenceMemoryDiagram() {
           const isDashed = i === hSegments.length - 1;
           return (
             <g key={`h-seg-${i}`}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke="var(--color-green)" strokeWidth={1.5}
-                strokeDasharray={isDashed ? "4 3" : "none"} />
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="var(--color-green)"
+                strokeWidth={1.5}
+                strokeDasharray={isDashed ? "4 3" : "none"}
+              />
               {!isDashed && (
-                <polygon points={arrowPts(x1, y1, x2, y2)} fill="var(--color-green)" />
+                <polygon
+                  points={arrowPts(x1, y1, x2, y2)}
+                  fill="var(--color-green)"
+                />
               )}
             </g>
           );
@@ -1536,24 +2646,56 @@ export function SequenceMemoryDiagram() {
 
         {/* h labels above the arrows */}
         {hLabels.map(({ x, label }) => (
-          <text key={label} x={x} y={52} textAnchor="middle"
-            fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)"
-          >{label}</text>
+          <text
+            key={label}
+            x={x}
+            y={52}
+            textAnchor="middle"
+            fontFamily="var(--font-code)"
+            fontSize={11}
+            fill="var(--color-green)"
+          >
+            {label}
+          </text>
         ))}
 
         {/* Continuation dots */}
-        <text x={425} y={stepY + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={15} fill="var(--muted)">…</text>
+        <text
+          x={425}
+          y={stepY + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={15}
+          fill="var(--muted)"
+        >
+          …
+        </text>
 
         {/* x input arrows — orange, vertical from below */}
         {steps.map((sx, i) => (
           <g key={`x-${i}`}>
-            <line x1={sx} y1={125} x2={sx} y2={stepY + bh / 2 + 2}
-              stroke="var(--color-orange)" strokeWidth={1.5} />
-            <polygon points={arrowPts(sx, 125, sx, stepY + bh / 2)} fill="var(--color-orange)" />
-            <text x={sx} y={141} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)"
-            >{["x₁", "x₂", "x₃"][i]}</text>
+            <line
+              x1={sx}
+              y1={125}
+              x2={sx}
+              y2={stepY + bh / 2 + 2}
+              stroke="var(--color-orange)"
+              strokeWidth={1.5}
+            />
+            <polygon
+              points={arrowPts(sx, 125, sx, stepY + bh / 2)}
+              fill="var(--color-orange)"
+            />
+            <text
+              x={sx}
+              y={141}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={11}
+              fill="var(--color-orange)"
+            >
+              {["x₁", "x₂", "x₃"][i]}
+            </text>
           </g>
         ))}
 
@@ -1561,43 +2703,97 @@ export function SequenceMemoryDiagram() {
         {steps.map((sx, i) => (
           <g key={`box-${i}`}>
             <rect
-              x={sx - bw / 2} y={stepY - bh / 2}
-              width={bw} height={bh}
+              x={sx - bw / 2}
+              y={stepY - bh / 2}
+              width={bw}
+              height={bh}
               fill="var(--color-white)"
-              stroke="var(--color-blue)" strokeWidth={1.5}
-              strokeDasharray="4 2" rx={4}
+              stroke="var(--color-blue)"
+              strokeWidth={1.5}
+              strokeDasharray="4 2"
+              rx={4}
             />
-            <text x={sx} y={stepY + 5} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-blue)"
-            >f</text>
+            <text
+              x={sx}
+              y={stepY + 5}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={12}
+              fill="var(--color-blue)"
+            >
+              f
+            </text>
           </g>
         ))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >h (green): hidden state carried forward</text>
-        <text x={svgW / 2} y={svgH - 15} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >x (orange): input</text>
-        <text x={svgW / 2} y={svgH - 30} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >f: update function</text>
+        <text
+          x={svgW / 2}
+          y={svgH}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          h (green): hidden state carried forward
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 15}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          x (orange): input
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 30}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          f: update function
+        </text>
       </svg>
     </div>
   );
 }
 
 export function SequenceTasksDiagram() {
-  const svgW = 440, svgH = 142;
-  const cw = 16, ch = 13, hgap = 5;
-  const rowYin = 28, rowYout = 74;
+  const svgW = 440,
+    svgH = 142;
+  const cw = 16,
+    ch = 13,
+    hgap = 5;
+  const rowYin = 28,
+    rowYout = 74;
   const step = cw + hgap; // 21
 
   const panels = [
-    { cx: 73, inAct: [1, 1, 1, 1], outAct: [0, 0, 0, 1], label: "many → one", sub: "classification" },
-    { cx: 220, inAct: [1, 1, 1, 1], outAct: [1, 1, 1, 1], label: "many → many", sub: "language model" },
-    { cx: 367, inAct: [1, 0, 0, 0], outAct: [1, 1, 1, 1], label: "one → many", sub: "generation" },
+    {
+      cx: 73,
+      inAct: [1, 1, 1, 1],
+      outAct: [0, 0, 0, 1],
+      label: "many → one",
+      sub: "classification",
+    },
+    {
+      cx: 220,
+      inAct: [1, 1, 1, 1],
+      outAct: [1, 1, 1, 1],
+      label: "many → many",
+      sub: "language model",
+    },
+    {
+      cx: 367,
+      inAct: [1, 0, 0, 0],
+      outAct: [1, 1, 1, 1],
+      label: "one → many",
+      sub: "generation",
+    },
   ] as const;
 
   return (
@@ -1608,16 +2804,44 @@ export function SequenceTasksDiagram() {
         style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
       >
         {/* Panel dividers */}
-        <line x1={147} y1={10} x2={147} y2={118}
-          stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
-        <line x1={294} y1={10} x2={294} y2={118}
-          stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+        <line
+          x1={147}
+          y1={10}
+          x2={147}
+          y2={118}
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
+        <line
+          x1={294}
+          y1={10}
+          x2={294}
+          y2={118}
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
 
         {/* Row labels */}
-        <text x={5} y={rowYin + ch / 2 + 4}
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">in</text>
-        <text x={5} y={rowYout + ch / 2 + 4}
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">out</text>
+        <text
+          x={5}
+          y={rowYin + ch / 2 + 4}
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          in
+        </text>
+        <text
+          x={5}
+          y={rowYout + ch / 2 + 4}
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          out
+        </text>
 
         {panels.map(({ cx, inAct, outAct, label, sub }) => {
           const x0 = cx - (4 * cw + 3 * hgap) / 2;
@@ -1625,22 +2849,32 @@ export function SequenceTasksDiagram() {
             <g key={cx}>
               {/* Input cells */}
               {inAct.map((active, i) => (
-                <rect key={`in-${i}`}
-                  x={x0 + i * step} y={rowYin}
-                  width={cw} height={ch}
-                  fill="var(--color-blue)" fillOpacity={active ? 0.15 : 0}
+                <rect
+                  key={`in-${i}`}
+                  x={x0 + i * step}
+                  y={rowYin}
+                  width={cw}
+                  height={ch}
+                  fill="var(--color-blue)"
+                  fillOpacity={active ? 0.15 : 0}
                   stroke={active ? "var(--color-blue)" : "var(--border)"}
-                  strokeWidth={active ? 1.5 : 0.7} rx={2}
+                  strokeWidth={active ? 1.5 : 0.7}
+                  rx={2}
                 />
               ))}
               {/* Output cells */}
               {outAct.map((active, i) => (
-                <rect key={`out-${i}`}
-                  x={x0 + i * step} y={rowYout}
-                  width={cw} height={ch}
-                  fill="var(--color-green)" fillOpacity={active ? 0.15 : 0}
+                <rect
+                  key={`out-${i}`}
+                  x={x0 + i * step}
+                  y={rowYout}
+                  width={cw}
+                  height={ch}
+                  fill="var(--color-green)"
+                  fillOpacity={active ? 0.15 : 0}
                   stroke={active ? "var(--color-green)" : "var(--border)"}
-                  strokeWidth={active ? 1.5 : 0.7} rx={2}
+                  strokeWidth={active ? 1.5 : 0.7}
+                  rx={2}
                 />
               ))}
               {/* Vertical connectors where both input and output are active */}
@@ -1648,19 +2882,38 @@ export function SequenceTasksDiagram() {
                 if (!inA || !outAct[i]) return null;
                 const xc = x0 + i * step + cw / 2;
                 return (
-                  <line key={`conn-${i}`}
-                    x1={xc} y1={rowYin + ch + 2}
-                    x2={xc} y2={rowYout - 3}
-                    stroke="var(--muted)" strokeWidth={1} />
+                  <line
+                    key={`conn-${i}`}
+                    x1={xc}
+                    y1={rowYin + ch + 2}
+                    x2={xc}
+                    y2={rowYout - 3}
+                    stroke="var(--muted)"
+                    strokeWidth={1}
+                  />
                 );
               })}
               {/* Labels */}
-              <text x={cx} y={106} textAnchor="middle"
-                fontFamily="var(--font-code)" fontSize={11} fill="var(--color-fg)"
-              >{label}</text>
-              <text x={cx} y={120} textAnchor="middle"
-                fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-              >{sub}</text>
+              <text
+                x={cx}
+                y={106}
+                textAnchor="middle"
+                fontFamily="var(--font-code)"
+                fontSize={11}
+                fill="var(--color-fg)"
+              >
+                {label}
+              </text>
+              <text
+                x={cx}
+                y={120}
+                textAnchor="middle"
+                fontFamily="var(--font-code)"
+                fontSize={10}
+                fill="var(--muted)"
+              >
+                {sub}
+              </text>
             </g>
           );
         })}
@@ -1670,122 +2923,325 @@ export function SequenceTasksDiagram() {
 }
 
 export function RNNCellDiagram() {
-  const svgW = 385, svgH = 198;
+  const svgW = 385,
+    svgH = 198;
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 7): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
   }
 
   // Positions
   const hPrev = { cx: 38, cy: 72, r: 20 };
   const xt = { cx: 38, cy: 150, r: 18 };
-  const Wh = { x: 70, y: 59, w: 58, h: 26 };  // W_h rect
-  const Wx = { x: 70, y: 137, w: 58, h: 26 };  // W_x rect
-  const sum = { cx: 215, cy: 110, r: 20 };          // + circle
-  const tanhB = { x: 249, y: 97, w: 52, h: 26 };  // tanh rect
-  const hOut = { cx: 350, cy: 110, r: 20 };          // output circle
+  const Wh = { x: 70, y: 59, w: 58, h: 26 }; // W_h rect
+  const Wx = { x: 70, y: 137, w: 58, h: 26 }; // W_x rect
+  const sum = { cx: 215, cy: 110, r: 20 }; // + circle
+  const tanhB = { x: 249, y: 97, w: 52, h: 26 }; // tanh rect
+  const hOut = { cx: 350, cy: 110, r: 20 }; // output circle
 
   // Helper centers
   const WhCy = Wh.y + Wh.h / 2;
   const WxCy = Wx.y + Wx.h / 2;
-  const tCx = tanhB.x + tanhB.w / 2, tCy = tanhB.y + tanhB.h / 2;
+  const tCx = tanhB.x + tanhB.w / 2,
+    tCy = tanhB.y + tanhB.h / 2;
 
   // Diagonal entry points on sum circle from Wh and Wx box right edges
-  function circleEntry(fromX: number, fromY: number, cx: number, cy: number, r: number): [number, number] {
-    const dx = cx - fromX, dy = cy - fromY, len = Math.sqrt(dx * dx + dy * dy);
+  function circleEntry(
+    fromX: number,
+    fromY: number,
+    cx: number,
+    cy: number,
+    r: number
+  ): [number, number] {
+    const dx = cx - fromX,
+      dy = cy - fromY,
+      len = Math.sqrt(dx * dx + dy * dy);
     return [cx - (dx / len) * r, cy - (dy / len) * r];
   }
-  const [sum_ix1, sum_iy1] = circleEntry(Wh.x + Wh.w, WhCy, sum.cx, sum.cy, sum.r);
-  const [sum_ix2, sum_iy2] = circleEntry(Wx.x + Wx.w, WxCy, sum.cx, sum.cy, sum.r);
+  const [sum_ix1, sum_iy1] = circleEntry(
+    Wh.x + Wh.w,
+    WhCy,
+    sum.cx,
+    sum.cy,
+    sum.r
+  );
+  const [sum_ix2, sum_iy2] = circleEntry(
+    Wx.x + Wx.w,
+    WxCy,
+    sum.cx,
+    sum.cy,
+    sum.r
+  );
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* h_{t-1} → W_h */}
-        <line x1={hPrev.cx + hPrev.r} y1={hPrev.cy} x2={Wh.x - 2} y2={hPrev.cy}
-          stroke="var(--color-green)" strokeWidth={1.5} />
-        <polygon points={ap(hPrev.cx + hPrev.r, hPrev.cy, Wh.x, hPrev.cy)} fill="var(--color-green)" />
+        <line
+          x1={hPrev.cx + hPrev.r}
+          y1={hPrev.cy}
+          x2={Wh.x - 2}
+          y2={hPrev.cy}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(hPrev.cx + hPrev.r, hPrev.cy, Wh.x, hPrev.cy)}
+          fill="var(--color-green)"
+        />
 
         {/* x_t → W_x */}
-        <line x1={xt.cx + xt.r} y1={xt.cy} x2={Wx.x - 2} y2={xt.cy}
-          stroke="var(--color-orange)" strokeWidth={1.5} />
-        <polygon points={ap(xt.cx + xt.r, xt.cy, Wx.x, xt.cy)} fill="var(--color-orange)" />
+        <line
+          x1={xt.cx + xt.r}
+          y1={xt.cy}
+          x2={Wx.x - 2}
+          y2={xt.cy}
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(xt.cx + xt.r, xt.cy, Wx.x, xt.cy)}
+          fill="var(--color-orange)"
+        />
 
         {/* W_h → sum (diagonal) */}
-        <line x1={Wh.x + Wh.w} y1={WhCy} x2={sum_ix1} y2={sum_iy1}
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <polygon points={ap(Wh.x + Wh.w, WhCy, sum.cx, sum.cy, sum.r)} fill="var(--border-strong)" />
+        <line
+          x1={Wh.x + Wh.w}
+          y1={WhCy}
+          x2={sum_ix1}
+          y2={sum_iy1}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(Wh.x + Wh.w, WhCy, sum.cx, sum.cy, sum.r)}
+          fill="var(--border-strong)"
+        />
 
         {/* W_x → sum (diagonal) */}
-        <line x1={Wx.x + Wx.w} y1={WxCy} x2={sum_ix2} y2={sum_iy2}
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <polygon points={ap(Wx.x + Wx.w, WxCy, sum.cx, sum.cy, sum.r)} fill="var(--border-strong)" />
+        <line
+          x1={Wx.x + Wx.w}
+          y1={WxCy}
+          x2={sum_ix2}
+          y2={sum_iy2}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(Wx.x + Wx.w, WxCy, sum.cx, sum.cy, sum.r)}
+          fill="var(--border-strong)"
+        />
 
         {/* sum → tanh */}
-        <line x1={sum.cx + sum.r} y1={sum.cy} x2={tanhB.x - 2} y2={tCy}
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <polygon points={ap(sum.cx + sum.r, sum.cy, tanhB.x, tCy)} fill="var(--border-strong)" />
+        <line
+          x1={sum.cx + sum.r}
+          y1={sum.cy}
+          x2={tanhB.x - 2}
+          y2={tCy}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(sum.cx + sum.r, sum.cy, tanhB.x, tCy)}
+          fill="var(--border-strong)"
+        />
 
         {/* tanh → h_t */}
-        <line x1={tanhB.x + tanhB.w} y1={tCy} x2={hOut.cx - hOut.r - 2} y2={hOut.cy}
-          stroke="var(--color-green)" strokeWidth={1.5} />
-        <polygon points={ap(tanhB.x + tanhB.w, tCy, hOut.cx - hOut.r, hOut.cy)} fill="var(--color-green)" />
+        <line
+          x1={tanhB.x + tanhB.w}
+          y1={tCy}
+          x2={hOut.cx - hOut.r - 2}
+          y2={hOut.cy}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(tanhB.x + tanhB.w, tCy, hOut.cx - hOut.r, hOut.cy)}
+          fill="var(--color-green)"
+        />
 
         {/* Input circles (drawn over arrows) */}
-        <circle cx={hPrev.cx} cy={hPrev.cy} r={hPrev.r}
-          fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
-        <text x={hPrev.cx - 1} y={hPrev.cy - 2} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h</text>
-        <text x={hPrev.cx + 4} y={hPrev.cy + 9} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">t-1</text>
+        <circle
+          cx={hPrev.cx}
+          cy={hPrev.cy}
+          r={hPrev.r}
+          fill="var(--color-white)"
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={hPrev.cx - 1}
+          y={hPrev.cy - 2}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          h
+        </text>
+        <text
+          x={hPrev.cx + 4}
+          y={hPrev.cy + 9}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--color-green)"
+        >
+          t-1
+        </text>
 
-        <circle cx={xt.cx} cy={xt.cy} r={xt.r}
-          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} />
-        <text x={xt.cx - 2} y={xt.cy - 1} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">x</text>
-        <text x={xt.cx + 4} y={xt.cy + 9} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-orange)">t</text>
+        <circle
+          cx={xt.cx}
+          cy={xt.cy}
+          r={xt.r}
+          fill="var(--color-white)"
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={xt.cx - 2}
+          y={xt.cy - 1}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          x
+        </text>
+        <text
+          x={xt.cx + 4}
+          y={xt.cy + 9}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--color-orange)"
+        >
+          t
+        </text>
 
         {/* W_h and W_x rects */}
-        {[{ r: Wh, lbl: "Wₕ", color: "var(--color-blue)" },
-        { r: Wx, lbl: "Wₓ", color: "var(--color-blue)" }].map(({ r, lbl, color }) => (
+        {[
+          { r: Wh, lbl: "Wₕ", color: "var(--color-blue)" },
+          { r: Wx, lbl: "Wₓ", color: "var(--color-blue)" },
+        ].map(({ r, lbl, color }) => (
           <g key={lbl}>
-            <rect x={r.x} y={r.y} width={r.w} height={r.h}
-              fill="var(--color-white)" stroke={color} strokeWidth={1.5} rx={3} />
-            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 5} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill={color}>{lbl}</text>
+            <rect
+              x={r.x}
+              y={r.y}
+              width={r.w}
+              height={r.h}
+              fill="var(--color-white)"
+              stroke={color}
+              strokeWidth={1.5}
+              rx={3}
+            />
+            <text
+              x={r.x + r.w / 2}
+              y={r.y + r.h / 2 + 5}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={12}
+              fill={color}
+            >
+              {lbl}
+            </text>
           </g>
         ))}
 
         {/* + b circle */}
-        <circle cx={sum.cx} cy={sum.cy} r={sum.r}
-          fill="var(--color-white)" stroke="var(--border-strong)" strokeWidth={1.5} />
-        <text x={sum.cx} y={sum.cy + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">+ b</text>
+        <circle
+          cx={sum.cx}
+          cy={sum.cy}
+          r={sum.r}
+          fill="var(--color-white)"
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={sum.cx}
+          y={sum.cy + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--muted)"
+        >
+          + b
+        </text>
 
         {/* tanh rect */}
-        <rect x={tanhB.x} y={tanhB.y} width={tanhB.w} height={tanhB.h}
-          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} rx={3} />
-        <text x={tCx} y={tCy + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">tanh</text>
+        <rect
+          x={tanhB.x}
+          y={tanhB.y}
+          width={tanhB.w}
+          height={tanhB.h}
+          fill="var(--color-white)"
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+          rx={3}
+        />
+        <text
+          x={tCx}
+          y={tCy + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-orange)"
+        >
+          tanh
+        </text>
 
         {/* h_t output circle */}
-        <circle cx={hOut.cx} cy={hOut.cy} r={hOut.r}
-          fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
-        <text x={hOut.cx - 2} y={hOut.cy - 1} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h</text>
-        <text x={hOut.cx + 5} y={hOut.cy + 9} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">t</text>
+        <circle
+          cx={hOut.cx}
+          cy={hOut.cy}
+          r={hOut.r}
+          fill="var(--color-white)"
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={hOut.cx - 2}
+          y={hOut.cy - 1}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          h
+        </text>
+        <text
+          x={hOut.cx + 5}
+          y={hOut.cy + 9}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--color-green)"
+        >
+          t
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 8} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >{"one step: h_t = tanh(Wₕ h_{t-1} + Wₓ x_t + b)"}</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 8}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          {"one step: h_t = tanh(Wₕ h_{t-1} + Wₓ x_t + b)"}
+        </text>
       </svg>
     </div>
   );
@@ -1810,8 +3266,11 @@ export function GradientFlowDiagram() {
         />
         {/* Stable: constant at y=1 */}
         <MafsLine.Segment
-          point1={[0, 1]} point2={[21, 1]}
-          color="var(--color-green)" weight={2} style="dashed"
+          point1={[0, 1]}
+          point2={[21, 1]}
+          color="var(--color-green)"
+          weight={2}
+          style="dashed"
         />
         {/* Exploding: 1.1^t (clipped at y=4 in view) */}
         <Plot.Parametric
@@ -1821,124 +3280,369 @@ export function GradientFlowDiagram() {
           weight={2}
         />
         {/* Labels */}
-        <MafsText x={18.5} y={0.25} size={12} color="var(--color-blue)">vanishing</MafsText>
-        <MafsText x={18.5} y={1.22} size={12} color="var(--color-green)">stable</MafsText>
-        <MafsText x={12.5} y={3.6} size={12} color="var(--color-orange)">exploding</MafsText>
-        <MafsText x={21.5} y={-0.2} size={11} color="var(--color-white)">steps</MafsText>
+        <MafsText x={18.5} y={0.25} size={12} color="var(--color-blue)">
+          vanishing
+        </MafsText>
+        <MafsText x={18.5} y={1.22} size={12} color="var(--color-green)">
+          stable
+        </MafsText>
+        <MafsText x={12.5} y={3.6} size={12} color="var(--color-orange)">
+          exploding
+        </MafsText>
+        <MafsText x={21.5} y={-0.2} size={11} color="var(--color-white)">
+          steps
+        </MafsText>
       </Mafs>
     </div>
   );
 }
 
 export function LSTMDiagram() {
-  const svgW = 460, svgH = 188;
-  const cY = 52;  // cell state lane y
+  const svgW = 460,
+    svgH = 188;
+  const cY = 52; // cell state lane y
   const hY = 148; // h output y
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 7): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3.5).toFixed(1)},${(by + ux * 3.5).toFixed(1)} ${(bx + uy * 3.5).toFixed(1)},${(by - ux * 3.5).toFixed(1)}`;
   }
 
-  const forgX = 125, addX = 250;
-  const tanhX = 355, outX = 390;
+  const forgX = 125,
+    addX = 250;
+  const tanhX = 355,
+    outX = 390;
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Cell state highway: c_{t-1} → ⊙_f → + → c_t */}
-        <line x1={47} y1={cY} x2={108} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <line
+          x1={47}
+          y1={cY}
+          x2={108}
+          y2={cY}
+          stroke="var(--color-green)"
+          strokeWidth={2}
+        />
         <polygon points={ap(47, cY, 110, cY)} fill="var(--color-green)" />
-        <line x1={140} y1={cY} x2={234} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <line
+          x1={140}
+          y1={cY}
+          x2={234}
+          y2={cY}
+          stroke="var(--color-green)"
+          strokeWidth={2}
+        />
         <polygon points={ap(140, cY, 236, cY)} fill="var(--color-green)" />
-        <line x1={264} y1={cY} x2={432} y2={cY} stroke="var(--color-green)" strokeWidth={2} />
+        <line
+          x1={264}
+          y1={cY}
+          x2={432}
+          y2={cY}
+          stroke="var(--color-green)"
+          strokeWidth={2}
+        />
         <polygon points={ap(264, cY, 434, cY)} fill="var(--color-green)" />
 
         {/* Branch from cell lane down to tanh → ⊙_o → h_t */}
-        <line x1={tanhX} y1={cY} x2={tanhX} y2={105}
-          stroke="var(--color-green)" strokeWidth={1.5} />
-        <rect x={tanhX - 24} y={105} width={48} height={26}
-          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} rx={3} />
-        <text x={tanhX} y={122} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">tanh</text>
-        <line x1={tanhX} y1={131} x2={tanhX} y2={hY - 7}
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <polygon points={ap(tanhX, 131, tanhX, hY)} fill="var(--border-strong)" />
-        <line x1={47} y1={hY} x2={425} y2={hY}
-          stroke="var(--color-green)" strokeWidth={2} />
-        <polygon points={ap(tanhX + 14, hY, 427, hY)} fill="var(--color-green)" />
+        <line
+          x1={tanhX}
+          y1={cY}
+          x2={tanhX}
+          y2={105}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <rect
+          x={tanhX - 24}
+          y={105}
+          width={48}
+          height={26}
+          fill="var(--color-white)"
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+          rx={3}
+        />
+        <text
+          x={tanhX}
+          y={122}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          tanh
+        </text>
+        <line
+          x1={tanhX}
+          y1={131}
+          x2={tanhX}
+          y2={hY - 7}
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={ap(tanhX, 131, tanhX, hY)}
+          fill="var(--border-strong)"
+        />
+        <line
+          x1={47}
+          y1={hY}
+          x2={425}
+          y2={hY}
+          stroke="var(--color-green)"
+          strokeWidth={2}
+        />
+        <polygon
+          points={ap(tanhX + 14, hY, 427, hY)}
+          fill="var(--color-green)"
+        />
 
         {/* Gate input arrows (dashed blue, from the [h,x] band at y=93) */}
-        <line x1={forgX} y1={93} x2={forgX} y2={cY + 15}
-          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
-        <polygon points={ap(forgX, 93, forgX, cY + 15)} fill="var(--color-blue)" />
-        <line x1={addX} y1={93} x2={addX} y2={cY + 15}
-          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
-        <polygon points={ap(addX, 93, addX, cY + 15)} fill="var(--color-blue)" />
-        <line x1={outX} y1={93} x2={outX} y2={hY - 15}
-          stroke="var(--color-blue)" strokeWidth={1.2} strokeDasharray="3 2" />
-        <polygon points={ap(outX, 93, outX, hY - 15)} fill="var(--color-blue)" />
+        <line
+          x1={forgX}
+          y1={93}
+          x2={forgX}
+          y2={cY + 15}
+          stroke="var(--color-blue)"
+          strokeWidth={1.2}
+          strokeDasharray="3 2"
+        />
+        <polygon
+          points={ap(forgX, 93, forgX, cY + 15)}
+          fill="var(--color-blue)"
+        />
+        <line
+          x1={addX}
+          y1={93}
+          x2={addX}
+          y2={cY + 15}
+          stroke="var(--color-blue)"
+          strokeWidth={1.2}
+          strokeDasharray="3 2"
+        />
+        <polygon
+          points={ap(addX, 93, addX, cY + 15)}
+          fill="var(--color-blue)"
+        />
+        <line
+          x1={outX}
+          y1={93}
+          x2={outX}
+          y2={hY - 15}
+          stroke="var(--color-blue)"
+          strokeWidth={1.2}
+          strokeDasharray="3 2"
+        />
+        <polygon
+          points={ap(outX, 93, outX, hY - 15)}
+          fill="var(--color-blue)"
+        />
 
         {/* [h,x] band label and dashed guideline */}
-        <text x={14} y={97} fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">[h, x]</text>
-        <line x1={50} y1={93} x2={410} y2={93}
-          stroke="var(--muted)" strokeWidth={0.7} strokeDasharray="2 3" />
+        <text
+          x={14}
+          y={97}
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          [h, x]
+        </text>
+        <line
+          x1={50}
+          y1={93}
+          x2={410}
+          y2={93}
+          stroke="var(--muted)"
+          strokeWidth={0.7}
+          strokeDasharray="2 3"
+        />
 
         {/* Gate labels above the dashed arrows */}
-        <text x={forgX} y={84} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">f_t</text>
-        <text x={addX} y={84} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">i_t ⊙ g_t</text>
-        <text x={outX} y={84} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">o_t</text>
+        <text
+          x={forgX}
+          y={84}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--color-blue)"
+        >
+          f_t
+        </text>
+        <text
+          x={addX}
+          y={84}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--color-blue)"
+        >
+          i_t ⊙ g_t
+        </text>
+        <text
+          x={outX}
+          y={84}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--color-blue)"
+        >
+          o_t
+        </text>
 
         {/* Text labels */}
-        <text x={0} y={cY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">{"c_{t-1}"}</text>
-        <text x={437} y={cY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">c_t</text>
-        <text x={437} y={hY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">h_t</text>
-        <text x={0} y={hY + 4} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">{"h_{t-1}"}</text>
+        <text
+          x={0}
+          y={cY + 4}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          {"c_{t-1}"}
+        </text>
+        <text
+          x={437}
+          y={cY + 4}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          c_t
+        </text>
+        <text
+          x={437}
+          y={hY + 4}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          h_t
+        </text>
+        <text
+          x={0}
+          y={hY + 4}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          {"h_{t-1}"}
+        </text>
 
         {/* ⊙_f (forget multiply) */}
-        <circle cx={forgX} cy={cY} r={15} fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={forgX} y={cY + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">×f</text>
+        <circle
+          cx={forgX}
+          cy={cY}
+          r={15}
+          fill="var(--color-white)"
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={forgX}
+          y={cY + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          ×f
+        </text>
 
         {/* + (add new content) */}
-        <circle cx={addX} cy={cY} r={14} fill="var(--color-white)" stroke="var(--muted)" strokeWidth={1.5} />
-        <text x={addX} y={cY + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">+</text>
+        <circle
+          cx={addX}
+          cy={cY}
+          r={14}
+          fill="var(--color-white)"
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={addX}
+          y={cY + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--muted)"
+        >
+          +
+        </text>
 
         {/* ⊙_o (output gate multiply) */}
-        <circle cx={outX} cy={hY} r={14} fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={outX} y={hY + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">×o</text>
+        <circle
+          cx={outX}
+          cy={hY}
+          r={14}
+          fill="var(--color-white)"
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={outX}
+          y={hY + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          ×o
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 6} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >cell c (green): additive highway;  h_t = o_t ⊙ tanh(c_t)</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 6}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          cell c (green): additive highway; h_t = o_t ⊙ tanh(c_t)
+        </text>
       </svg>
     </div>
   );
 }
 
 export function RNNParallelismDiagram() {
-  const svgW = 380, svgH = 220;
-  const bw = 58, bh = 30;
+  const svgW = 380,
+    svgH = 220;
+  const bw = 58,
+    bh = 30;
   const xs = [28, 108, 188, 268] as const; // box left edges
 
   function hArrow(x1: number, x2: number, y: number, color: string) {
-    const as = 6, dx = x2 - x1;
+    const as = 6,
+      dx = x2 - x1;
     const ux = dx / Math.abs(dx);
-    const tip = x2, base = x2 - ux * as;
+    const tip = x2,
+      base = x2 - ux * as;
     return (
       <>
-        <line x1={x1} y1={y} x2={x2 - ux * as} y2={y} stroke={color} strokeWidth={1.5} />
-        <polygon points={`${tip},${y} ${base},${y - 3} ${base},${y + 3}`} fill={color} />
+        <line
+          x1={x1}
+          y1={y}
+          x2={x2 - ux * as}
+          y2={y}
+          stroke={color}
+          strokeWidth={1.5}
+        />
+        <polygon
+          points={`${tip},${y} ${base},${y - 3} ${base},${y + 3}`}
+          fill={color}
+        />
       </>
     );
   }
@@ -1947,33 +3651,99 @@ export function RNNParallelismDiagram() {
     const as = 5;
     return (
       <>
-        <line x1={cx} y1={fromY} x2={cx} y2={toY + as} stroke="var(--muted)" strokeWidth={1} />
-        <polygon points={`${cx},${toY} ${cx - 2.5},${toY + as} ${cx + 2.5},${toY + as}`} fill="var(--muted)" />
+        <line
+          x1={cx}
+          y1={fromY}
+          x2={cx}
+          y2={toY + as}
+          stroke="var(--muted)"
+          strokeWidth={1}
+        />
+        <polygon
+          points={`${cx},${toY} ${cx - 2.5},${toY + as} ${cx + 2.5},${toY + as}`}
+          fill="var(--muted)"
+        />
       </>
     );
   }
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Section labels */}
-        <text x={8} y={22} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">RNN (sequential)</text>
-        <text x={8} y={116} fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)">parallel</text>
-        <text x={335} y={55} fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)">T steps</text>
-        <text x={335} y={149} fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)">1 step</text>
+        <text
+          x={8}
+          y={22}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          RNN (sequential)
+        </text>
+        <text
+          x={8}
+          y={116}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
+        >
+          parallel
+        </text>
+        <text
+          x={335}
+          y={55}
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-orange)"
+        >
+          T steps
+        </text>
+        <text
+          x={335}
+          y={149}
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-green)"
+        >
+          1 step
+        </text>
 
         {/* Divider */}
-        <line x1={0} y1={98} x2={svgW} y2={98} stroke="var(--border)" strokeWidth={1} strokeDasharray="3 3" />
+        <line
+          x1={0}
+          y1={98}
+          x2={svgW}
+          y2={98}
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
 
         {/* RNN row: boxes with horizontal dependency arrows */}
         {xs.map((x, i) => (
           <g key={`rnn-${i}`}>
-            <rect x={x} y={28} width={bw} height={bh} rx={3}
-              fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={1.5} />
-            <text x={x + bw / 2} y={47} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+            <rect
+              x={x}
+              y={28}
+              width={bw}
+              height={bh}
+              rx={3}
+              fill="var(--color-white)"
+              stroke="var(--color-orange)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={x + bw / 2}
+              y={47}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={12}
+              fill="var(--color-orange)"
+            >
               {["t₁", "t₂", "t₃", "t₄"][i]}
             </text>
             {/* Input arrow from below */}
@@ -1981,84 +3751,175 @@ export function RNNParallelismDiagram() {
           </g>
         ))}
         {/* Horizontal dependency arrows between RNN boxes */}
-        {xs.slice(0, -1).map((x, i) =>
-          <g key={`arr-${i}`}>{hArrow(x + bw, xs[i + 1], 43, "var(--color-orange)")}</g>
-        )}
+        {xs.slice(0, -1).map((x, i) => (
+          <g key={`arr-${i}`}>
+            {hArrow(x + bw, xs[i + 1], 43, "var(--color-orange)")}
+          </g>
+        ))}
         {/* x_t labels */}
         {xs.map((x, i) => (
-          <text key={`xl-${i}`} x={x + bw / 2} y={90} textAnchor="middle"
-            fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-          >{["x₁", "x₂", "x₃", "x₄"][i]}</text>
+          <text
+            key={`xl-${i}`}
+            x={x + bw / 2}
+            y={90}
+            textAnchor="middle"
+            fontFamily="var(--font-code)"
+            fontSize={10}
+            fill="var(--muted)"
+          >
+            {["x₁", "x₂", "x₃", "x₄"][i]}
+          </text>
         ))}
 
         {/* Parallel row: same boxes, NO arrows between them */}
         {xs.map((x, i) => (
           <g key={`par-${i}`}>
-            <rect x={x} y={122} width={bw} height={bh} rx={3}
-              fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
-            <text x={x + bw / 2} y={141} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">
+            <rect
+              x={x}
+              y={122}
+              width={bw}
+              height={bh}
+              rx={3}
+              fill="var(--color-white)"
+              stroke="var(--color-green)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={x + bw / 2}
+              y={141}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={12}
+              fill="var(--color-green)"
+            >
               {["p₁", "p₂", "p₃", "p₄"][i]}
             </text>
             {inputArrow(x + bw / 2, 172, 152)}
           </g>
         ))}
         {xs.map((x, i) => (
-          <text key={`xpl-${i}`} x={x + bw / 2} y={182} textAnchor="middle"
-            fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-          >{["x₁", "x₂", "x₃", "x₄"][i]}</text>
+          <text
+            key={`xpl-${i}`}
+            x={x + bw / 2}
+            y={182}
+            textAnchor="middle"
+            fontFamily="var(--font-code)"
+            fontSize={10}
+            fill="var(--muted)"
+          >
+            {["x₁", "x₂", "x₃", "x₄"][i]}
+          </text>
         ))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 16} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >RNN: each state depends on the previous</text>
-        <text x={svgW / 2} y={svgH - 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >T sequential steps are required</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 16}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          RNN: each state depends on the previous
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          T sequential steps are required
+        </text>
       </svg>
     </div>
   );
 }
 
 export function EncoderBottleneckDiagram() {
-  const svgW = 500, svgH = 140;
-  const r = 12;   // encoder/decoder node radius
-  const rB = 22;  // bottleneck radius
+  const svgW = 500,
+    svgH = 140;
+  const r = 12; // encoder/decoder node radius
+  const rB = 22; // bottleneck radius
   const ys = [24, 44, 60, 76, 92] as const; // node y positions (5 nodes)
-  const xEnc = 50, xBot = svgW / 2, xDec = svgW - 50;
+  const xEnc = 50,
+    xBot = svgW / 2,
+    xDec = svgW - 50;
   const midY = 58; // vertical center
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3).toFixed(1)},${(by + ux * 3).toFixed(1)} ${(bx + uy * 3).toFixed(1)},${(by - ux * 3).toFixed(1)}`;
   }
 
-  function lineToCircle(fx: number, fy: number, cx: number, cy: number, targetR: number) {
-    const dx = cx - fx, dy = cy - fy, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const ex = fx + ux * r, ey = fy + uy * r;   // exit from src circle
-    const tx = cx - ux * targetR, ty = cy - uy * targetR; // entry to target circle
+  function lineToCircle(
+    fx: number,
+    fy: number,
+    cx: number,
+    cy: number,
+    targetR: number
+  ) {
+    const dx = cx - fx,
+      dy = cy - fy,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const ex = fx + ux * r,
+      ey = fy + uy * r; // exit from src circle
+    const tx = cx - ux * targetR,
+      ty = cy - uy * targetR; // entry to target circle
     return { ex, ey, tx, ty, pts: ap(ex, ey, tx, ty) };
   }
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Section labels */}
-        <text x={xEnc} y={7} textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">source  (T words)</text>
-        <text x={xDec} y={7} textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">output  (T′ words)</text>
+        <text
+          x={xEnc}
+          y={7}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          source (T words)
+        </text>
+        <text
+          x={xDec}
+          y={7}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          output (T′ words)
+        </text>
 
         {/* Lines from encoder nodes to bottleneck */}
         {ys.map((y) => {
           const { ex, ey, tx, ty, pts } = lineToCircle(xEnc, y, xBot, midY, rB);
           return (
             <g key={`enc-${y}`}>
-              <line x1={ex} y1={ey} x2={tx} y2={ty} stroke="var(--border-strong)" strokeWidth={0.9} />
+              <line
+                x1={ex}
+                y1={ey}
+                x2={tx}
+                y2={ty}
+                stroke="var(--border-strong)"
+                strokeWidth={0.9}
+              />
               <polygon points={pts} fill="var(--border-strong)" />
             </g>
           );
@@ -2069,7 +3930,14 @@ export function EncoderBottleneckDiagram() {
           const { ex, ey, tx, ty, pts } = lineToCircle(xBot, midY, xDec, y, r);
           return (
             <g key={`dec-${y}`}>
-              <line x1={ex} y1={ey} x2={tx} y2={ty} stroke="var(--border-strong)" strokeWidth={0.9} />
+              <line
+                x1={ex}
+                y1={ey}
+                x2={tx}
+                y2={ty}
+                stroke="var(--border-strong)"
+                strokeWidth={0.9}
+              />
               <polygon points={pts} fill="var(--border-strong)" />
             </g>
           );
@@ -2078,44 +3946,101 @@ export function EncoderBottleneckDiagram() {
         {/* Encoder node circles */}
         {ys.map((y, i) => (
           <g key={`ec-${i}`}>
-            <circle cx={xEnc} cy={y} r={r}
-              fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
-            <text x={xEnc} y={y + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)"
-            >{i === 0 ? "h₁" : i === ys.length - 1 ? "h_T" : "·"}</text>
+            <circle
+              cx={xEnc}
+              cy={y}
+              r={r}
+              fill="var(--color-white)"
+              stroke="var(--color-blue)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={xEnc}
+              y={y + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={9}
+              fill="var(--color-blue)"
+            >
+              {i === 0 ? "h₁" : i === ys.length - 1 ? "h_T" : "·"}
+            </text>
           </g>
         ))}
 
         {/* Bottleneck circle */}
-        <circle cx={xBot} cy={midY} r={rB}
-          fill="var(--color-white)" stroke="var(--color-orange)" strokeWidth={2.5} />
-        <text x={xBot} y={midY + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">h_T</text>
-        <text x={xBot} y={midY + rB + 13} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--color-orange)">D numbers</text>
+        <circle
+          cx={xBot}
+          cy={midY}
+          r={rB}
+          fill="var(--color-white)"
+          stroke="var(--color-orange)"
+          strokeWidth={2.5}
+        />
+        <text
+          x={xBot}
+          y={midY + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-orange)"
+        >
+          h_T
+        </text>
+        <text
+          x={xBot}
+          y={midY + rB + 13}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--color-orange)"
+        >
+          D numbers
+        </text>
 
         {/* Decoder node circles */}
         {ys.map((y, i) => (
           <g key={`dc-${i}`}>
-            <circle cx={xDec} cy={y} r={r}
-              fill="var(--color-white)" stroke="var(--color-green)" strokeWidth={1.5} />
-            <text x={xDec} y={y + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-green)"
-            >{i === 0 ? "y₁" : i === ys.length - 1 ? "y_T′" : "·"}</text>
+            <circle
+              cx={xDec}
+              cy={y}
+              r={r}
+              fill="var(--color-white)"
+              stroke="var(--color-green)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={xDec}
+              y={y + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={9}
+              fill="var(--color-green)"
+            >
+              {i === 0 ? "y₁" : i === ys.length - 1 ? "y_T′" : "·"}
+            </text>
           </g>
         ))}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >T source words compressed into D numbers before any output is generated</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          T source words compressed into D numbers before any output is
+          generated
+        </text>
       </svg>
     </div>
   );
 }
 
 export function TokenizationDiagram() {
-  const svgW = 370, svgH = 130;
+  const svgW = 370,
+    svgH = 130;
 
   // Tokens with their display strings, colors, widths, and IDs
   const tokens = [
@@ -2125,8 +4050,11 @@ export function TokenizationDiagram() {
     { text: " great", color: "var(--pink)", w: 62, id: 1049 },
   ] as const;
 
-  const bh = 28, boxY = 48, gap = 6;
-  const totalW = tokens.reduce((s, t) => s + t.w, 0) + (tokens.length - 1) * gap;
+  const bh = 28,
+    boxY = 48,
+    gap = 6;
+  const totalW =
+    tokens.reduce((s, t) => s + t.w, 0) + (tokens.length - 1) * gap;
   const startX = (svgW - totalW) / 2;
 
   let xCursor = startX;
@@ -2138,56 +4066,115 @@ export function TokenizationDiagram() {
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Full text at top */}
-        <text x={svgW / 2} y={18} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)"
-        >{"transformers are great"}</text>
+        <text
+          x={svgW / 2}
+          y={18}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill="var(--color-fg)"
+        >
+          {"transformers are great"}
+        </text>
         {/* Arrow down */}
-        <line x1={svgW / 2} y1={22} x2={svgW / 2} y2={36} stroke="var(--muted)" strokeWidth={1} />
-        <polygon points={`${svgW / 2},38 ${svgW / 2 - 3},33 ${svgW / 2 + 3},33`} fill="var(--muted)" />
+        <line
+          x1={svgW / 2}
+          y1={22}
+          x2={svgW / 2}
+          y2={36}
+          stroke="var(--muted)"
+          strokeWidth={1}
+        />
+        <polygon
+          points={`${svgW / 2},38 ${svgW / 2 - 3},33 ${svgW / 2 + 3},33`}
+          fill="var(--muted)"
+        />
 
         {/* Token boxes */}
         {boxes.map(({ text, color, w, id, x }) => (
           <g key={text}>
-            <rect x={x} y={boxY} width={w} height={bh} rx={3}
-              fill={color} fillOpacity={0.10}
-              stroke={color} strokeWidth={1.5} />
-            <text x={x + w / 2} y={boxY + 18} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={11} fill={color}
-            >{text}</text>
+            <rect
+              x={x}
+              y={boxY}
+              width={w}
+              height={bh}
+              rx={3}
+              fill={color}
+              fillOpacity={0.1}
+              stroke={color}
+              strokeWidth={1.5}
+            />
+            <text
+              x={x + w / 2}
+              y={boxY + 18}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={11}
+              fill={color}
+            >
+              {text}
+            </text>
             {/* Token ID below box */}
-            <text x={x + w / 2} y={boxY + bh + 16} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-            >{id}</text>
+            <text
+              x={x + w / 2}
+              y={boxY + bh + 16}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={10}
+              fill="var(--muted)"
+            >
+              {id}
+            </text>
           </g>
         ))}
 
         {/* "token IDs" label */}
-        <text x={startX - 8} y={boxY + bh + 16} textAnchor="end"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">id:</text>
+        <text
+          x={startX - 8}
+          y={boxY + bh + 16}
+          textAnchor="end"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          id:
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >subword tokens — spaces absorbed into the following token</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          subword tokens — spaces absorbed into the following token
+        </text>
       </svg>
     </div>
   );
 }
 
 export function EmbeddingLookupDiagram() {
-  const svgW = 420, svgH = 155;
+  const svgW = 420,
+    svgH = 155;
 
   // Partial embedding table: show 5 rows around the queried ID
   const queryId = 4285;
   const rowIds = [4283, 4284, 4285, 4286, 4287];
-  const cw = 28, ch = 20;  // cell width/height
-  const cols = 4;           // visible columns
+  const cw = 28,
+    ch = 20; // cell width/height
+  const cols = 4; // visible columns
   const rowGap = 2;
-  const mX = 155, mY = 30; // matrix top-left
+  const mX = 155,
+    mY = 30; // matrix top-left
 
   const tableH = rowIds.length * (ch + rowGap) - rowGap;
   const tableW = cols * cw;
@@ -2195,31 +4182,86 @@ export function EmbeddingLookupDiagram() {
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Labels */}
-        <text x={62} y={20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">token</text>
-        <text x={mX + tableW / 2} y={20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"embedding table  E ∈ ℝ^(V×D)"}</text>
-        <text x={345} y={20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"vector ∈ ℝ^D"}</text>
+        <text
+          x={62}
+          y={20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          token
+        </text>
+        <text
+          x={mX + tableW / 2}
+          y={20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          {"embedding table  E ∈ ℝ^(V×D)"}
+        </text>
+        <text
+          x={345}
+          y={20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          {"vector ∈ ℝ^D"}
+        </text>
 
         {/* Token box */}
-        <rect x={15} y={midY - 18} width={84} height={36} rx={3}
-          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={57} y={midY - 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)">transform</text>
-        <text x={57} y={midY + 10} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">{`id = ${queryId}`}</text>
+        <rect
+          x={15}
+          y={midY - 18}
+          width={84}
+          height={36}
+          rx={3}
+          fill="var(--color-white)"
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={57}
+          y={midY - 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-blue)"
+        >
+          transform
+        </text>
+        <text
+          x={57}
+          y={midY + 10}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >{`id = ${queryId}`}</text>
 
         {/* Arrow: token → matrix */}
-        <line x1={99} y1={midY} x2={147} y2={midY}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={99}
+          y1={midY}
+          x2={147}
+          y2={midY}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon
           points={`148,${midY} 142,${midY - 3} 142,${midY + 3}`}
-          fill="var(--border-strong)" />
+          fill="var(--border-strong)"
+        />
 
         {/* Embedding table cells */}
         {rowIds.map((rid, ri) => {
@@ -2228,15 +4270,26 @@ export function EmbeddingLookupDiagram() {
           return (
             <g key={rid}>
               {/* Row ID label */}
-              <text x={mX - 5} y={y + ch / 2 + 4} textAnchor="end"
-                fontFamily="var(--font-code)" fontSize={8}
+              <text
+                x={mX - 5}
+                y={y + ch / 2 + 4}
+                textAnchor="end"
+                fontFamily="var(--font-code)"
+                fontSize={8}
                 fill={isActive ? "var(--color-blue)" : "var(--muted)"}
                 fontWeight={isActive ? 700 : 400}
-              >{rid}</text>
+              >
+                {rid}
+              </text>
               {/* Cells */}
               {Array.from({ length: cols }, (_, ci) => (
-                <rect key={ci}
-                  x={mX + ci * cw} y={y} width={cw - 1} height={ch} rx={1}
+                <rect
+                  key={ci}
+                  x={mX + ci * cw}
+                  y={y}
+                  width={cw - 1}
+                  height={ch}
+                  rx={1}
                   fill={isActive ? "var(--color-blue)" : "var(--color-white)"}
                   fillOpacity={isActive ? 0.12 : 1}
                   stroke={isActive ? "var(--color-blue)" : "var(--border)"}
@@ -2245,47 +4298,105 @@ export function EmbeddingLookupDiagram() {
               ))}
               {/* "..." for non-highlighted rows */}
               {!isActive && (
-                <text x={mX + tableW / 2} y={y + ch / 2 + 4} textAnchor="middle"
-                  fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">· · · ·</text>
+                <text
+                  x={mX + tableW / 2}
+                  y={y + ch / 2 + 4}
+                  textAnchor="middle"
+                  fontFamily="var(--font-code)"
+                  fontSize={9}
+                  fill="var(--muted)"
+                >
+                  · · · ·
+                </text>
               )}
               {/* Actual values for highlighted row */}
-              {isActive && (
+              {isActive &&
                 ["0.12", "−0.30", "0.55", "0.08"].map((v, ci) => (
-                  <text key={ci} x={mX + ci * cw + cw / 2} y={y + ch / 2 + 4}
+                  <text
+                    key={ci}
+                    x={mX + ci * cw + cw / 2}
+                    y={y + ch / 2 + 4}
                     textAnchor="middle"
-                    fontFamily="var(--font-code)" fontSize={8}
-                    fill="var(--color-blue)" fontWeight={700}
-                  >{v}</text>
-                ))
-              )}
+                    fontFamily="var(--font-code)"
+                    fontSize={8}
+                    fill="var(--color-blue)"
+                    fontWeight={700}
+                  >
+                    {v}
+                  </text>
+                ))}
             </g>
           );
         })}
         {/* "..." below table */}
-        <text x={mX + tableW / 2} y={mY + tableH + 12} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">⋮</text>
+        <text
+          x={mX + tableW / 2}
+          y={mY + tableH + 12}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          ⋮
+        </text>
 
         {/* Arrow: matrix → vector */}
-        <line x1={mX + tableW + 3} y1={midY} x2={290} y2={midY}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={mX + tableW + 3}
+          y1={midY}
+          x2={290}
+          y2={midY}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon
           points={`292,${midY} 286,${midY - 3} 286,${midY + 3}`}
-          fill="var(--border-strong)" />
+          fill="var(--border-strong)"
+        />
 
         {/* Output vector box */}
-        <rect x={293} y={midY - 18} width={112} height={36} rx={3}
-          fill="var(--color-white)" stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={349} y={midY - 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)"
-        >{"[0.12, −0.30,"}</text>
-        <text x={349} y={midY + 9} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)"
-        >{" 0.55, 0.08, …]"}</text>
+        <rect
+          x={293}
+          y={midY - 18}
+          width={112}
+          height={36}
+          rx={3}
+          fill="var(--color-white)"
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={349}
+          y={midY - 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-blue)"
+        >
+          {"[0.12, −0.30,"}
+        </text>
+        <text
+          x={349}
+          y={midY + 9}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-blue)"
+        >
+          {" 0.55, 0.08, …]"}
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >{"id 4285 selects row 4285 of E — a D-dimensional learned vector"}</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          {"id 4285 selects row 4285 of E — a D-dimensional learned vector"}
+        </text>
       </svg>
     </div>
   );
@@ -2294,7 +4405,8 @@ export function EmbeddingLookupDiagram() {
 export function PositionalEncodingDiagram() {
   // PE(pos, 2i) = sin(pos / 10000^(2i/D)) for D=8
   const D = 8;
-  const pe = (pos: number, i: number) => Math.sin(pos / Math.pow(10000, (2 * i) / D));
+  const pe = (pos: number, i: number) =>
+    Math.sin(pos / Math.pow(10000, (2 * i) / D));
 
   return (
     <div className="my-8">
@@ -2306,157 +4418,352 @@ export function PositionalEncodingDiagram() {
       >
         <Coordinates.Cartesian xAxis={{ lines: 5 }} yAxis={{ lines: 0.5 }} />
         {/* dim 0 (i=0): fast oscillation — period ≈ 2π */}
-        <Plot.Parametric xy={(t) => [t, pe(t, 0)]} domain={[0, 20]}
-          color="var(--color-blue)" weight={2} />
+        <Plot.Parametric
+          xy={(t) => [t, pe(t, 0)]}
+          domain={[0, 20]}
+          color="var(--color-blue)"
+          weight={2}
+        />
         {/* dim 2 (i=1): medium — period ≈ 35 */}
-        <Plot.Parametric xy={(t) => [t, pe(t, 1)]} domain={[0, 20]}
-          color="var(--color-orange)" weight={2} />
+        <Plot.Parametric
+          xy={(t) => [t, pe(t, 1)]}
+          domain={[0, 20]}
+          color="var(--color-orange)"
+          weight={2}
+        />
         {/* dim 4 (i=2): slow — period ≈ 628 */}
-        <Plot.Parametric xy={(t) => [t, pe(t, 2)]} domain={[0, 20]}
-          color="var(--color-green)" weight={2} />
+        <Plot.Parametric
+          xy={(t) => [t, pe(t, 2)]}
+          domain={[0, 20]}
+          color="var(--color-green)"
+          weight={2}
+        />
         {/* Labels */}
-        <MafsText x={19.5} y={pe(19.5, 0) + 0.2} size={12} color="var(--color-blue)">dim 0</MafsText>
-        <MafsText x={18.0} y={pe(18.0, 1) - 0.22} size={12} color="var(--color-orange)">dim 2</MafsText>
-        <MafsText x={17.0} y={pe(17.0, 2) + 0.22} size={12} color="var(--color-green)">dim 4</MafsText>
-        <MafsText x={21.5} y={-0.15} size={11} color="var(--color-white)">pos</MafsText>
+        <MafsText
+          x={19.5}
+          y={pe(19.5, 0) + 0.2}
+          size={12}
+          color="var(--color-blue)"
+        >
+          dim 0
+        </MafsText>
+        <MafsText
+          x={18.0}
+          y={pe(18.0, 1) - 0.22}
+          size={12}
+          color="var(--color-orange)"
+        >
+          dim 2
+        </MafsText>
+        <MafsText
+          x={17.0}
+          y={pe(17.0, 2) + 0.22}
+          size={12}
+          color="var(--color-green)"
+        >
+          dim 4
+        </MafsText>
+        <MafsText x={21.5} y={-0.15} size={11} color="var(--color-white)">
+          pos
+        </MafsText>
       </Mafs>
     </div>
   );
 }
 
 export function PEAdditionDiagram() {
-  const svgW = 385, svgH = 105;
-  const bh = 40, by = 30;
+  const svgW = 385,
+    svgH = 105;
+  const bh = 40,
+    by = 30;
 
   const boxes = [
-    { x: 1, w: 100, top: "token embedding", bot: "E[token_id]", color: "var(--color-blue)" },
-    { x: 153, w: 100, top: "positional enc.", bot: "PE(pos)", color: "var(--color-green)" },
-    { x: 278, w: 100, top: "input vector", bot: "x_t", color: "var(--color-orange)" },
+    {
+      x: 1,
+      w: 100,
+      top: "token embedding",
+      bot: "E[token_id]",
+      color: "var(--color-blue)",
+    },
+    {
+      x: 153,
+      w: 100,
+      top: "positional enc.",
+      bot: "PE(pos)",
+      color: "var(--color-green)",
+    },
+    {
+      x: 278,
+      w: 100,
+      top: "input vector",
+      bot: "x_t",
+      color: "var(--color-orange)",
+    },
   ] as const;
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Boxes */}
         {boxes.map(({ x, w, top, bot, color }) => (
           <g key={x}>
-            <rect x={x} y={by} width={w} height={bh} rx={3}
-              fill={color} fillOpacity={0.09}
-              stroke={color} strokeWidth={1.5} />
-            <text x={x + w / 2} y={by + 14} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={10} fill={color}>{top}</text>
-            <text x={x + w / 2} y={by + 29} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={13} fill={color}>{bot}</text>
+            <rect
+              x={x}
+              y={by}
+              width={w}
+              height={bh}
+              rx={3}
+              fill={color}
+              fillOpacity={0.09}
+              stroke={color}
+              strokeWidth={1.5}
+            />
+            <text
+              x={x + w / 2}
+              y={by + 14}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={10}
+              fill={color}
+            >
+              {top}
+            </text>
+            <text
+              x={x + w / 2}
+              y={by + 29}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={13}
+              fill={color}
+            >
+              {bot}
+            </text>
           </g>
         ))}
 
         {/* "+" operator */}
-        <text x={127} y={by + bh / 2 + 6} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={18} fill="var(--muted)">+</text>
+        <text
+          x={127}
+          y={by + bh / 2 + 6}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={18}
+          fill="var(--muted)"
+        >
+          +
+        </text>
 
         {/* "=" operator */}
-        <text x={265} y={by + bh / 2 + 6} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={18} fill="var(--muted)">=</text>
+        <text
+          x={265}
+          y={by + bh / 2 + 6}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={18}
+          fill="var(--muted)"
+        >
+          =
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 18} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >added element-wise</text>
-        <text x={svgW / 2} y={svgH - 6} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)"
-        >both vectors have the same dimension D</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 18}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          added element-wise
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 6}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          both vectors have the same dimension D
+        </text>
       </svg>
     </div>
   );
 }
 
 export function SelfAttentionDiagram() {
-  const svgW = 350, svgH = 250;
-  const bw = 255, bh = 32;
+  const svgW = 350,
+    svgH = 250;
+  const bw = 255,
+    bh = 32;
   const bx = (svgW - bw) / 2;
   const cx = svgW / 2;
   const gap = 27; // space between box bottom and next box top
 
   const steps = [
     { y: 12, label: "X  (input sequence,  T × D)", color: "var(--muted)" },
-    { y: 72, label: "Q = XWQ,   K = XWK,   V = XWV", color: "var(--color-blue)" },
-    { y: 132, label: "scores = QKᵀ / √d_k   (T × T)", color: "var(--color-orange)" },
-    { y: 192, label: "A = softmax(scores) × V = Z (T × d_v)", color: "var(--color-green)" },
+    {
+      y: 72,
+      label: "Q = XWQ,   K = XWK,   V = XWV",
+      color: "var(--color-blue)",
+    },
+    {
+      y: 132,
+      label: "scores = QKᵀ / √d_k   (T × T)",
+      color: "var(--color-orange)",
+    },
+    {
+      y: 192,
+      label: "A = softmax(scores) × V = Z (T × d_v)",
+      color: "var(--color-green)",
+    },
   ];
 
   function arrowDown(topY: number) {
-    const y1 = topY + bh, y2 = topY + bh + gap;
+    const y1 = topY + bh,
+      y2 = topY + bh + gap;
     return (
       <>
-        <line x1={cx} y1={y1} x2={cx} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
-        <polygon points={`${cx},${y2} ${cx - 3},${y2 - 6} ${cx + 3},${y2 - 6}`} fill="var(--border-strong)" />
+        <line
+          x1={cx}
+          y1={y1}
+          x2={cx}
+          y2={y2 - 5}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
+        <polygon
+          points={`${cx},${y2} ${cx - 3},${y2 - 6} ${cx + 3},${y2 - 6}`}
+          fill="var(--border-strong)"
+        />
       </>
     );
   }
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {steps.map(({ y, label, color }, i) => (
           <g key={y}>
-            <rect x={bx} y={y} width={bw} height={bh} rx={3}
-              fill={color} fillOpacity={0.07}
-              stroke={color} strokeWidth={1.5} />
-            <text x={cx} y={y + bh / 2 + 4} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={10} fill={color}
-            >{label}</text>
+            <rect
+              x={bx}
+              y={y}
+              width={bw}
+              height={bh}
+              rx={3}
+              fill={color}
+              fillOpacity={0.07}
+              stroke={color}
+              strokeWidth={1.5}
+            />
+            <text
+              x={cx}
+              y={y + bh / 2 + 4}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={10}
+              fill={color}
+            >
+              {label}
+            </text>
             {i < steps.length - 1 && arrowDown(y)}
           </g>
         ))}
-        <text x={cx} y={svgH - 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >attention: every position queries every other position</text>
+        <text
+          x={cx}
+          y={svgH - 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          attention: every position queries every other position
+        </text>
       </svg>
     </div>
   );
 }
 
 export function AttentionMapDiagram() {
-  const svgW = 295, svgH = 220;
+  const svgW = 295,
+    svgH = 220;
   const tokens = ["The", "cat", "sat", "down"] as const;
   const weights = [
-    [0.70, 0.10, 0.10, 0.10],
-    [0.10, 0.60, 0.20, 0.10],
-    [0.15, 0.45, 0.30, 0.10],
-    [0.05, 0.20, 0.35, 0.40],
+    [0.7, 0.1, 0.1, 0.1],
+    [0.1, 0.6, 0.2, 0.1],
+    [0.15, 0.45, 0.3, 0.1],
+    [0.05, 0.2, 0.35, 0.4],
   ];
 
-  const cw = 44, ch = 28;
-  const offX = 52, offY = 42; // top-left of grid
+  const cw = 44,
+    ch = 28;
+  const offX = 52,
+    offY = 42; // top-left of grid
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Column labels (keys) */}
-        <text x={offX + 4 * cw / 2} y={12} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">key (source)</text>
+        <text
+          x={offX + (4 * cw) / 2}
+          y={12}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          key (source)
+        </text>
         {tokens.map((tok, j) => (
-          <text key={`col-${j}`}
-            x={offX + j * cw + cw / 2} y={30}
-            textAnchor="middle" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-          >{tok}</text>
+          <text
+            key={`col-${j}`}
+            x={offX + j * cw + cw / 2}
+            y={30}
+            textAnchor="middle"
+            fontFamily="var(--font-code)"
+            fontSize={10}
+            fill="var(--muted)"
+          >
+            {tok}
+          </text>
         ))}
 
         {/* Row labels (queries) */}
-        <text x={20} y={offY + 4 * ch / 2} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)"
-          transform={`rotate(-90, 20, ${offY + 4 * ch / 2})`}
-        >query</text>
+        <text
+          x={20}
+          y={offY + (4 * ch) / 2}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+          transform={`rotate(-90, 20, ${offY + (4 * ch) / 2})`}
+        >
+          query
+        </text>
         {tokens.map((tok, i) => (
-          <text key={`row-${i}`}
-            x={offX - 5} y={offY + i * ch + ch / 2 + 4}
-            textAnchor="end" fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-          >{tok}</text>
+          <text
+            key={`row-${i}`}
+            x={offX - 5}
+            y={offY + i * ch + ch / 2 + 4}
+            textAnchor="end"
+            fontFamily="var(--font-code)"
+            fontSize={10}
+            fill="var(--muted)"
+          >
+            {tok}
+          </text>
         ))}
 
         {/* Grid cells */}
@@ -2464,162 +4771,334 @@ export function AttentionMapDiagram() {
           row.map((w, j) => (
             <g key={`${i}-${j}`}>
               <rect
-                x={offX + j * cw} y={offY + i * ch}
-                width={cw - 1} height={ch - 1} rx={2}
-                fill="var(--color-blue)" fillOpacity={w * 0.85 + 0.05}
-                stroke="var(--border)" strokeWidth={0.5}
+                x={offX + j * cw}
+                y={offY + i * ch}
+                width={cw - 1}
+                height={ch - 1}
+                rx={2}
+                fill="var(--color-blue)"
+                fillOpacity={w * 0.85 + 0.05}
+                stroke="var(--border)"
+                strokeWidth={0.5}
               />
               <text
-                x={offX + j * cw + cw / 2} y={offY + i * ch + ch / 2 + 4}
-                textAnchor="middle" fontFamily="var(--font-code)"
-                fontSize={10} fill={w > 0.4 ? "var(--color-white)" : "var(--color-fg)"}
+                x={offX + j * cw + cw / 2}
+                y={offY + i * ch + ch / 2 + 4}
+                textAnchor="middle"
+                fontFamily="var(--font-code)"
+                fontSize={10}
+                fill={w > 0.4 ? "var(--color-white)" : "var(--color-fg)"}
                 fontWeight={w > 0.4 ? 700 : 400}
-              >{w.toFixed(2)}</text>
+              >
+                {w.toFixed(2)}
+              </text>
             </g>
           ))
         )}
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >attention weights A (each row sums to 1)</text>
-        <text x={svgW / 2} y={svgH - 7} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)"
-        >{'"sat" attends strongly to "cat" — the subject'}</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          attention weights A (each row sums to 1)
+        </text>
+        <text
+          x={svgW / 2}
+          y={svgH - 7}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
+          {'"sat" attends strongly to "cat" — the subject'}
+        </text>
       </svg>
     </div>
   );
 }
 
 export function MultiHeadDiagram() {
-  const svgW = 420, svgH = 258;
-  const cx = svgW / 2;   // 210
+  const svgW = 420,
+    svgH = 258;
+  const cx = svgW / 2; // 210
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx = x2 - ux * as, by = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const bx = x2 - ux * as,
+      by = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx - uy * 3).toFixed(1)},${(by + ux * 3).toFixed(1)} ${(bx + uy * 3).toFixed(1)},${(by - ux * 3).toFixed(1)}`;
   }
 
   // Positions of head columns: head₁, head₂, "...", head_H
-  const headCxs = [100, 195, 308] as const;  // centers of head₁, head₂, head_H
-  const headBx = headCxs.map(cx => cx - 40); // box left edges (w=80)
-  const headW = 80, headH = 85;
+  const headCxs = [100, 195, 308] as const; // centers of head₁, head₂, head_H
+  const headBx = headCxs.map((cx) => cx - 40); // box left edges (w=80)
+  const headW = 80,
+    headH = 85;
   const headY = 55;
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Input X */}
-        <rect x={50} y={12} width={320} height={28} rx={3}
-          fill="var(--muted)" fillOpacity={0.08}
-          stroke="var(--muted)" strokeWidth={1.5} />
-        <text x={210} y={30} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">X  (T × D)</text>
+        <rect
+          x={50}
+          y={12}
+          width={320}
+          height={28}
+          rx={3}
+          fill="var(--muted)"
+          fillOpacity={0.08}
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={210}
+          y={30}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          X (T × D)
+        </text>
 
         {/* Arrows from X to each head */}
         {headCxs.map((hcx, i) => (
           <g key={`xa-${i}`}>
-            <line x1={hcx} y1={40} x2={hcx} y2={headY - 4}
-              stroke="var(--border-strong)" strokeWidth={1.2} />
-            <polygon points={ap(hcx, 40, hcx, headY - 4)} fill="var(--border-strong)" />
+            <line
+              x1={hcx}
+              y1={40}
+              x2={hcx}
+              y2={headY - 4}
+              stroke="var(--border-strong)"
+              strokeWidth={1.2}
+            />
+            <polygon
+              points={ap(hcx, 40, hcx, headY - 4)}
+              fill="var(--border-strong)"
+            />
           </g>
         ))}
 
         {/* Head boxes */}
         {([0, 1, 2] as const).map((i) => (
           <g key={`head-${i}`}>
-            <rect x={headBx[i]} y={headY} width={headW} height={headH} rx={3}
-              fill="var(--color-blue)" fillOpacity={0.07}
-              stroke="var(--color-blue)" strokeWidth={1.5} />
-            <text x={headCxs[i]} y={headY + 20} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={11} fill="var(--color-blue)"
+            <rect
+              x={headBx[i]}
+              y={headY}
+              width={headW}
+              height={headH}
+              rx={3}
+              fill="var(--color-blue)"
+              fillOpacity={0.07}
+              stroke="var(--color-blue)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={headCxs[i]}
+              y={headY + 20}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={11}
+              fill="var(--color-blue)"
               fontWeight={600}
-            >{["head₁", "head₂", "head_H"][i]}</text>
-            <text x={headCxs[i]} y={headY + 36} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)"
-            >{["W_Q¹ W_K¹ W_V¹", "W_Q² W_K² W_V²", "W_Q^H W_K^H W_V^H"][i]}</text>
-            <text x={headCxs[i]} y={headY + 52} textAnchor="middle"
-              fontFamily="var(--font-code)" fontSize={9} fill="var(--color-blue)">Attn(Q,K,V)</text>
+            >
+              {["head₁", "head₂", "head_H"][i]}
+            </text>
+            <text
+              x={headCxs[i]}
+              y={headY + 36}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={9}
+              fill="var(--color-blue)"
+            >
+              {["W_Q¹ W_K¹ W_V¹", "W_Q² W_K² W_V²", "W_Q^H W_K^H W_V^H"][i]}
+            </text>
+            <text
+              x={headCxs[i]}
+              y={headY + 52}
+              textAnchor="middle"
+              fontFamily="var(--font-code)"
+              fontSize={9}
+              fill="var(--color-blue)"
+            >
+              Attn(Q,K,V)
+            </text>
           </g>
         ))}
 
         {/* "..." between head₂ and head_H */}
-        <text x={252} y={headY + headH / 2 + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={15} fill="var(--muted)">···</text>
+        <text
+          x={252}
+          y={headY + headH / 2 + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={15}
+          fill="var(--muted)"
+        >
+          ···
+        </text>
 
         {/* Arrows from heads to concat bar */}
         {headCxs.map((hcx, i) => (
           <g key={`ha-${i}`}>
-            <line x1={hcx} y1={headY + headH + 2} x2={hcx} y2={152}
-              stroke="var(--border-strong)" strokeWidth={1.2} />
-            <polygon points={ap(hcx, headY + headH + 2, hcx, 152)}
-              fill="var(--border-strong)" />
+            <line
+              x1={hcx}
+              y1={headY + headH + 2}
+              x2={hcx}
+              y2={152}
+              stroke="var(--border-strong)"
+              strokeWidth={1.2}
+            />
+            <polygon
+              points={ap(hcx, headY + headH + 2, hcx, 152)}
+              fill="var(--border-strong)"
+            />
           </g>
         ))}
 
         {/* Concat bar */}
-        <rect x={50} y={152} width={320} height={26} rx={3}
-          fill="var(--color-orange)" fillOpacity={0.09}
-          stroke="var(--color-orange)" strokeWidth={1.5} />
-        <text x={210} y={169} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)"
-        >{"Concat(head₁ | head₂ | ··· | head_H)   (T × D)"}</text>
+        <rect
+          x={50}
+          y={152}
+          width={320}
+          height={26}
+          rx={3}
+          fill="var(--color-orange)"
+          fillOpacity={0.09}
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={210}
+          y={169}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-orange)"
+        >
+          {"Concat(head₁ | head₂ | ··· | head_H)   (T × D)"}
+        </text>
 
         {/* Arrow to W_O */}
-        <line x1={cx} y1={178} x2={cx} y2={192}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={cx}
+          y1={178}
+          x2={cx}
+          y2={192}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon points={ap(cx, 178, cx, 192)} fill="var(--border-strong)" />
 
         {/* W_O box */}
-        <rect x={115} y={192} width={190} height={26} rx={3}
-          fill="var(--color-green)" fillOpacity={0.09}
-          stroke="var(--color-green)" strokeWidth={1.5} />
-        <text x={cx} y={209} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)"
-        >W_O  (D × D)  output projection</text>
+        <rect
+          x={115}
+          y={192}
+          width={190}
+          height={26}
+          rx={3}
+          fill="var(--color-green)"
+          fillOpacity={0.09}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={209}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-green)"
+        >
+          W_O (D × D) output projection
+        </text>
 
         {/* Arrow to Z */}
-        <line x1={cx} y1={218} x2={cx} y2={230}
-          stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={cx}
+          y1={218}
+          x2={cx}
+          y2={230}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon points={ap(cx, 218, cx, 230)} fill="var(--border-strong)" />
 
         {/* Output Z */}
-        <text x={cx} y={241} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-green)"
+        <text
+          x={cx}
+          y={241}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-green)"
           fontWeight={600}
-        >Z  (T × D)</text>
+        >
+          Z (T × D)
+        </text>
 
         {/* Caption */}
-        <text x={cx} y={svgH - 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >H heads run in parallel; each attends in its own d_k = D/H subspace</text>
+        <text
+          x={cx}
+          y={svgH - 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          H heads run in parallel; each attends in its own d_k = D/H subspace
+        </text>
       </svg>
     </div>
   );
 }
 
 export function TransformerBlockDiagram() {
-  const svgW = 300, svgH = 310;
+  const svgW = 300,
+    svgH = 310;
   const mcx = 125; // main-column center x
-  const bw = 155, bh = 28;
-  const bx = mcx - bw / 2;  // = 47.5 → 48; right edge = 203
-  const railX = 248;          // right residual rail x
+  const bw = 155,
+    bh = 28;
+  const bx = mcx - bw / 2; // = 47.5 → 48; right edge = 203
+  const railX = 248; // right residual rail x
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const bx2 = x2 - ux * as, by2 = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const bx2 = x2 - ux * as,
+      by2 = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(bx2 - uy * 3).toFixed(1)},${(by2 + ux * 3).toFixed(1)} ${(bx2 + uy * 3).toFixed(1)},${(by2 - ux * 3).toFixed(1)}`;
   }
 
   function vArrow(x: number, y1: number, y2: number) {
     return (
       <>
-        <line x1={x} y1={y1} x2={x} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={x}
+          y1={y1}
+          x2={x}
+          y2={y2 - 5}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon points={ap(x, y1, x, y2)} fill="var(--border-strong)" />
       </>
     );
@@ -2628,18 +5107,35 @@ export function TransformerBlockDiagram() {
   function box(y: number, label: string, color: string, small = false) {
     return (
       <>
-        <rect x={bx} y={y} width={bw} height={bh} rx={3}
-          fill={color} fillOpacity={0.08} stroke={color} strokeWidth={1.5} />
-        <text x={mcx} y={y + bh / 2 + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={small ? 9 : 10} fill={color}>{label}</text>
+        <rect
+          x={bx}
+          y={y}
+          width={bw}
+          height={bh}
+          rx={3}
+          fill={color}
+          fillOpacity={0.08}
+          stroke={color}
+          strokeWidth={1.5}
+        />
+        <text
+          x={mcx}
+          y={y + bh / 2 + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={small ? 9 : 10}
+          fill={color}
+        >
+          {label}
+        </text>
       </>
     );
   }
 
   // Y positions
-  const inputY = 8;   // input box top
-  const ln1Y = 62;  // LayerNorm 1 top
-  const mhaY = 105;  // MHA top
+  const inputY = 8; // input box top
+  const ln1Y = 62; // LayerNorm 1 top
+  const mhaY = 105; // MHA top
   const add1Y = 150; // ⊕₁ center
   const ln2Y = 172; // LayerNorm 2 top
   const ffnY = 215; // FFN top
@@ -2648,14 +5144,30 @@ export function TransformerBlockDiagram() {
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Dashed block boundary */}
-        <rect x={38} y={56} width={220} height={215} rx={8}
-          fill="none" stroke="var(--border)" strokeWidth={1}
-          strokeDasharray="5 3" />
-        <text x={25} y={50} fontFamily="var(--font-code)" fontSize={9} fill="var(--muted)">
+        <rect
+          x={38}
+          y={56}
+          width={220}
+          height={215}
+          rx={8}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="5 3"
+        />
+        <text
+          x={25}
+          y={50}
+          fontFamily="var(--font-code)"
+          fontSize={9}
+          fill="var(--muted)"
+        >
           transformer block
         </text>
 
@@ -2667,24 +5179,60 @@ export function TransformerBlockDiagram() {
         {box(mhaY, "Multi-Head Attention", "var(--color-blue)")}
 
         {/* ⊕₁ */}
-        <circle cx={mcx} cy={add1Y} r={12} fill="var(--color-white)"
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <text x={mcx} y={add1Y + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">+</text>
+        <circle
+          cx={mcx}
+          cy={add1Y}
+          r={12}
+          fill="var(--color-white)"
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={mcx}
+          y={add1Y + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={14}
+          fill="var(--muted)"
+        >
+          +
+        </text>
 
         {/* ── FFN sub-layer ── */}
         {box(ln2Y, "LayerNorm", "var(--color-orange)")}
         {box(ffnY, "Feed-Forward  (d_ff = 4D)", "var(--color-green)", true)}
 
         {/* ⊕₂ */}
-        <circle cx={mcx} cy={add2Y} r={12} fill="var(--color-white)"
-          stroke="var(--border-strong)" strokeWidth={1.5} />
-        <text x={mcx} y={add2Y + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={14} fill="var(--muted)">+</text>
+        <circle
+          cx={mcx}
+          cy={add2Y}
+          r={12}
+          fill="var(--color-white)"
+          stroke="var(--border-strong)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={mcx}
+          y={add2Y + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={14}
+          fill="var(--muted)"
+        >
+          +
+        </text>
 
         {/* Output */}
-        <text x={mcx} y={outY + 12} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">x'  (T × D)</text>
+        <text
+          x={mcx}
+          y={outY + 12}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          x' (T × D)
+        </text>
 
         {/* Main-path downward arrows */}
         {vArrow(mcx, inputY + bh, ln1Y)}
@@ -2697,50 +5245,123 @@ export function TransformerBlockDiagram() {
 
         {/* ── Residual bypass rail (right side) ── */}
         {/* Arm from input box right edge to rail */}
-        <line x1={bx + bw} y1={inputY + bh / 2} x2={railX} y2={inputY + bh / 2}
-          stroke="var(--muted)" strokeWidth={1.2} />
+        <line
+          x1={bx + bw}
+          y1={inputY + bh / 2}
+          x2={railX}
+          y2={inputY + bh / 2}
+          stroke="var(--muted)"
+          strokeWidth={1.2}
+        />
         {/* Vertical rail from input to ⊕₂ */}
-        <line x1={railX} y1={inputY + bh / 2} x2={railX} y2={add2Y}
-          stroke="var(--muted)" strokeWidth={1.2} />
+        <line
+          x1={railX}
+          y1={inputY + bh / 2}
+          x2={railX}
+          y2={add2Y}
+          stroke="var(--muted)"
+          strokeWidth={1.2}
+        />
 
         {/* Arm to ⊕₁ (bypass 1) */}
-        <line x1={railX} y1={add1Y} x2={mcx + 12 + 3} y2={add1Y}
-          stroke="var(--muted)" strokeWidth={1.2} />
-        <polygon points={ap(railX, add1Y, mcx + 12, add1Y)} fill="var(--muted)" />
+        <line
+          x1={railX}
+          y1={add1Y}
+          x2={mcx + 12 + 3}
+          y2={add1Y}
+          stroke="var(--muted)"
+          strokeWidth={1.2}
+        />
+        <polygon
+          points={ap(railX, add1Y, mcx + 12, add1Y)}
+          fill="var(--muted)"
+        />
 
         {/* Arm to ⊕₂ (bypass 2 — carries residual after ⊕₁) */}
-        <line x1={railX} y1={add2Y} x2={mcx + 12 + 3} y2={add2Y}
-          stroke="var(--muted)" strokeWidth={1.2} />
-        <polygon points={ap(railX, add2Y, mcx + 12, add2Y)} fill="var(--muted)" />
+        <line
+          x1={railX}
+          y1={add2Y}
+          x2={mcx + 12 + 3}
+          y2={add2Y}
+          stroke="var(--muted)"
+          strokeWidth={1.2}
+        />
+        <polygon
+          points={ap(railX, add2Y, mcx + 12, add2Y)}
+          fill="var(--muted)"
+        />
 
         {/* "residual" label on rail */}
-        <text x={railX + 5} y={mcx + 40} textAnchor="start"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--muted)"
+        <text
+          x={railX + 5}
+          y={mcx + 40}
+          textAnchor="start"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--muted)"
           transform={`rotate(90, ${railX + 5}, ${mcx + 38})`}
-        >residual</text>
+        >
+          residual
+        </text>
 
         {/* Caption */}
-        <text x={svgW / 2} y={svgH - 2} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >Pre-LN: x = x + SubLayer(LayerNorm(x))</text>
+        <text
+          x={svgW / 2}
+          y={svgH - 2}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          Pre-LN: x = x + SubLayer(LayerNorm(x))
+        </text>
       </svg>
     </div>
   );
 }
 
 export function BatchMatrixDiagram() {
-  const cW = 44, cH = 38, bw = 5, gap = 36, padL = 20, padT = 36;
-  const X = [[1, 0], [0, 1], [1, 1]];
-  const WT = [[2, 1], [0, 3]];
-  const Y = [[2, 1], [0, 3], [2, 4]];
+  const cW = 44,
+    cH = 38,
+    bw = 5,
+    gap = 36,
+    padL = 20,
+    padT = 36;
+  const X = [
+    [1, 0],
+    [0, 1],
+    [1, 1],
+  ];
+  const WT = [
+    [2, 1],
+    [0, 3],
+  ];
+  const Y = [
+    [2, 1],
+    [0, 3],
+    [2, 4],
+  ];
 
-  const xH = 3 * cH, wtH = 2 * cH;
+  const xH = 3 * cH,
+    wtH = 2 * cH;
   const mY = padT;
   const wtY = mY + (xH - wtH) / 2;
 
   const caption = "B = 3 examples in parallel — row i of X maps to row i of Y";
   const naturalXX = padL + bw;
-  const naturalW = naturalXX + 2 * cW + bw + gap + bw + 2 * cW + bw + gap + bw + 2 * cW + bw + padL;
+  const naturalW =
+    naturalXX +
+    2 * cW +
+    bw +
+    gap +
+    bw +
+    2 * cW +
+    bw +
+    gap +
+    bw +
+    2 * cW +
+    bw +
+    padL;
   const svgW = Math.max(naturalW, Math.ceil(caption.length * 7.2) + 2 * padL);
   const xX = naturalXX + (svgW - naturalW) / 2;
   const wtX = xX + 2 * cW + bw + gap + bw;
@@ -2751,29 +5372,81 @@ export function BatchMatrixDiagram() {
   return (
     <div className="my-8 flex justify-center overflow-x-auto">
       <svg width={svgW} height={svgH}>
-        {svgMatrix(X, xX, mY, cW, cH, (i) => [i === 0, "var(--color-blue)"], 14)}
+        {svgMatrix(
+          X,
+          xX,
+          mY,
+          cW,
+          cH,
+          (i) => [i === 0, "var(--color-blue)"],
+          14
+        )}
         {X.map((_, i) => (
-          <text key={i} x={xX - 8} y={mY + i * cH + cH / 2 + 4}
-            textAnchor="end" fontSize={11} fontFamily="var(--font-code)"
-            fill={i === 0 ? "var(--color-blue)" : "var(--muted)"}>
+          <text
+            key={i}
+            x={xX - 8}
+            y={mY + i * cH + cH / 2 + 4}
+            textAnchor="end"
+            fontSize={11}
+            fontFamily="var(--font-code)"
+            fill={i === 0 ? "var(--color-blue)" : "var(--muted)"}
+          >
             {i + 1}
           </text>
         ))}
 
-        <text x={xX + 2 * cW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">×</text>
+        <text
+          x={xX + 2 * cW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          ×
+        </text>
 
-        <text x={wtX + cW} y={wtY - 8} textAnchor="middle"
-          fill="var(--muted)" fontSize={11} fontFamily="var(--font-code)">Wᵀ</text>
+        <text
+          x={wtX + cW}
+          y={wtY - 8}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={11}
+          fontFamily="var(--font-code)"
+        >
+          Wᵀ
+        </text>
         {svgMatrix(WT, wtX, wtY, cW, cH, () => [false, "var(--color-fg)"], 14)}
 
-        <text x={wtX + 2 * cW + bw + gap / 2} y={opY} textAnchor="middle"
-          fill="var(--muted)" fontSize={20} fontFamily="var(--font-code)">=</text>
+        <text
+          x={wtX + 2 * cW + bw + gap / 2}
+          y={opY}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={20}
+          fontFamily="var(--font-code)"
+        >
+          =
+        </text>
 
-        {svgMatrix(Y, yX, mY, cW, cH, (i) => [i === 0, "var(--color-green)"], 14)}
+        {svgMatrix(
+          Y,
+          yX,
+          mY,
+          cW,
+          cH,
+          (i) => [i === 0, "var(--color-green)"],
+          14
+        )}
 
-        <text x={svgW / 2} y={svgH - 5} textAnchor="middle"
-          fill="var(--muted)" fontSize={12} fontFamily="var(--font-code)">
+        <text
+          x={svgW / 2}
+          y={svgH - 5}
+          textAnchor="middle"
+          fill="var(--muted)"
+          fontSize={12}
+          fontFamily="var(--font-code)"
+        >
           {caption}
         </text>
       </svg>
@@ -2785,15 +5458,21 @@ export function ComputationGraphDiagram() {
   const r = 26;
 
   function edge(x1: number, y1: number, x2: number, y2: number) {
-    const dx = x2 - x1, dy = y2 - y1;
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
+    const ux = dx / len,
+      uy = dy / len;
     const as = 7;
-    const tipX = x2 - ux * r, tipY = y2 - uy * r;
-    const lx2 = tipX - ux * as, ly2 = tipY - uy * as;
+    const tipX = x2 - ux * r,
+      tipY = y2 - uy * r;
+    const lx2 = tipX - ux * as,
+      ly2 = tipY - uy * as;
     return {
-      lx1: x1 + ux * r, ly1: y1 + uy * r,
-      lx2, ly2,
+      lx1: x1 + ux * r,
+      ly1: y1 + uy * r,
+      lx2,
+      ly2,
       ahPoints: [
         `${tipX.toFixed(1)},${tipY.toFixed(1)}`,
         `${(lx2 - uy * 3.5).toFixed(1)},${(ly2 + ux * 3.5).toFixed(1)}`,
@@ -2812,28 +5491,72 @@ export function ComputationGraphDiagram() {
 
   function drawEdge(
     e: { lx1: number; ly1: number; lx2: number; ly2: number; ahPoints: string },
-    label: string, lx: number, ly: number,
+    label: string,
+    lx: number,
+    ly: number
   ) {
     return (
       <>
-        <line x1={e.lx1} y1={e.ly1} x2={e.lx2} y2={e.ly2}
-          stroke={sc} strokeWidth={1.5} />
+        <line
+          x1={e.lx1}
+          y1={e.ly1}
+          x2={e.lx2}
+          y2={e.ly2}
+          stroke={sc}
+          strokeWidth={1.5}
+        />
         <polygon points={e.ahPoints} fill={sc} />
-        <text x={lx} y={ly} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--muted)">{label}</text>
+        <text
+          x={lx}
+          y={ly}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--muted)"
+        >
+          {label}
+        </text>
       </>
     );
   }
 
-  function drawNode(cx: number, cy: number, top: string, bottom: string, color: string) {
+  function drawNode(
+    cx: number,
+    cy: number,
+    top: string,
+    bottom: string,
+    color: string
+  ) {
     return (
       <g>
-        <circle cx={cx} cy={cy} r={r}
-          fill="transparent" stroke={color} strokeWidth={1.5} />
-        <text x={cx} y={cy - 3} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill={color}>{top}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">{bottom}</text>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="transparent"
+          stroke={color}
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={cy - 3}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill={color}
+        >
+          {top}
+        </text>
+        <text
+          x={cx}
+          y={cy + 14}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          {bottom}
+        </text>
       </g>
     );
   }
@@ -2854,18 +5577,57 @@ export function ComputationGraphDiagram() {
         {drawNode(Z[0], Z[1], "z", "= 10", "var(--color-orange)")}
 
         {/* Legend */}
-        <circle cx={20} cy={318} r={6} fill="transparent"
-          stroke="var(--color-green)" strokeWidth={1.5} />
-        <text x={32} y={322} fontFamily="var(--font-code)" fontSize={11}
-          fill="var(--muted)">inputs (leaf)</text>
-        <circle cx={140} cy={318} r={6} fill="transparent"
-          stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={152} y={322} fontFamily="var(--font-code)" fontSize={11}
-          fill="var(--muted)">computed</text>
-        <circle cx={230} cy={318} r={6} fill="transparent"
-          stroke="var(--color-orange)" strokeWidth={1.5} />
-        <text x={242} y={322} fontFamily="var(--font-code)" fontSize={11}
-          fill="var(--muted)">output</text>
+        <circle
+          cx={20}
+          cy={318}
+          r={6}
+          fill="transparent"
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={32}
+          y={322}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          inputs (leaf)
+        </text>
+        <circle
+          cx={140}
+          cy={318}
+          r={6}
+          fill="transparent"
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={152}
+          y={322}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          computed
+        </text>
+        <circle
+          cx={230}
+          cy={318}
+          r={6}
+          fill="transparent"
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={242}
+          y={322}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          output
+        </text>
       </svg>
     </div>
   );
@@ -2935,14 +5697,21 @@ export function BackpropDiagram() {
   const r = 26;
 
   function ep(x1: number, y1: number, x2: number, y2: number) {
-    const dx = x2 - x1, dy = y2 - y1;
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
+    const ux = dx / len,
+      uy = dy / len;
     const as = 7;
-    const tipX = x2 - ux * r, tipY = y2 - uy * r;
-    const lx2 = tipX - ux * as, ly2 = tipY - uy * as;
+    const tipX = x2 - ux * r,
+      tipY = y2 - uy * r;
+    const lx2 = tipX - ux * as,
+      ly2 = tipY - uy * as;
     return {
-      lx1: x1 + ux * r, ly1: y1 + uy * r, lx2, ly2,
+      lx1: x1 + ux * r,
+      ly1: y1 + uy * r,
+      lx2,
+      ly2,
       ahPoints: [
         `${tipX.toFixed(1)},${tipY.toFixed(1)}`,
         `${(lx2 - uy * 3.5).toFixed(1)},${(ly2 + ux * 3.5).toFixed(1)}`,
@@ -2959,30 +5728,77 @@ export function BackpropDiagram() {
   const gc = "var(--color-green)";
 
   function bwdArr(
-    x1: number, y1: number, x2: number, y2: number,
-    label: string, lx: number, ly: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    label: string,
+    lx: number,
+    ly: number
   ) {
     const e = ep(x1, y1, x2, y2);
     return (
       <>
-        <line x1={e.lx1} y1={e.ly1} x2={e.lx2} y2={e.ly2}
-          stroke={gc} strokeWidth={1.5} />
+        <line
+          x1={e.lx1}
+          y1={e.ly1}
+          x2={e.lx2}
+          y2={e.ly2}
+          stroke={gc}
+          strokeWidth={1.5}
+        />
         <polygon points={e.ahPoints} fill={gc} />
-        <text x={lx} y={ly} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill={gc}>{label}</text>
+        <text
+          x={lx}
+          y={ly}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill={gc}
+        >
+          {label}
+        </text>
       </>
     );
   }
 
-  function node(cx: number, cy: number, name: string, grad: string, color: string) {
+  function node(
+    cx: number,
+    cy: number,
+    name: string,
+    grad: string,
+    color: string
+  ) {
     return (
       <g>
-        <circle cx={cx} cy={cy} r={r}
-          fill="transparent" stroke={color} strokeWidth={1.5} />
-        <text x={cx} y={cy - 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill={color}>{name}</text>
-        <text x={cx} y={cy + 13} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">∂ = {grad}</text>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="transparent"
+          stroke={color}
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={cy - 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill={color}
+        >
+          {name}
+        </text>
+        <text
+          x={cx}
+          y={cy + 13}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          ∂ = {grad}
+        </text>
       </g>
     );
   }
@@ -3005,29 +5821,70 @@ export function BackpropDiagram() {
         {node(Z[0], Z[1], "z", "1", "var(--color-orange)")}
 
         {/* Accumulation note at x */}
-        <text x={X[0]} y={X[1] + r + 15} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">(4 + 3)</text>
+        <text
+          x={X[0]}
+          y={X[1] + r + 15}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          (4 + 3)
+        </text>
 
         {/* Seed note at z */}
-        <text x={Z[0]} y={Z[1] - r - 6} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">seed</text>
+        <text
+          x={Z[0]}
+          y={Z[1] - r - 6}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          seed
+        </text>
 
         {/* Legend */}
         <line x1={15} y1={317} x2={29} y2={317} stroke={gc} strokeWidth={1.5} />
-        <text x={33} y={321}
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">gradient flow</text>
-        <text x={142} y={321}
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--color-orange)">∂ = N</text>
-        <text x={184} y={321}
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">accumulated gradient</text>
+        <text
+          x={33}
+          y={321}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          gradient flow
+        </text>
+        <text
+          x={142}
+          y={321}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--color-orange)"
+        >
+          ∂ = N
+        </text>
+        <text
+          x={184}
+          y={321}
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          accumulated gradient
+        </text>
       </svg>
     </div>
   );
 }
 
 export function ChainRuleDiagram() {
-  const bw = 85, bh = 34, rx = 3;
-  const nx1 = 15, nx2 = 210, nx3 = 400;
+  const bw = 85,
+    bh = 34,
+    rx = 3;
+  const nx1 = 15,
+    nx2 = 210,
+    nx3 = 400;
   const ny = 35;
   const arY = ny + bh / 2;
   const backY = 126;
@@ -3037,14 +5894,26 @@ export function ChainRuleDiagram() {
 
   const fwdArrow = (x1: number, x2: number, label: string) => (
     <>
-      <line x1={x1} y1={arY} x2={x2 - as} y2={arY}
-        stroke="var(--color-blue)" strokeWidth={1.5} />
+      <line
+        x1={x1}
+        y1={arY}
+        x2={x2 - as}
+        y2={arY}
+        stroke="var(--color-blue)"
+        strokeWidth={1.5}
+      />
       <polygon
         points={`${x2 - as},${arY - 3.5} ${x2},${arY} ${x2 - as},${arY + 3.5}`}
         fill="var(--color-blue)"
       />
-      <text x={(x1 + x2) / 2} y={arY - 12} textAnchor="middle"
-        fontFamily="var(--font-code)" fontSize={13} fill="var(--color-blue)">
+      <text
+        x={(x1 + x2) / 2}
+        y={arY - 12}
+        textAnchor="middle"
+        fontFamily="var(--font-code)"
+        fontSize={13}
+        fill="var(--color-blue)"
+      >
         {label}
       </text>
     </>
@@ -3054,46 +5923,118 @@ export function ChainRuleDiagram() {
     <div className="my-8 flex justify-center overflow-x-auto">
       <svg width={svgW} height={svgH}>
         {/* Node x */}
-        <rect x={nx1} y={ny} width={bw} height={bh} rx={rx}
-          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
-        <text x={nx1 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">x</text>
+        <rect
+          x={nx1}
+          y={ny}
+          width={bw}
+          height={bh}
+          rx={rx}
+          fill="transparent"
+          stroke="var(--color-fg)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={nx1 + bw / 2}
+          y={ny + bh / 2 + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill="var(--color-fg)"
+        >
+          x
+        </text>
 
         {/* Node y = f(x) */}
-        <rect x={nx2} y={ny} width={bw} height={bh} rx={rx}
-          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
-        <text x={nx2 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">y = f(x)</text>
+        <rect
+          x={nx2}
+          y={ny}
+          width={bw}
+          height={bh}
+          rx={rx}
+          fill="transparent"
+          stroke="var(--color-fg)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={nx2 + bw / 2}
+          y={ny + bh / 2 + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill="var(--color-fg)"
+        >
+          y = f(x)
+        </text>
 
         {/* Node z = g(y) */}
-        <rect x={nx3} y={ny} width={bw} height={bh} rx={rx}
-          fill="transparent" stroke="var(--color-fg)" strokeWidth={1.5} />
-        <text x={nx3 + bw / 2} y={ny + bh / 2 + 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={13} fill="var(--color-fg)">z = g(y)</text>
+        <rect
+          x={nx3}
+          y={ny}
+          width={bw}
+          height={bh}
+          rx={rx}
+          fill="transparent"
+          stroke="var(--color-fg)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={nx3 + bw / 2}
+          y={ny + bh / 2 + 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={13}
+          fill="var(--color-fg)"
+        >
+          z = g(y)
+        </text>
 
         {/* Forward arrows */}
         {fwdArrow(nx1 + bw, nx2, "f")}
         {fwdArrow(nx2 + bw, nx3, "g")}
 
         {/* Local gradient labels */}
-        <text x={nx2 + bw / 2} y={ny + bh + 22} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+        <text
+          x={nx2 + bw / 2}
+          y={ny + bh + 22}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-orange)"
+        >
           ∂y/∂x
         </text>
-        <text x={nx3 + bw / 2} y={ny + bh + 22} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-orange)">
+        <text
+          x={nx3 + bw / 2}
+          y={ny + bh + 22}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-orange)"
+        >
           ∂z/∂y
         </text>
 
         {/* Backward arrow: right to left, green */}
-        <line x1={nx3 + bw} y1={backY} x2={nx1 + as} y2={backY}
-          stroke="var(--color-green)" strokeWidth={1.5} />
+        <line
+          x1={nx3 + bw}
+          y1={backY}
+          x2={nx1 + as}
+          y2={backY}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
         <polygon
           points={`${nx1 + as},${backY - 3.5} ${nx1},${backY} ${nx1 + as},${backY + 3.5}`}
           fill="var(--color-green)"
         />
-        <text x={svgW / 2} y={backY + 22} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={12} fill="var(--color-green)">
+        <text
+          x={svgW / 2}
+          y={backY + 22}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={12}
+          fill="var(--color-green)"
+        >
           ∂z/∂x = ∂z/∂y · ∂y/∂x
         </text>
       </svg>
@@ -3102,22 +6043,35 @@ export function ChainRuleDiagram() {
 }
 
 export function GPT2Diagram() {
-  const svgW = 350, svgH = 340;
+  const svgW = 350,
+    svgH = 340;
   const cx = svgW / 2;
-  const bw = 200, bh = 28;
+  const bw = 200,
+    bh = 28;
   const bLeft = cx - bw / 2;
 
   function ap(x1: number, y1: number, x2: number, y2: number, as = 6): string {
-    const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-    const ux = dx / len, uy = dy / len;
-    const ex = x2 - ux * as, ey = y2 - uy * as;
+    const dx = x2 - x1,
+      dy = y2 - y1,
+      len = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / len,
+      uy = dy / len;
+    const ex = x2 - ux * as,
+      ey = y2 - uy * as;
     return `${x2.toFixed(1)},${y2.toFixed(1)} ${(ex - uy * 3).toFixed(1)},${(ey + ux * 3).toFixed(1)} ${(ex + uy * 3).toFixed(1)},${(ey - ux * 3).toFixed(1)}`;
   }
 
   function vArrow(y1: number, y2: number) {
     return (
       <>
-        <line x1={cx} y1={y1} x2={cx} y2={y2 - 5} stroke="var(--border-strong)" strokeWidth={1.2} />
+        <line
+          x1={cx}
+          y1={y1}
+          x2={cx}
+          y2={y2 - 5}
+          stroke="var(--border-strong)"
+          strokeWidth={1.2}
+        />
         <polygon points={ap(cx, y1, cx, y2)} fill="var(--border-strong)" />
       </>
     );
@@ -3134,70 +6088,215 @@ export function GPT2Diagram() {
 
   return (
     <div className="my-8">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW}
-        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}>
-
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        width={svgW}
+        style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+      >
         {/* Token IDs */}
-        <rect x={bLeft} y={8} width={bw} height={bh} rx={3}
-          fill="var(--muted)" fillOpacity={0.07} stroke="var(--muted)" strokeWidth={1.5} />
-        <text x={cx} y={8 + bh / 2 + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)">{"idx  [t₁, t₂, …, t_T]"}</text>
+        <rect
+          x={bLeft}
+          y={8}
+          width={bw}
+          height={bh}
+          rx={3}
+          fill="var(--muted)"
+          fillOpacity={0.07}
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={8 + bh / 2 + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          {"idx  [t₁, t₂, …, t_T]"}
+        </text>
 
         {vArrow(36, 52)}
 
         {/* Input Embedding */}
-        <rect x={bLeft} y={52} width={bw} height={36} rx={3}
-          fill="var(--color-blue)" fillOpacity={0.07} stroke="var(--color-blue)" strokeWidth={1.5} />
-        <text x={cx} y={52 + 13} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-blue)" fontWeight={600}>Input Embedding</text>
-        <text x={cx} y={52 + 26} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-blue)">{"E[t] + P[pos]  →  x ∈ ℝ^(T×D)"}</text>
+        <rect
+          x={bLeft}
+          y={52}
+          width={bw}
+          height={36}
+          rx={3}
+          fill="var(--color-blue)"
+          fillOpacity={0.07}
+          stroke="var(--color-blue)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={52 + 13}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-blue)"
+          fontWeight={600}
+        >
+          Input Embedding
+        </text>
+        <text
+          x={cx}
+          y={52 + 26}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--color-blue)"
+        >
+          {"E[t] + P[pos]  →  x ∈ ℝ^(T×D)"}
+        </text>
 
         {/* Arrow from emb bottom (88) into block box top (118), crossing dashed boundary */}
         {vArrow(88, 118)}
 
         {/* N blocks dashed boundary */}
-        <rect x={bLeft - 6} y={104} width={bw + 12} height={82} rx={4}
-          fill="none" stroke="var(--border)" strokeWidth={1} strokeDasharray="5 3" />
-        <text x={bLeft - 2} y={116}
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--muted)">× N</text>
+        <rect
+          x={bLeft - 6}
+          y={104}
+          width={bw + 12}
+          height={82}
+          rx={4}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="5 3"
+        />
+        <text
+          x={bLeft - 2}
+          y={116}
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--muted)"
+        >
+          × N
+        </text>
 
         {/* Transformer Block box (inside dashed region) */}
-        <rect x={bLeft + 10} y={118} width={bw - 20} height={52} rx={3}
-          fill="var(--color-green)" fillOpacity={0.08} stroke="var(--color-green)" strokeWidth={1.5} />
-        <text x={cx} y={118 + 20} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-green)" fontWeight={600}>Transformer Block</text>
-        <text x={cx} y={118 + 35} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--color-green)">MHA + FFN + LayerNorm + Residual</text>
+        <rect
+          x={bLeft + 10}
+          y={118}
+          width={bw - 20}
+          height={52}
+          rx={3}
+          fill="var(--color-green)"
+          fillOpacity={0.08}
+          stroke="var(--color-green)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={118 + 20}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-green)"
+          fontWeight={600}
+        >
+          Transformer Block
+        </text>
+        <text
+          x={cx}
+          y={118 + 35}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--color-green)"
+        >
+          MHA + FFN + LayerNorm + Residual
+        </text>
 
         {vArrow(186, 202)}
 
         {/* Final LayerNorm */}
-        <rect x={bLeft} y={202} width={bw} height={bh} rx={3}
-          fill="var(--color-orange)" fillOpacity={0.08} stroke="var(--color-orange)" strokeWidth={1.5} />
-        <text x={cx} y={202 + bh / 2 + 4} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--color-orange)">Final LayerNorm</text>
+        <rect
+          x={bLeft}
+          y={202}
+          width={bw}
+          height={bh}
+          rx={3}
+          fill="var(--color-orange)"
+          fillOpacity={0.08}
+          stroke="var(--color-orange)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={202 + bh / 2 + 4}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--color-orange)"
+        >
+          Final LayerNorm
+        </text>
 
         {vArrow(230, 246)}
 
         {/* LM Head */}
-        <rect x={bLeft} y={246} width={bw} height={36} rx={3}
-          fill="var(--pink)" fillOpacity={0.10} stroke="var(--pink)" strokeWidth={1.5} />
-        <text x={cx} y={246 + 13} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--pink)" fontWeight={600}>LM Head</text>
-        <text x={cx} y={246 + 26} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={8} fill="var(--pink)">{"h · E^T  (weight-tied)"}</text>
+        <rect
+          x={bLeft}
+          y={246}
+          width={bw}
+          height={36}
+          rx={3}
+          fill="var(--pink)"
+          fillOpacity={0.1}
+          stroke="var(--pink)"
+          strokeWidth={1.5}
+        />
+        <text
+          x={cx}
+          y={246 + 13}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--pink)"
+          fontWeight={600}
+        >
+          LM Head
+        </text>
+        <text
+          x={cx}
+          y={246 + 26}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={8}
+          fill="var(--pink)"
+        >
+          {"h · E^T  (weight-tied)"}
+        </text>
 
         {vArrow(282, 298)}
 
         {/* Logits output */}
-        <text x={cx} y={312} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={11} fill="var(--muted)">{"logits  (T × V)"}</text>
+        <text
+          x={cx}
+          y={312}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={11}
+          fill="var(--muted)"
+        >
+          {"logits  (T × V)"}
+        </text>
 
         {/* Caption */}
-        <text x={cx} y={svgH - 5} textAnchor="middle"
-          fontFamily="var(--font-code)" fontSize={10} fill="var(--muted)"
-        >GPT-2: causal attention throughout, weight-tied LM head</text>
+        <text
+          x={cx}
+          y={svgH - 5}
+          textAnchor="middle"
+          fontFamily="var(--font-code)"
+          fontSize={10}
+          fill="var(--muted)"
+        >
+          GPT-2: causal attention throughout, weight-tied LM head
+        </text>
       </svg>
     </div>
   );

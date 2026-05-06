@@ -45,7 +45,8 @@ export const navigation: Topic[] = [
       {
         title: "Gradients",
         slug: "gradients",
-        description: "Derivatives in multiple directions — the slope of a surface.",
+        description:
+          "Derivatives in multiple directions — the slope of a surface.",
       },
     ],
   },
@@ -83,7 +84,8 @@ export const navigation: Topic[] = [
       {
         title: "Gradient Descent",
         slug: "gradient-descent",
-        description: "Using the gradient to nudge parameters in the right direction.",
+        description:
+          "Using the gradient to nudge parameters in the right direction.",
       },
       {
         title: "Optimizers",
@@ -93,7 +95,8 @@ export const navigation: Topic[] = [
       {
         title: "The Training Loop",
         slug: "training-loop",
-        description: "Batches, epochs, validation — the full cycle of learning.",
+        description:
+          "Batches, epochs, validation — the full cycle of learning.",
       },
     ],
   },
@@ -104,7 +107,8 @@ export const navigation: Topic[] = [
       {
         title: "Activation Functions",
         slug: "activation-functions",
-        description: "ReLU, sigmoid, tanh — adding non-linearity to the network.",
+        description:
+          "ReLU, sigmoid, tanh — adding non-linearity to the network.",
       },
       {
         title: "Linear Layers",
@@ -114,7 +118,8 @@ export const navigation: Topic[] = [
       {
         title: "Regularization",
         slug: "regularization",
-        description: "Dropout and batch normalization — keeping the network honest.",
+        description:
+          "Dropout and batch normalization — keeping the network honest.",
       },
     ],
   },
@@ -161,7 +166,8 @@ export const navigation: Topic[] = [
       {
         title: "LSTMs & GRUs",
         slug: "lstms-and-grus",
-        description: "Gating mechanisms that fix the vanishing gradient problem.",
+        description:
+          "Gating mechanisms that fix the vanishing gradient problem.",
       },
       {
         title: "The Limits of RNNs",
@@ -182,7 +188,8 @@ export const navigation: Topic[] = [
       {
         title: "Positional Encoding",
         slug: "positional-encoding",
-        description: "Injecting word order into an order-agnostic architecture.",
+        description:
+          "Injecting word order into an order-agnostic architecture.",
       },
       {
         title: "Attention Mechanism",
@@ -197,7 +204,8 @@ export const navigation: Topic[] = [
       {
         title: "The Transformer Block",
         slug: "transformer-block",
-        description: "LayerNorm, feed-forward layers, and residual connections.",
+        description:
+          "LayerNorm, feed-forward layers, and residual connections.",
       },
       {
         title: "GPT-2 from Scratch",
